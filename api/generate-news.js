@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 
 export default async function handler(req, res) {
-
+ 
 const today = new Date().toISOString().slice(0,10)
 
 // Firebase 설정 (환경변수 사용)
