@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleGenAI, Type } from "@google/genai";
 import { 
   ShieldCheck, 
   TrendingUp, 
@@ -16,44 +15,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MarketBriefing } from './types';
-import { db } from './firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+// 🔥 중요: 기존에 에러를 유발하던 'import { db } from "./firebase";' 를 삭제했습니다.
 import logo from './logo.png';
-
-const SYSTEM_INSTRUCTION = `You are a senior global metals market strategist.
-Your role is to analyze global metals market data and produce a daily executive briefing for raw material procurement executives working at Korean steel producers.
-
-[CRITICAL: LINK INTEGRITY VERIFICATION]
-For every news item or source provided, you MUST perform the following 5-step verification:
-1. Verify the URL is a real, active article page (not a homepage or search result).
-2. Ensure the title and content match the actual article.
-3. Exclude ad pages, redirect pages, or promotional content.
-4. Exclude pages requiring login or subscription (Paywalls).
-5. ABSOLUTELY NO "404 / Inaccessible links". Use only "Zero-confirmed original URLs".
-If a link cannot be verified with 100% certainty, DO NOT include it.
-
-Target audience: Senior purchasing managers and executives at steel companies.
-Focus commodities: Aluminum, Copper, Iron Ore, Steel Scrap.
-
-Output structure (MUST follow this JSON format):
-{
-  "prices": [
-    {"item": "품목명", "price": "가격 정보", "note": "비고/변동사항"}
-  ],
-  "news": [
-    {"title": "기사 제목", "summary": "핵심 요약", "url": "검증된 원본 URL", "source": "매체명"}
-  ],
-  "snapshot": ["bullet point 1", "bullet point 2"],
-  "priceDrivers": "Explanation...",
-  "aluminumOutlook": "Analysis...",
-  "scrapOutlook": "Analysis...",
-  "ironOreMining": "Analysis...",
-  "riskSignals": "Potential risks...",
-  "procurementStrategy": "Recommendation..."
-}
-
-Language: KOREAN. Professional and Analytical style.
-Goal: Provide exactly 10 verified news items if possible.`;
 
 export default function App() {
   const [briefing, setBriefing] = useState<MarketBriefing | null>(null);
@@ -64,25 +27,12 @@ export default function App() {
     const initApp = async () => {
       const today = new Date().toISOString().split('T')[0];
       try {
-        // 1. Try to load from Firebase (Check daily_news first)
-        let docRef = doc(db, 'daily_news', today);
-        let docSnap = await getDoc(docRef);
-
-        if (!docSnap.exists()) {
-          // Fallback to briefings for older data
-          docRef = doc(db, 'briefings', today);
-          docSnap = await getDoc(docRef);
-        }
-
-        if (docSnap.exists()) {
-          setBriefing(docSnap.data() as MarketBriefing);
-          setLoading(false);
-        } else {
-          // 2. If not exists, fetch from backend (which will generate and save)
-          await fetchAndGenerate(today);
-        }
+        // 🔥 변경된 부분: 브라우저에서 직접 Firestore를 조회하지 않고, 
+        // 무조건 백엔드 API(/api/generate-report)를 호출합니다.
+        // 백엔드에서 "이미 오늘 데이터가 있으면" 바로 반환하도록 설계되어 있습니다.
+        await fetchAndGenerate(today);
       } catch (err) {
-        console.error("Firebase/Init Error:", err);
+        console.error("App Init Error:", err);
         setError("데이터를 불러오는 중 오류가 발생했습니다.");
         setLoading(false);
       }
@@ -94,15 +44,18 @@ export default function App() {
   const fetchAndGenerate = async (date: string) => {
     setLoading(true);
     try {
-      // Use the new robust backend endpoint
+      // Vercel의 서버리스 함수를 호출합니다.
       const response = await fetch(`/api/generate-report?date=${date}`);
-      if (!response.ok) throw new Error("Backend generation failed");
+      
+      if (!response.ok) {
+        throw new Error("서버로부터 데이터를 가져오지 못했습니다.");
+      }
       
       const finalBriefing = await response.json();
       setBriefing(finalBriefing);
     } catch (err: any) {
       console.error("Generation Error:", err);
-      setError("브리핑 생성 중 오류가 발생했습니다.");
+      setError("브리핑 생성 중 오류가 발생했습니다. Vercel 환경 변수를 확인해주세요.");
     } finally {
       setLoading(false);
     }
@@ -141,7 +94,6 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 gap-8">
           
-          {/* Main Briefing Display */}
           <div className="space-y-8">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center gap-2">
@@ -192,7 +144,7 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {briefing.prices.map((p, i) => (
+                          {briefing.prices?.map((p, i) => (
                             <tr key={i} className="hover:bg-gray-50 transition-colors">
                               <td className="px-6 py-4 font-bold text-gray-900">{p.item}</td>
                               <td className="px-6 py-4 font-medium text-blue-600">{p.price}</td>
@@ -243,89 +195,3 @@ export default function App() {
                   <section className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
                     <div className="bg-blue-600 px-6 py-3 flex items-center gap-2">
                       <Globe className="w-5 h-5 text-white" />
-                      <h2 className="text-white font-bold text-sm uppercase tracking-wider">글로벌 금속 시장 스냅샷</h2>
-                    </div>
-                    <div className="p-6">
-                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {briefing.snapshot.map((point, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                            <ChevronRight className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                            {point}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </section>
-
-                  {/* Main Content Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-blue-500" />
-                        가격 변동 동인 (Price Drivers)
-                      </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed">{briefing.priceDrivers}</p>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-blue-500" />
-                        알루미늄 시장 전망
-                      </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed">{briefing.aluminumOutlook}</p>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <BarChart4 className="w-4 h-4 text-blue-500" />
-                        철스크랩 시장 전망
-                      </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed">{briefing.scrapOutlook}</p>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <Database className="w-4 h-4 text-blue-500" />
-                        철광석 및 광산 공급 현황
-                      </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed">{briefing.ironOreMining}</p>
-                    </div>
-                  </div>
-
-                  {/* Risk & Strategy */}
-                  <div className="grid grid-cols-1 gap-6">
-                    <section className="bg-amber-50 rounded-lg border border-amber-200 p-6 shadow-sm">
-                      <h3 className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" />
-                        리스크 신호 (Risk Signals)
-                      </h3>
-                      <p className="text-sm text-amber-900 leading-relaxed">{briefing.riskSignals}</p>
-                    </section>
-
-                    <section className="bg-blue-900 rounded-lg border border-blue-800 p-6 text-white shadow-lg">
-                      <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <Lightbulb className="w-4 h-4" />
-                        구매 전략 인사이트 (Procurement Strategy)
-                      </h3>
-                      <p className="text-base font-medium leading-relaxed italic">"{briefing.procurementStrategy}"</p>
-                    </section>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            )}
-          </div>
-        </div>
-      </main>
-
-      <footer className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-200 mt-12">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-gray-400">
-            <ShieldCheck className="w-4 h-4" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">전략적 인텔리전스 엔진 v2.0</span>
-          </div>
-          <p className="text-[10px] text-gray-400">© 2026 오늘의 원자재 뉴스. 내부 구매팀 전용.</p>
-        </div>
-      </footer>
-    </div>
-  );
-}
