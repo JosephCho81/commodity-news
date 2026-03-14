@@ -1,16 +1,15 @@
 {
-  "version": 3,
-  "functions": {
-    "api/generate-news.js": {
-      "memory": 512,
-      "maxDuration": 10
-    },
-    "api/get-news.js": {
-      "memory": 512,
-      "maxDuration": 5
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
     }
-  },
+  ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.js" }
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.js"
+    }
   ]
 }
