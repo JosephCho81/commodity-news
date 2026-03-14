@@ -1,18 +1,19 @@
-export interface PriceData {
-  commodity: string;
+export interface PriceItem {
+  item: string;
   price: string;
-  changePercent: string;
+  note: string;
 }
 
-export interface NewsArticleInput {
+export interface NewsItem {
   title: string;
-  source: string;
+  summary: string;
   url: string;
-  published_at: string;
-  content_snippet: string;
+  source: string;
 }
 
 export interface MarketBriefing {
+  prices: PriceItem[];
+  news: NewsItem[];
   snapshot: string[];
   priceDrivers: string;
   aluminumOutlook: string;

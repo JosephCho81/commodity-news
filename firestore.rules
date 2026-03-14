@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: briefings
+    // Document ID: {date} (YYYY-MM-DD)
+    // Fields:
+    //   - date: string (required)
+    //   - prices: list of maps (required)
+    //   - snapshot: list of strings (required)
+    //   - priceDrivers: string
+    //   - aluminumOutlook: string
+    //   - scrapOutlook: string
+    //   - ironOreMining: string
+    //   - riskSignals: string
+    //   - procurementStrategy: string
+    //   - updatedAt: timestamp/string
+    // ===============================================================
+
+    match /briefings/{date} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /daily_news/{date} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
