@@ -1,8 +1,16 @@
 {
- "cron": [
-   {
-     "path": "/api/generate-news",
-     "schedule": "0 6 * * *"
-   }
- ]
+  "version": 3,
+  "functions": {
+    "api/generate-news.js": {
+      "memory": 512,
+      "maxDuration": 10
+    },
+    "api/get-news.js": {
+      "memory": 512,
+      "maxDuration": 5
+    }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1.js" }
+  ]
 }
