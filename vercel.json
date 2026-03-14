@@ -1,0 +1,8 @@
+{
+ "cron": [
+   {
+     "path": "/api/generate-news",
+     "schedule": "0 6 * * *"
+   }
+ ]
+}
