@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 export default async function handler(req, res) {
-
+ 
 const today = new Date().toISOString().slice(0,10)
 
 const firebaseConfig = {
