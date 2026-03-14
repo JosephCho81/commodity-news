@@ -1,17 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react()], // tailwindcss() 플러그인을 여기서 제거합니다.
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'), // 보통 src 폴더를 가리킵니다.
+      '@': path.resolve(__dirname, './src'),
     },
   },
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-  }
 });
