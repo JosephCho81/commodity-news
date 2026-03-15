@@ -12,10 +12,8 @@ import {
   Lightbulb,
   AlertTriangle,
   ChevronRight,
-  Info,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MarketBriefing } from './types';
 import { db } from './firebase';
 import { doc, getDoc, getDocFromServer } from 'firebase/firestore';
 
@@ -45,14 +43,13 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState("데이터 확인 중...");
+  const [logoError, setLogoError] = useState(false);
 
   const generateBriefing = async () => {
     setStatusMsg("AI가 시장을 분석 중입니다 (약 15~25초 소요)...");
     try {
       const response = await fetch('/api/get-news');
-      if (!response.ok) {
-        throw new Error("서버 오류: " + response.status);
-      }
+      if (!response.ok) throw new Error("서버 오류: " + response.status);
       const data = await response.json();
       if (data.status === 'cached' || data.status === 'generated') {
         setBriefing(data);
@@ -74,7 +71,6 @@ export default function App() {
         const today = getKSTDate();
         const docRef = doc(db, "commodity-news", today);
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists()) {
           console.log("파이어베이스에서 기존 데이터를 불러왔습니다.");
           setBriefing(docSnap.data());
@@ -92,7 +88,6 @@ export default function App() {
     initApp();
   }, []);
 
-  // 표시할 뉴스: allNews(전체) 있으면 우선, 없으면 news(분석용) 사용
   const displayNews = briefing?.allNews || briefing?.news || [];
 
   return (
@@ -101,17 +96,18 @@ export default function App() {
       <header className="bg-[#111827] text-white border-b border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* 로고 — public/logo.png 절대경로로 로드 */}
+            {/* 로고 */}
             <div className="w-10 h-10 bg-white rounded flex items-center justify-center overflow-hidden shrink-0">
-              <img
-                src="/logo.png"
-                alt="Logo"
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
+              {!logoError ? (
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  className="w-full h-full object-contain p-0.5"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <span className="text-green-600 font-black text-lg">A1</span>
+              )}
             </div>
             <div>
               <h1 className="font-bold text-lg tracking-tight">오늘의 원자재 뉴스</h1>
@@ -155,16 +151,9 @@ export default function App() {
                 >
                   {/* Prices Table */}
                   <section className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                    <div className="bg-gray-800 px-6 py-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Database className="w-5 h-5 text-white" />
-                        <h2 className="text-white font-bold text-sm uppercase tracking-wider">주요 원자재 가격 현황</h2>
-                      </div>
-                      {/* 가격 추정치 안내 배지 */}
-                      <div className="flex items-center gap-1 bg-yellow-500 bg-opacity-20 border border-yellow-400 border-opacity-40 rounded px-2 py-1">
-                        <Info className="w-3 h-3 text-yellow-300" />
-                        <span className="text-[10px] text-yellow-300 font-medium">AI 추정치 — 실제 가격과 다를 수 있습니다</span>
-                      </div>
+                    <div className="bg-gray-800 px-6 py-3 flex items-center gap-2">
+                      <Database className="w-5 h-5 text-white" />
+                      <h2 className="text-white font-bold text-sm uppercase tracking-wider">주요 원자재 가격 현황</h2>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm text-left">
@@ -256,7 +245,7 @@ export default function App() {
                     </section>
                   </div>
 
-                  {/* 전체 뉴스 섹션 — allNews 우선, 없으면 news */}
+                  {/* 전체 뉴스 섹션 */}
                   <section className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
                     <div className="bg-emerald-600 px-6 py-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
