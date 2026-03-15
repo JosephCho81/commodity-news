@@ -6,7 +6,8 @@ export default async function handler(req, res) {
   const today = new Date().toISOString().slice(0, 10);
 
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  const dbId = firebaseConfig.firestoreDatabaseId === "(default)" ? undefined : firebaseConfig.firestoreDatabaseId;
+  const db = getFirestore(app, dbId);
 
   try {
     const docRef = doc(db, "commodity-news", today);

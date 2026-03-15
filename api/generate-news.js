@@ -17,7 +17,8 @@ export default async function handler(req, res) {
 
     // Firebase 초기화 (중복 방지)
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+    const dbId = firebaseConfig.firestoreDatabaseId === "(default)" ? undefined : firebaseConfig.firestoreDatabaseId;
+    const db = getFirestore(app, dbId);
 
     // 1. 오늘 브리핑이 이미 있는지 확인
     try {

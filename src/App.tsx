@@ -19,7 +19,21 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { MarketBriefing } from './types';
 import { db } from './firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firestore connection successful");
+  } catch (error) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. The client is offline.");
+    } else {
+      console.error("Firestore connection test error:", error);
+    }
+  }
+}
+testConnection();
 // import logo from './logo.png';
 
 const SYSTEM_INSTRUCTION = `당신은 글로벌 원자재 시장 전략가입니다. 
@@ -97,9 +111,9 @@ export default function App() {
           const data = await response.json();
           await generateBriefing(data.news);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Init Error:", err);
-        setError("데이터를 불러오는 중 오류가 발생했습니다. 파이어베이스 연결을 확인해주세요.");
+        setError(`데이터를 불러오는 중 오류가 발생했습니다: ${err.message || "알 수 없는 오류"}`);
         setLoading(false);
       }
     };
