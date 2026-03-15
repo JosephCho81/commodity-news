@@ -95,7 +95,7 @@ async function generateAndSave(today) {
       seen.add(n.title);
       return true;
     })
-    .slice(0, 8)
+    .slice(0, 5)
     .map((n, index) => {
       let source = "News";
       try {
@@ -166,7 +166,7 @@ async function generateAndSave(today) {
       tools: [{ googleSearch: {} }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
       },
     };
 
