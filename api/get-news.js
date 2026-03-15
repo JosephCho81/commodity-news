@@ -68,7 +68,7 @@ async function fetchRSS(url) {
 async function generateAndSave(today) {
   const database = getDB();
 
-  // 1. RSS 수집
+  // 1. RSS 수집 — 분석용 5개 + 표시용 전체 따로 관리
   const feeds = [
     "https://news.google.com/rss/search?q=aluminum+market+LME&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=copper+market+LME&hl=en&gl=US&ceid=US:en",
@@ -82,14 +82,14 @@ async function generateAndSave(today) {
     rawNews = rawNews.concat(await fetchRSS(f));
   }
 
+  // 중복 제거
   const seen = new Set();
-  const processedNews = rawNews
+  const allNews = rawNews
     .filter((n) => {
       if (!n.title || seen.has(n.title)) return false;
       seen.add(n.title);
       return true;
     })
-    .slice(0, 5)
     .map((n, index) => {
       let source = "News";
       try {
@@ -104,17 +104,22 @@ async function generateAndSave(today) {
       };
     });
 
-  if (processedNews.length === 0) {
+  if (allNews.length === 0) {
     throw new Error("RSS 수집 실패 — 뉴스 없음");
   }
 
-  console.log("RSS 수집 완료: " + processedNews.length + "건");
+  // 분석용: 상위 5개만 Gemini에 전달 (토큰 절약)
+  const newsForAnalysis = allNews.slice(0, 5);
+  // 표시용: 전체 뉴스 (최대 25개) Firestore에 저장
+  const allNewsForDisplay = allNews.slice(0, 25);
 
-  // 2. Gemini 호출
+  console.log("RSS 수집 완료: 분석용 " + newsForAnalysis.length + "건 / 표시용 " + allNewsForDisplay.length + "건");
+
+  // 2. Gemini 호출 — 분석용 5개만 전달
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 환경변수 없음");
 
-  const newsForAI = processedNews.map((n) => ({
+  const newsForAI = newsForAnalysis.map((n) => ({
     id: n.id,
     title: n.title,
     source: n.source,
@@ -123,8 +128,8 @@ async function generateAndSave(today) {
   const prompt = "당신은 글로벌 원자재 시장 전략가입니다.\n"
     + "오늘 날짜: " + today + "\n\n"
     + "아래 뉴스 헤드라인을 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 작성하십시오.\n\n"
-    + "[가격 입력 규칙 — 반드시 실제 숫자값을 입력하십시오]\n"
-    + "빈값이나 추정치 표시 없이 반드시 현재 시장의 실제 가격을 기입하십시오.\n"
+    + "[가격 입력 규칙]\n"
+    + "현재 시장의 추정 가격을 기입하고, note에 반드시 (추정치) 라고 명시하십시오.\n"
     + "- LME Aluminum: 현재 Cash Bid 가격 (예: $2,650.50)\n"
     + "- 조달청 알루미늄 서구산: 현재 방출 가격 (예: 3,200,000원\\n(부가세 포함))\n"
     + "- LME Copper: 현재 Cash Bid 가격 (예: $9,850.00)\n"
@@ -199,8 +204,8 @@ async function generateAndSave(today) {
     briefingData = JSON.parse(rawText);
     console.log("JSON 파싱 성공");
 
-    // id 기반으로 원본 url 복원
-    const urlById = new Map(processedNews.map((n) => [n.id, n.url]));
+    // id 기반으로 원본 url 복원 (분석용 5개)
+    const urlById = new Map(newsForAnalysis.map((n) => [n.id, n.url]));
     if (briefingData.news && Array.isArray(briefingData.news)) {
       briefingData.news = briefingData.news.map((item) => {
         const originalUrl = urlById.get(item.id) || "";
@@ -217,7 +222,7 @@ async function generateAndSave(today) {
         { item: "LME Copper", price: "N/A", note: "데이터 조회 실패" },
         { item: "LME Zinc", price: "N/A", note: "데이터 조회 실패" },
       ],
-      news: processedNews.map((n) => ({
+      news: newsForAnalysis.map((n) => ({
         id: n.id,
         title: n.title,
         summary: "",
@@ -235,13 +240,15 @@ async function generateAndSave(today) {
   }
 
   // 3. Firestore 저장
+  // allNewsForDisplay: 전체 뉴스 목록 (url 포함) 별도 저장
   const docData = Object.assign({}, briefingData, {
     date: today,
     updatedAt: new Date().toISOString(),
+    allNews: allNewsForDisplay,  // 전체 뉴스 목록
   });
 
   await setDoc(doc(database, "commodity-news", today), docData);
-  console.log(today + " Firestore 저장 완료");
+  console.log(today + " Firestore 저장 완료 (전체 뉴스 " + allNewsForDisplay.length + "건)");
 
   return docData;
 }
