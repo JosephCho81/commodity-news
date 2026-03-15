@@ -1,7 +1,10 @@
 {
-  "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "functions": {
+    "api/get-news.js": {
+      "maxDuration": 60
+    },
+    "api/generate-news.js": {
+      "maxDuration": 60
+    }
+  }
 }
