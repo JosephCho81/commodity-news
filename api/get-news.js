@@ -174,7 +174,7 @@ async function generateAndSave(today) {
     console.log("Gemini 1.5 Pro 호출 시작...");
 
     const geminiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" + GEMINI_API_KEY,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
