@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MarketBriefing } from './types';
 import { db } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import logo from './logo.png';
+// import logo from './logo.png';
 
 const SYSTEM_INSTRUCTION = `당신은 글로벌 원자재 시장 전략가입니다. 
 다음 글로벌 원자재 뉴스와 실시간 검색 결과를 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 작성하십시오.
@@ -84,7 +84,7 @@ export default function App() {
         const docSnap = await getDoc(docRef);
 
         // "지금에 한해서" 캐시를 무시하고 새로 생성하도록 수정 (한 번 생성 후 다시 원복 예정)
-        const forceRefresh = true; 
+        const forceRefresh = false; 
 
         if (docSnap.exists() && !forceRefresh) {
           console.log("파이어베이스에서 기존 데이터를 불러왔습니다.");
@@ -122,11 +122,7 @@ export default function App() {
         3. LME Copper (Cash Bid) - 현재 약 $12,757 수준인지 확인
         4. LME Zinc (Cash Bid)
         
-        추가 참고 뉴스 URL (반드시 분석에 포함할 것):
-        - https://www.fastmarkets.com/insights/chinas-steel-exports-to-persian-gulf-face-near-term-setback-amid-hormuz-disruption/
-        - https://www.weforum.org/stories/2026/03/middle-east-conflict-shipping-oil-prices-trade/
-        
-        뉴스 데이터:
+        뉴스 데이터 (이 데이터에 포함된 URL만 사용하고, 제목과 요약은 한국어로 번역하여 작성하라):
         ${JSON.stringify(newsItems)}
       `;
 
@@ -173,7 +169,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded flex items-center justify-center overflow-hidden">
               <img 
-                src={logo} 
+                src="/logo.png" 
                 alt="Company Logo" 
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
@@ -184,9 +180,11 @@ export default function App() {
                 }}
               />
             </div>
-            <div>
-              <h1 className="font-bold text-lg tracking-tight">오늘의 원자재 뉴스</h1>
-              <p className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold">전략적 시장 인텔리전스</p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="font-bold text-lg tracking-tight">오늘의 원자재 뉴스</h1>
+                <p className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold">전략적 시장 인텔리전스</p>
+              </div>
             </div>
           </div>
           <div className="text-right hidden sm:block">
