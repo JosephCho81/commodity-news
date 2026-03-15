@@ -68,7 +68,7 @@ export default function App() {
     const initApp = async () => {
       try {
         setStatusMsg("오늘의 리포트를 확인하고 있습니다...");
-        const today = new Date().toISOString().slice(0, 10);
+        const today = new Date().toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" }).replace(/\. /g, "-").replace(".", "").trim();
 
         // ── STEP 1: Firestore에서 오늘 데이터 먼저 확인 ─────────────────
         const docRef = doc(db, "commodity-news", today);
