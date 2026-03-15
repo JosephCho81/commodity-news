@@ -34,14 +34,20 @@ const SYSTEM_INSTRUCTION = `당신은 글로벌 원자재 시장 전략가입니
 [지침]
 1. 모든 응답은 반드시 한국어로 작성하십시오.
 2. 해외 뉴스 제목과 요약은 반드시 한국어로 번역하십시오.
-3. "prices" 섹션에는 위 4가지 항목만 포함하십시오.
+3. **중요: 뉴스 링크 (url)**는 반드시 클릭 가능한 실제 유효한 URL이어야 합니다. 검색 도구를 통해 얻은 실제 기사 주소를 기입하십시오.
+4. "prices" 섹션에는 위 4가지 항목만 포함하십시오.
 4. **중요: 조달청 알루미늄 항목의 경우**
    - item 명칭은 반드시 "조달청 알루미늄\\n(서구산)"으로 작성하십시오. (줄바꿈 문자 \\n 포함)
    - price 값은 반드시 "가격원\\n(부가세 포함)" 형식으로 작성하십시오. (예: "3,450,000원\\n(부가세 포함)")
 5. 가격이 검색되지 않는다면 'N/A'라고 적지 말고, 가장 최근의 시장 추정치라도 검색하여 기입하십시오.
 6. "note" 필드에는 해당 품목의 가격 등락 원인이나 특이사항을 한 문장으로 간략히 적으십시오.
 7. "snapshot" 섹션에는 현재 시장의 가장 중요한 핵심 이슈 5가지를 리스트로 작성하십시오.
-8. 반드시 아래 JSON 구조를 엄격히 지켜서 응답하십시오.
+8. **중요: 리스크 신호 (riskSignals) 섹션**은 반드시 다음 4가지 항목을 줄바꿈하여 작성하십시오:
+   1. 중동 분쟁 장기화에 따른 물류비 급증
+   2. 미국발 관세 전쟁 본격화
+   3. 고금리 장기화에 따른 실물 수요 위축 가능성
+   4. 중국의 전격적인 수출 제한 조치 가능성
+9. 반드시 아래 JSON 구조를 엄격히 지켜서 응답하십시오.
 
 JSON 구조 예시:
 {
@@ -160,10 +166,14 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded flex items-center justify-center overflow-hidden">
               <img 
-                src={logo} 
+                src="/src/logo.png" 
                 alt="Company Logo" 
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  // Fallback if logo.png is still broken
+                  (e.target as HTMLImageElement).src = "https://picsum.photos/seed/metal/100/100";
+                }}
               />
             </div>
             <div>
@@ -242,7 +252,7 @@ export default function App() {
                   <section className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
                     <div className="bg-blue-600 px-6 py-3 flex items-center gap-2">
                       <Globe className="w-5 h-5 text-white" />
-                      <h2 className="text-white font-bold text-sm uppercase tracking-wider">글로벌 금속 시장 스냅샷</h2>
+                      <h2 className="text-white font-bold text-sm uppercase tracking-wider">글로벌 시장 현황</h2>
                     </div>
                     <div className="p-6">
                       <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -261,7 +271,7 @@ export default function App() {
                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-blue-500" />
-                        가격 변동 동인 (Price Drivers)
+                        가격 변동 동인
                       </h3>
                       <p className="text-sm text-gray-700 leading-relaxed">{briefing.priceDrivers}</p>
                     </div>
@@ -277,7 +287,7 @@ export default function App() {
                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <BarChart4 className="w-4 h-4 text-blue-500" />
-                        구리(Copper) 시장 전망
+                        구리 시장 전망
                       </h3>
                       <p className="text-sm text-gray-700 leading-relaxed">{briefing.copperOutlook}</p>
                     </div>
@@ -285,7 +295,7 @@ export default function App() {
                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <Database className="w-4 h-4 text-blue-500" />
-                        아연(Zinc) 시장 전망
+                        아연 시장 전망
                       </h3>
                       <p className="text-sm text-gray-700 leading-relaxed">{briefing.zincOutlook}</p>
                     </div>
@@ -296,15 +306,15 @@ export default function App() {
                     <section className="bg-amber-50 rounded-lg border border-amber-200 p-6 shadow-sm">
                       <h3 className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4" />
-                        리스크 신호 (Risk Signals)
+                        리스크 신호
                       </h3>
-                      <p className="text-sm text-amber-900 leading-relaxed">{briefing.riskSignals}</p>
+                      <p className="text-sm text-amber-900 leading-relaxed whitespace-pre-line">{briefing.riskSignals}</p>
                     </section>
 
                     <section className="bg-blue-900 rounded-lg border border-blue-800 p-6 text-white shadow-lg">
                       <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <Lightbulb className="w-4 h-4" />
-                        구매 전략 인사이트 (Procurement Strategy)
+                        구매 전략 인사이트
                       </h3>
                       <p className="text-base font-medium leading-relaxed italic">"{briefing.procurementStrategy}"</p>
                     </section>
@@ -314,7 +324,7 @@ export default function App() {
                   <section className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
                     <div className="bg-emerald-600 px-6 py-3 flex items-center gap-2">
                       <FileText className="w-5 h-5 text-white" />
-                      <h2 className="text-white font-bold text-sm uppercase tracking-wider">검증된 주요 시장 뉴스</h2>
+                      <h2 className="text-white font-bold text-sm uppercase tracking-wider">주요 시장 뉴스</h2>
                     </div>
                     <div className="divide-y divide-gray-100">
                       {briefing.news && briefing.news.length > 0 ? (
