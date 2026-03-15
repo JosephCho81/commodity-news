@@ -12,6 +12,7 @@ import {
   Lightbulb,
   AlertTriangle,
   ChevronRight,
+  Info,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MarketBriefing } from './types';
@@ -40,14 +41,13 @@ async function testConnection() {
 testConnection();
 
 export default function App() {
-  const [briefing, setBriefing] = useState<MarketBriefing | null>(null);
+  const [briefing, setBriefing] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState("데이터 확인 중...");
 
-  // ── Vercel API 호출 — Gemini는 서버에서만 실행 ───────────────────────
   const generateBriefing = async () => {
-    setStatusMsg("AI가 실시간 가격을 검색하고 시장을 분석 중입니다 (약 15~25초 소요)...");
+    setStatusMsg("AI가 시장을 분석 중입니다 (약 15~25초 소요)...");
     try {
       const response = await fetch('/api/get-news');
       if (!response.ok) {
@@ -55,7 +55,7 @@ export default function App() {
       }
       const data = await response.json();
       if (data.status === 'cached' || data.status === 'generated') {
-        setBriefing(data as MarketBriefing);
+        setBriefing(data);
       } else {
         throw new Error('브리핑 데이터를 받지 못했습니다');
       }
@@ -72,14 +72,12 @@ export default function App() {
       try {
         setStatusMsg("오늘의 리포트를 확인하고 있습니다...");
         const today = getKSTDate();
-
-        // STEP 1: Firestore에서 오늘(KST) 데이터 확인
         const docRef = doc(db, "commodity-news", today);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           console.log("파이어베이스에서 기존 데이터를 불러왔습니다.");
-          setBriefing(docSnap.data() as MarketBriefing);
+          setBriefing(docSnap.data());
           setLoading(false);
         } else {
           console.log("새로운 리포트를 생성합니다.");
@@ -91,9 +89,11 @@ export default function App() {
         setLoading(false);
       }
     };
-
     initApp();
   }, []);
+
+  // 표시할 뉴스: allNews(전체) 있으면 우선, 없으면 news(분석용) 사용
+  const displayNews = briefing?.allNews || briefing?.news || [];
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] text-[#1F2937] font-sans selection:bg-blue-100">
@@ -101,20 +101,15 @@ export default function App() {
       <header className="bg-[#111827] text-white border-b border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded flex items-center justify-center overflow-hidden">
+            {/* 로고 — public/logo.png 절대경로로 로드 */}
+            <div className="w-10 h-10 bg-white rounded flex items-center justify-center overflow-hidden shrink-0">
               <img
-                src="logo.png"
-                alt="Company Logo"
+                src="/logo.png"
+                alt="Logo"
                 className="w-full h-full object-contain"
-                referrerPolicy="no-referrer"
                 onError={(e) => {
-                  console.log("Logo load failed, trying absolute path");
                   const target = e.target as HTMLImageElement;
-                  if (target.src.includes("logo.png") && !target.src.startsWith("http")) {
-                    target.src = window.location.origin + "/logo.png";
-                  } else {
-                    target.src = "https://picsum.photos/seed/metal/100/100";
-                  }
+                  target.style.display = 'none';
                 }}
               />
             </div>
@@ -160,9 +155,16 @@ export default function App() {
                 >
                   {/* Prices Table */}
                   <section className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                    <div className="bg-gray-800 px-6 py-3 flex items-center gap-2">
-                      <Database className="w-5 h-5 text-white" />
-                      <h2 className="text-white font-bold text-sm uppercase tracking-wider">주요 원자재 가격 현황</h2>
+                    <div className="bg-gray-800 px-6 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Database className="w-5 h-5 text-white" />
+                        <h2 className="text-white font-bold text-sm uppercase tracking-wider">주요 원자재 가격 현황</h2>
+                      </div>
+                      {/* 가격 추정치 안내 배지 */}
+                      <div className="flex items-center gap-1 bg-yellow-500 bg-opacity-20 border border-yellow-400 border-opacity-40 rounded px-2 py-1">
+                        <Info className="w-3 h-3 text-yellow-300" />
+                        <span className="text-[10px] text-yellow-300 font-medium">AI 추정치 — 실제 가격과 다를 수 있습니다</span>
+                      </div>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm text-left">
@@ -174,7 +176,7 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {briefing.prices?.map((p, i) => (
+                          {briefing.prices?.map((p: any, i: number) => (
                             <tr key={i} className="hover:bg-gray-50 transition-colors">
                               <td className="px-6 py-4 font-bold text-gray-900 whitespace-pre-line">{p.item}</td>
                               <td className="px-6 py-4 font-medium text-blue-600 whitespace-pre-line">{p.price}</td>
@@ -194,7 +196,7 @@ export default function App() {
                     </div>
                     <div className="p-6">
                       <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {briefing.snapshot?.map((point, i) => (
+                        {briefing.snapshot?.map((point: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
                             <ChevronRight className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                             {point}
@@ -213,7 +215,6 @@ export default function App() {
                       </h3>
                       <p className="text-sm text-gray-700 leading-relaxed">{briefing.priceDrivers}</p>
                     </div>
-
                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <Activity className="w-4 h-4 text-blue-500" />
@@ -221,7 +222,6 @@ export default function App() {
                       </h3>
                       <p className="text-sm text-gray-700 leading-relaxed">{briefing.aluminumOutlook}</p>
                     </div>
-
                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <BarChart4 className="w-4 h-4 text-blue-500" />
@@ -229,7 +229,6 @@ export default function App() {
                       </h3>
                       <p className="text-sm text-gray-700 leading-relaxed">{briefing.copperOutlook}</p>
                     </div>
-
                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <Database className="w-4 h-4 text-blue-500" />
@@ -248,7 +247,6 @@ export default function App() {
                       </h3>
                       <p className="text-sm text-amber-900 leading-relaxed whitespace-pre-line">{briefing.riskSignals}</p>
                     </section>
-
                     <section className="bg-blue-900 rounded-lg border border-blue-800 p-6 text-white shadow-lg">
                       <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <Lightbulb className="w-4 h-4" />
@@ -258,36 +256,43 @@ export default function App() {
                     </section>
                   </div>
 
-                  {/* News Section */}
+                  {/* 전체 뉴스 섹션 — allNews 우선, 없으면 news */}
                   <section className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                    <div className="bg-emerald-600 px-6 py-3 flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-white" />
-                      <h2 className="text-white font-bold text-sm uppercase tracking-wider">주요 시장 뉴스</h2>
+                    <div className="bg-emerald-600 px-6 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-white" />
+                        <h2 className="text-white font-bold text-sm uppercase tracking-wider">주요 시장 뉴스</h2>
+                      </div>
+                      <span className="text-[10px] text-emerald-100 font-medium">{displayNews.length}건</span>
                     </div>
                     <div className="divide-y divide-gray-100">
-                      {briefing.news && briefing.news.length > 0 ? (
-                        briefing.news.map((n, i) => (
+                      {displayNews.length > 0 ? (
+                        displayNews.map((n: any, i: number) => (
                           <div key={i} className="p-6 hover:bg-gray-50 transition-colors">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded">
                                 {n.source}
                               </span>
-                              <a
-                                href={n.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"
-                              >
-                                원본 기사 보기 <ChevronRight className="w-3 h-3" />
-                              </a>
+                              {n.url && (
+                                <a
+                                  href={n.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"
+                                >
+                                  원본 기사 보기 <ChevronRight className="w-3 h-3" />
+                                </a>
+                              )}
                             </div>
                             <h3 className="text-base font-bold text-gray-900 mb-2">{n.title}</h3>
-                            <p className="text-sm text-gray-600 leading-relaxed">{n.summary}</p>
+                            {n.summary && (
+                              <p className="text-sm text-gray-600 leading-relaxed">{n.summary}</p>
+                            )}
                           </div>
                         ))
                       ) : (
                         <div className="p-12 text-center">
-                          <p className="text-sm text-gray-500">검증된 뉴스가 없습니다. 잠시 후 다시 확인해 주세요.</p>
+                          <p className="text-sm text-gray-500">뉴스가 없습니다. 잠시 후 다시 확인해 주세요.</p>
                         </div>
                       )}
                     </div>
