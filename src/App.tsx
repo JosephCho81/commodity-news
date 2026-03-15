@@ -18,6 +18,13 @@ import { MarketBriefing } from './types';
 import { db } from './firebase';
 import { doc, getDoc, getDocFromServer } from 'firebase/firestore';
 
+// ── KST 기준 오늘 날짜 (YYYY-MM-DD) ──────────────────────────────────────
+function getKSTDate() {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().slice(0, 10);
+}
+
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
@@ -38,19 +45,15 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState("데이터 확인 중...");
 
-  // ── Vercel API(/api/get-news)에 생성 요청 ─────────────────────────────
-  // Gemini 호출은 서버에서만 일어남 — API 키 브라우저 노출 없음
+  // ── Vercel API 호출 — Gemini는 서버에서만 실행 ───────────────────────
   const generateBriefing = async () => {
     setStatusMsg("AI가 실시간 가격을 검색하고 시장을 분석 중입니다 (약 15~25초 소요)...");
     try {
       const response = await fetch('/api/get-news');
-
       if (!response.ok) {
-        throw new Error(`서버 오류: ${response.status}`);
+        throw new Error("서버 오류: " + response.status);
       }
-
       const data = await response.json();
-
       if (data.status === 'cached' || data.status === 'generated') {
         setBriefing(data as MarketBriefing);
       } else {
@@ -68,25 +71,23 @@ export default function App() {
     const initApp = async () => {
       try {
         setStatusMsg("오늘의 리포트를 확인하고 있습니다...");
-        const today = new Date().toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" }).replace(/\. /g, "-").replace(".", "").trim();
+        const today = getKSTDate();
 
-        // ── STEP 1: Firestore에서 오늘 데이터 먼저 확인 ─────────────────
+        // STEP 1: Firestore에서 오늘(KST) 데이터 확인
         const docRef = doc(db, "commodity-news", today);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          // 캐시 히트 — Gemini·RSS 호출 없이 즉시 표시
           console.log("파이어베이스에서 기존 데이터를 불러왔습니다.");
           setBriefing(docSnap.data() as MarketBriefing);
           setLoading(false);
         } else {
-          // 캐시 미스 — 서버(Vercel API)에 생성 요청
           console.log("새로운 리포트를 생성합니다.");
           await generateBriefing();
         }
       } catch (err: any) {
         console.error("Init Error:", err);
-        setError(`데이터를 불러오는 중 오류가 발생했습니다: ${err.message || "알 수 없는 오류"}`);
+        setError("데이터를 불러오는 중 오류가 발생했습니다: " + (err.message || "알 수 없는 오류"));
         setLoading(false);
       }
     };
@@ -117,16 +118,14 @@ export default function App() {
                 }}
               />
             </div>
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="font-bold text-lg tracking-tight">오늘의 원자재 뉴스</h1>
-                <p className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold">전략적 시장 인텔리전스</p>
-              </div>
+            <div>
+              <h1 className="font-bold text-lg tracking-tight">오늘의 원자재 뉴스</h1>
+              <p className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold">전략적 시장 인텔리전스</p>
             </div>
           </div>
           <div className="text-right hidden sm:block">
             <p className="text-xs font-medium text-gray-400">
-              {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
         </div>
