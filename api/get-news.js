@@ -200,6 +200,8 @@ async function generateAndSave(today) {
         : "";
 
     console.log("Gemini 응답 길이: " + rawText.length + "자");
+    console.log("Gemini 응답 내용 (앞 500자):", rawText.slice(0, 500));
+    console.log("Gemini 응답 내용 (뒤 500자):", rawText.slice(-500));
     if (!rawText) throw new Error("Gemini 응답 텍스트 비어있음");
 
     // Google Search 도구 사용 시 responseMimeType 못 쓰므로 직접 추출
