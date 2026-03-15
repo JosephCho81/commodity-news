@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ── Firebase 초기화 (모듈 레벨 — cold start 시 1회만 실행) ────────────────
+// ── Firebase 초기화 (모듈 레벨 — cold start 시 1회만) ─────────────────────
 let db;
 function getDB() {
   if (db) return db;
@@ -89,45 +89,73 @@ async function generateAndSave(today) {
     throw new Error("RSS 수집 실패 — 뉴스 없음");
   }
 
-  // 2. Gemini 분석 — title만 전달, URL 절대 포함 안 함
+  // 2. Gemini 분석
+  // ⚠️  핵심: AI에게 title + source + url만 전달
+  //     url은 뉴스 본문 분석용 참고 데이터로만 제공하며,
+  //     응답 JSON의 news[].url은 반드시 이 입력값 그대로 사용하도록 프롬프트에 명시
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 환경변수 없음");
 
-  const titlesForAI = processedNews
-    .map((n) => `[${n.id}] ${n.title} — ${n.source}`)
-    .join("\n");
+  const newsForAI = processedNews.map((n) => ({
+    id: n.id,
+    title: n.title,
+    source: n.source,
+    url: n.url,        // URL은 그대로 전달 — AI가 새로 만들지 못하도록 프롬프트에서 강제
+  }));
 
-  const prompt = `당신은 원자재 시장 전문 애널리스트입니다.
-아래는 오늘 수집된 원자재 관련 뉴스 헤드라인입니다.
+  const systemInstruction = `당신은 글로벌 원자재 시장 전략가입니다.
+다음 글로벌 원자재 뉴스 데이터를 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 작성하십시오.
 
-[중요 규칙]
-- URL, 링크, 웹주소를 절대로 생성하거나 포함하지 마세요.
-- 뉴스를 참조할 때는 반드시 [숫자] 형식만 사용하세요. 예: [0], [3]
-- 없는 정보를 추측하거나 만들어내지 마세요.
+[필수 가격 조사 항목]
+1. LME Aluminum: Cash Bid 최신 가격 (약 $3,500대)
+2. 조달청 알루미늄 (서구산): 최신 방출 가격
+3. LME Copper: Cash Bid 최신 가격 (약 $12,700대)
+4. LME Zinc: Cash Bid 최신 가격
 
-[뉴스 헤드라인]
-${titlesForAI}
+[절대 규칙 — 링크 관련]
+- news 배열의 각 항목 url은 반드시 입력 데이터에서 제공된 url을 그대로 복사하십시오.
+- url을 절대 새로 만들거나 추측하거나 수정하지 마십시오.
+- 입력 데이터에 없는 url은 빈 문자열("")로 두십시오.
 
-[작성 형식]
-다음 형식으로 한국어 시황 브리핑을 작성해주세요:
+[기타 지침]
+1. 모든 응답은 반드시 한국어로 작성하십시오.
+2. 해외 뉴스 제목과 요약은 반드시 한국어로 번역하십시오.
+3. "prices" 섹션에는 위 4가지 항목만 포함하십시오.
+4. 조달청 알루미늄 item 명칭은 "조달청 알루미늄\\n(서구산)", price는 "가격원\\n(부가세 포함)" 형식.
+5. "note" 필드에는 가격 등락 원인을 한 문장으로 작성하십시오.
+6. "snapshot" 섹션에는 현재 시장의 핵심 이슈 5가지를 작성하십시오.
+7. "riskSignals"는 다음 4가지를 \\n으로 구분: 1. 중동 분쟁 장기화에 따른 물류비 급증\\n2. 미국발 관세 전쟁 본격화\\n3. 고금리 장기화에 따른 실물 수요 위축 가능성\\n4. 중국의 전격적인 수출 제한 조치 가능성
+8. 반드시 아래 JSON 구조를 엄격히 지켜서 응답하십시오.
 
-## 오늘의 원자재 시황 요약
-(전체 2~3문장 요약)
+JSON 구조:
+{
+  "prices": [
+    { "item": "LME Aluminum", "price": "$3,519", "note": "재고 감소로 인한 상승세" },
+    { "item": "조달청 알루미늄\\n(서구산)", "price": "3,450,000원\\n(부가세 포함)", "note": "환율 상승 반영" },
+    { "item": "LME Copper", "price": "$12,757", "note": "공급 부족 우려 심화" },
+    { "item": "LME Zinc", "price": "$2,450", "note": "공급 과잉 우려로 하락" }
+  ],
+  "news": [
+    { "title": "한국어로 번역된 제목", "summary": "핵심 내용 1~2문장 요약", "url": "입력 데이터의 url 그대로", "source": "출처" }
+  ],
+  "snapshot": ["이슈1", "이슈2", "이슈3", "이슈4", "이슈5"],
+  "priceDrivers": "가격 변동 동인 내용",
+  "aluminumOutlook": "알루미늄 전망 내용",
+  "copperOutlook": "구리 전망 내용",
+  "zincOutlook": "아연 전망 내용",
+  "riskSignals": "1. 중동 분쟁...\\n2. 미국발...\\n3. 고금리...\\n4. 중국의...",
+  "procurementStrategy": "구매 전략 인사이트 내용"
+}`;
 
-## 금속별 동향
-### 알루미늄
-(관련 뉴스 [번호] 인용하며 동향 설명)
+  const userPrompt = `오늘 날짜: ${new Date().toLocaleDateString('ko-KR')}
 
-### 구리
-(관련 뉴스 [번호] 인용하며 동향 설명)
+다음 뉴스 데이터를 분석하여 리포트를 작성하라.
+news 배열의 url은 아래 입력 데이터의 url을 절대 변경하지 말고 그대로 복사하라.
 
-### 아연 / 니켈
-(관련 뉴스 [번호] 인용하며 동향 설명)
+뉴스 데이터:
+${JSON.stringify(newsForAI, null, 2)}`;
 
-## 주요 이슈
-(시장에 영향을 줄 핵심 이슈 2~3개, 각 이슈에 관련 뉴스 [번호] 포함)`;
-
-  let analysisText = "";
+  let briefingData = null;
   try {
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -135,37 +163,73 @@ ${titlesForAI}
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1500 },
+          system_instruction: { parts: [{ text: systemInstruction }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2000,
+            responseMimeType: "application/json",
+          },
         }),
       }
     );
+
     if (!geminiRes.ok) throw new Error(`Gemini HTTP ${geminiRes.status}`);
     const geminiData = await geminiRes.json();
-    analysisText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    if (!analysisText) throw new Error("Gemini 응답 비어있음");
+    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    if (!rawText) throw new Error("Gemini 응답 비어있음");
+
+    // JSON 파싱
+    const cleaned = rawText.replace(/```json|```/g, "").trim();
+    briefingData = JSON.parse(cleaned);
+
+    // ── 링크 검증: AI가 만든 url이 입력 데이터에 없으면 원본으로 교체 ──
+    const urlMap = new Map(newsForAI.map((n) => [n.title, n.url]));
+    if (briefingData.news && Array.isArray(briefingData.news)) {
+      briefingData.news = briefingData.news.map((item) => {
+        // url이 비어있거나 입력 데이터에 없는 url이면 title로 매칭해서 원본 url 복원
+        if (!item.url || !newsForAI.some((n) => n.url === item.url)) {
+          const matchedUrl = urlMap.get(item.title) || "";
+          return { ...item, url: matchedUrl };
+        }
+        return item;
+      });
+    }
   } catch (e) {
     console.error("Gemini error:", e.message);
-    analysisText = `${today} 원자재 뉴스 ${processedNews.length}건 수집 완료. AI 분석 일시 오류.`;
+    // 폴백: Gemini 실패 시 최소한의 구조 반환
+    briefingData = {
+      prices: [
+        { item: "LME Aluminum", price: "N/A", note: "데이터 조회 실패" },
+        { item: "조달청 알루미늄\n(서구산)", price: "N/A", note: "데이터 조회 실패" },
+        { item: "LME Copper", price: "N/A", note: "데이터 조회 실패" },
+        { item: "LME Zinc", price: "N/A", note: "데이터 조회 실패" },
+      ],
+      news: processedNews.map((n) => ({
+        title: n.title,
+        summary: "",
+        url: n.url,
+        source: n.source,
+      })),
+      snapshot: ["AI 분석 일시 오류 — 원본 뉴스 목록을 확인하세요"],
+      priceDrivers: "AI 분석 생성 중 오류가 발생했습니다.",
+      aluminumOutlook: "",
+      copperOutlook: "",
+      zincOutlook: "",
+      riskSignals: "",
+      procurementStrategy: "",
+    };
   }
 
-  // 3. [번호] → [[번호]](실제URL) 후처리 — AI가 만든 번호를 실제 링크로 교체
-  const linkedAnalysis = analysisText.replace(/\[(\d+)\]/g, (match, idxStr) => {
-    const item = processedNews[parseInt(idxStr, 10)];
-    return item ? `[[${idxStr}]](${item.url})` : match;
-  });
-
-  // 4. Firestore 저장
+  // 3. Firestore 저장
   const docData = {
+    ...briefingData,
     date: today,
-    analysis: linkedAnalysis,
-    news: processedNews,
-    newsCount: processedNews.length,
-    generatedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
   await setDoc(doc(database, "commodity-news", today), docData);
-  console.log(`✅ ${today} 브리핑 저장 완료 — ${processedNews.length}건`);
+  console.log(`✅ ${today} 브리핑 저장 완료`);
 
   return docData;
 }
@@ -180,28 +244,24 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().slice(0, 10);
     const database = getDB();
 
-    // ── STEP 1: Firestore에서 오늘 데이터 먼저 조회 ──────────────────────
+    // STEP 1: Firestore에서 오늘 데이터 조회
     const docSnap = await getDoc(doc(database, "commodity-news", today));
 
     if (docSnap.exists()) {
-      // ✅ 캐시 히트 — RSS·Gemini 호출 없음, 비용 0
+      // 캐시 히트 — RSS·Gemini 호출 없음, 비용 0
       res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate");
       return res.json({
         status: "cached",
-        date: today,
         ...docSnap.data(),
       });
     }
 
-    // ── STEP 2: 캐시 미스 — 생성 후 저장하고 반환 ────────────────────────
-    // 첫 번째 접속자만 이 경로를 탐. 이후 접속자는 항상 STEP 1에서 끝남.
-    // ⚠️  Vercel Hobby 플랜은 함수 타임아웃 10초 → vercel.json에서 maxDuration 설정 필요
-    console.log(`📰 ${today} 브리핑 없음 — 첫 번째 접속자, 생성 시작`);
+    // STEP 2: 없으면 생성 후 저장하고 반환
+    console.log(`📰 ${today} 브리핑 없음 — 생성 시작`);
     const docData = await generateAndSave(today);
 
     return res.json({
       status: "generated",
-      date: today,
       ...docData,
     });
 
