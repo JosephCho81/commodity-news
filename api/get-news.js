@@ -22,6 +22,13 @@ function getDB() {
   return db;
 }
 
+// ── KST 기준 오늘 날짜 반환 (YYYY-MM-DD) ─────────────────────────────────
+function getKSTDate() {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().slice(0, 10);
+}
+
 // ── RSS 수집 ──────────────────────────────────────────────────────────────
 async function fetchRSS(url) {
   try {
@@ -75,7 +82,6 @@ async function generateAndSave(today) {
     rawNews = rawNews.concat(await fetchRSS(f));
   }
 
-  // 중복 제거 + 상위 5개
   const seen = new Set();
   const processedNews = rawNews
     .filter((n) => {
@@ -115,24 +121,37 @@ async function generateAndSave(today) {
   }));
 
   const prompt = "당신은 글로벌 원자재 시장 전략가입니다.\n"
+    + "오늘 날짜: " + today + "\n\n"
     + "아래 뉴스 헤드라인을 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 작성하십시오.\n\n"
-    + "[절대 규칙]\n"
-    + "- news 배열의 각 항목에는 반드시 입력 데이터의 id 값을 그대로 포함하십시오.\n"
-    + "- url 필드는 포함하지 마십시오.\n"
-    + "- 모든 필드를 반드시 채우십시오. 빈 문자열 금지.\n\n"
-    + "[가격 정보 — 오늘 날짜 " + today + " 기준 최신 시장 추정값 기입]\n"
-    + "- LME Aluminum: 최근 Cash Bid 가격 (달러)\n"
-    + "- 조달청 알루미늄 서구산: 최근 방출 가격 (원화, 부가세 포함)\n"
-    + "- LME Copper: 최근 Cash Bid 가격 (달러)\n"
-    + "- LME Zinc: 최근 Cash Bid 가격 (달러)\n\n"
-    + "[prices 항목명 — 반드시 아래 이름 그대로 사용]\n"
-    + "item 값은 정확히 다음과 같이 작성:\n"
-    + "첫번째: LME Aluminum\n"
-    + "두번째: 조달청 알루미늄\\n(서구산)\n"
-    + "세번째: LME Copper\n"
-    + "네번째: LME Zinc\n\n"
+    + "[가격 입력 규칙 — 반드시 실제 숫자값을 입력하십시오]\n"
+    + "빈값이나 추정치 표시 없이 반드시 현재 시장의 실제 가격을 기입하십시오.\n"
+    + "- LME Aluminum: 현재 Cash Bid 가격 (예: $2,650.50)\n"
+    + "- 조달청 알루미늄 서구산: 현재 방출 가격 (예: 3,200,000원\\n(부가세 포함))\n"
+    + "- LME Copper: 현재 Cash Bid 가격 (예: $9,850.00)\n"
+    + "- LME Zinc: 현재 Cash Bid 가격 (예: $2,850.00)\n\n"
+    + "[prices 항목명 — 정확히 아래와 같이 작성]\n"
+    + "item[0]: LME Aluminum\n"
+    + "item[1]: 조달청 알루미늄\\n(서구산)\n"
+    + "item[2]: LME Copper\n"
+    + "item[3]: LME Zinc\n\n"
+    + "[모든 필드 필수 — 빈 문자열 금지]\n"
+    + "snapshot: 반드시 5개 항목\n"
+    + "priceDrivers: 200자 이상\n"
+    + "aluminumOutlook: 100자 이상\n"
+    + "copperOutlook: 100자 이상\n"
+    + "zincOutlook: 100자 이상\n"
+    + "riskSignals: 반드시 아래 4가지 포함\n"
+    + "1. 중동 분쟁 장기화에 따른 물류비 급증\n"
+    + "2. 미국발 관세 전쟁 본격화\n"
+    + "3. 고금리 장기화에 따른 실물 수요 위축 가능성\n"
+    + "4. 중국의 전격적인 수출 제한 조치 가능성\n"
+    + "procurementStrategy: 100자 이상\n\n"
+    + "[news 규칙]\n"
+    + "- 각 항목에 입력 데이터의 id 값 그대로 포함\n"
+    + "- title은 한국어로 번역\n"
+    + "- summary는 한국어 1~2문장\n"
+    + "- url 필드 포함하지 말 것\n\n"
     + "[뉴스 데이터]\n"
-    + "오늘 날짜: " + today + "\n"
     + JSON.stringify(newsForAI, null, 2);
 
   let briefingData = null;
@@ -177,7 +196,6 @@ async function generateAndSave(today) {
     console.log("Gemini 응답 길이: " + rawText.length + "자");
     if (!rawText) throw new Error("Gemini 응답 텍스트 비어있음");
 
-    // responseMimeType: application/json 이므로 바로 파싱
     briefingData = JSON.parse(rawText);
     console.log("JSON 파싱 성공");
 
@@ -235,27 +253,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    const today = new Date().toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" }).replace(/\. /g, "-").replace(".", "").trim();
+    const today = getKSTDate();
     const database = getDB();
 
-    // STEP 1: Firestore 캐시 확인
     const docSnap = await getDoc(doc(database, "commodity-news", today));
 
     if (docSnap.exists()) {
       console.log(today + " 캐시 히트");
       res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate");
-      return res.json(
-        Object.assign({ status: "cached" }, docSnap.data())
-      );
+      return res.json(Object.assign({ status: "cached" }, docSnap.data()));
     }
 
-    // STEP 2: 없으면 생성
     console.log(today + " 캐시 미스 — 생성 시작");
     const docData = await generateAndSave(today);
 
-    return res.json(
-      Object.assign({ status: "generated" }, docData)
-    );
+    return res.json(Object.assign({ status: "generated" }, docData));
 
   } catch (error) {
     console.error("핸들러 오류:", error);
