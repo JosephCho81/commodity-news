@@ -20,13 +20,11 @@ service cloud.firestore {
     // ===============================================================
 
     match /briefings/{date} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     match /daily_news/{date} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
   }
 }

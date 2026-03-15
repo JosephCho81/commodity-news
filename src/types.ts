@@ -17,8 +17,8 @@ export interface MarketBriefing {
   snapshot: string[];
   priceDrivers: string;
   aluminumOutlook: string;
-  scrapOutlook: string;
-  ironOreMining: string;
+  copperOutlook: string;
+  zincOutlook: string;
   riskSignals: string;
   procurementStrategy: string;
 }
