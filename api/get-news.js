@@ -57,18 +57,6 @@ async function fetchRSS(url) {
   }
 }
 
-// ── JSON 추출 헬퍼 ────────────────────────────────────────────────────────
-function extractJSON(text) {
-  const fenceMatch = text.match(/```json\s*([\s\S]*?)```/);
-  if (fenceMatch) return JSON.parse(fenceMatch[1].trim());
-  const fenceMatch2 = text.match(/```\s*([\s\S]*?)```/);
-  if (fenceMatch2) return JSON.parse(fenceMatch2[1].trim());
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start !== -1 && end !== -1) return JSON.parse(text.slice(start, end + 1));
-  throw new Error("JSON을 찾을 수 없음");
-}
-
 // ── 뉴스 생성 메인 함수 ───────────────────────────────────────────────────
 async function generateAndSave(today) {
   const database = getDB();
@@ -87,7 +75,7 @@ async function generateAndSave(today) {
     rawNews = rawNews.concat(await fetchRSS(f));
   }
 
-  // 중복 제거 + 상위 8개만 사용
+  // 중복 제거 + 상위 8개
   const seen = new Set();
   const processedNews = rawNews
     .filter((n) => {
@@ -116,8 +104,7 @@ async function generateAndSave(today) {
 
   console.log("RSS 수집 완료: " + processedNews.length + "건");
 
-  // 2. Gemini 호출
-  // url은 AI에 전달 안 함 — id로 나중에 원본 url 복원
+  // 2. Gemini 호출 — url은 AI에 전달 안 함, id로 나중에 복원
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 환경변수 없음");
 
@@ -128,35 +115,25 @@ async function generateAndSave(today) {
   }));
 
   const prompt = "당신은 글로벌 원자재 시장 전략가입니다.\n"
-    + "아래 뉴스 헤드라인을 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 JSON으로 작성하십시오.\n\n"
+    + "아래 뉴스 헤드라인을 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 작성하십시오.\n\n"
     + "[절대 규칙]\n"
-    + "- 반드시 순수 JSON만 출력하십시오. { 로 시작해서 } 로 끝나야 합니다.\n"
     + "- news 배열의 각 항목에는 반드시 입력 데이터의 id 값을 그대로 포함하십시오.\n"
-    + "- url 필드는 포함하지 마십시오. id만 포함하면 됩니다.\n\n"
+    + "- url 필드는 포함하지 마십시오.\n\n"
     + "[가격 정보 — 최신 시장 추정값 기입]\n"
     + "1. LME Aluminum Cash Bid\n"
     + "2. 조달청 알루미늄 서구산 (원화, 부가세 포함)\n"
     + "3. LME Copper Cash Bid\n"
     + "4. LME Zinc Cash Bid\n\n"
-    + "[출력 JSON 구조]\n"
-    + "{\n"
-    + '  "prices": [\n'
-    + '    { "item": "LME Aluminum", "price": "$3,519", "note": "재고 감소로 인한 상승세" },\n'
-    + '    { "item": "조달청 알루미늄\\n(서구산)", "price": "3,450,000원\\n(부가세 포함)", "note": "환율 상승 반영" },\n'
-    + '    { "item": "LME Copper", "price": "$12,757", "note": "공급 부족 우려 심화" },\n'
-    + '    { "item": "LME Zinc", "price": "$2,450", "note": "공급 과잉 우려로 하락" }\n'
-    + "  ],\n"
-    + '  "news": [\n'
-    + '    { "id": 0, "title": "한국어로 번역된 제목", "summary": "핵심 내용 1~2문장", "source": "출처" }\n'
-    + "  ],\n"
-    + '  "snapshot": ["이슈1", "이슈2", "이슈3", "이슈4", "이슈5"],\n'
-    + '  "priceDrivers": "가격 변동 동인 설명",\n'
-    + '  "aluminumOutlook": "알루미늄 시장 전망",\n'
-    + '  "copperOutlook": "구리 시장 전망",\n'
-    + '  "zincOutlook": "아연 시장 전망",\n'
-    + '  "riskSignals": "1. 중동 분쟁 장기화에 따른 물류비 급증\\n2. 미국발 관세 전쟁 본격화\\n3. 고금리 장기화에 따른 실물 수요 위축 가능성\\n4. 중국의 전격적인 수출 제한 조치 가능성",\n'
-    + '  "procurementStrategy": "구매 전략 인사이트"\n'
-    + "}\n\n"
+    + "[응답 스키마]\n"
+    + "prices: 배열, 각 항목은 item(string), price(string), note(string)\n"
+    + "news: 배열, 각 항목은 id(number), title(string 한국어), summary(string 한국어 1~2문장), source(string)\n"
+    + "snapshot: 문자열 배열 5개\n"
+    + "priceDrivers: string\n"
+    + "aluminumOutlook: string\n"
+    + "copperOutlook: string\n"
+    + "zincOutlook: string\n"
+    + "riskSignals: string (줄바꿈 포함 4가지 리스크)\n"
+    + "procurementStrategy: string\n\n"
     + "[뉴스 데이터]\n"
     + "오늘 날짜: " + today + "\n"
     + JSON.stringify(newsForAI, null, 2);
@@ -176,6 +153,7 @@ async function generateAndSave(today) {
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 4096,
+            responseMimeType: "application/json",
           },
         }),
       }
@@ -202,12 +180,12 @@ async function generateAndSave(today) {
     console.log("Gemini 응답 길이: " + rawText.length + "자");
     if (!rawText) throw new Error("Gemini 응답 텍스트 비어있음");
 
-    briefingData = extractJSON(rawText);
+    // responseMimeType: application/json 으로 받으면 바로 파싱 가능
+    briefingData = JSON.parse(rawText);
     console.log("JSON 파싱 성공");
 
     // id 기반으로 원본 url 복원
     const urlById = new Map(processedNews.map((n) => [n.id, n.url]));
-
     if (briefingData.news && Array.isArray(briefingData.news)) {
       briefingData.news = briefingData.news.map((item) => {
         const originalUrl = urlById.get(item.id) || "";
