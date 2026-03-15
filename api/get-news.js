@@ -235,7 +235,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" }).replace(/\. /g, "-").replace(".", "").trim();
     const database = getDB();
 
     // STEP 1: Firestore 캐시 확인
