@@ -57,18 +57,6 @@ async function fetchRSS(url) {
   }
 }
 
-// ── Gemini 응답에서 JSON 추출 ─────────────────────────────────────────────
-function extractJSON(text) {
-  const fenceMatch = text.match(/```json\s*([\s\S]*?)```/);
-  if (fenceMatch) return JSON.parse(fenceMatch[1].trim());
-  const fenceMatch2 = text.match(/```\s*([\s\S]*?)```/);
-  if (fenceMatch2) return JSON.parse(fenceMatch2[1].trim());
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start !== -1 && end !== -1) return JSON.parse(text.slice(start, end + 1));
-  throw new Error("JSON을 찾을 수 없음");
-}
-
 // ── 뉴스 생성 메인 함수 ───────────────────────────────────────────────────
 async function generateAndSave(today) {
   const database = getDB();
@@ -87,7 +75,7 @@ async function generateAndSave(today) {
     rawNews = rawNews.concat(await fetchRSS(f));
   }
 
-  // 중복 제거 + 상위 8개
+  // 중복 제거 + 상위 5개
   const seen = new Set();
   const processedNews = rawNews
     .filter((n) => {
@@ -116,7 +104,7 @@ async function generateAndSave(today) {
 
   console.log("RSS 수집 완료: " + processedNews.length + "건");
 
-  // 2. Gemini 호출 — Google Search 도구로 실시간 가격 조회
+  // 2. Gemini 호출
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 환경변수 없음");
 
@@ -127,31 +115,22 @@ async function generateAndSave(today) {
   }));
 
   const prompt = "당신은 글로벌 원자재 시장 전략가입니다.\n"
-    + "Google 검색 도구를 사용하여 아래 4가지 가격을 반드시 실시간으로 검색한 후, 뉴스 데이터와 함께 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 작성하십시오.\n\n"
-    + "[실시간 검색 필수 항목]\n"
-    + "1. LME Aluminum 최신 Cash Bid 가격 — 검색어: \"LME aluminum cash bid price today " + today + "\"\n"
-    + "2. 조달청 알루미늄 서구산 최신 방출 가격 — 검색어: \"조달청 알루미늄 서구산 방출가격 " + today.slice(0, 7) + "\"\n"
-    + "3. LME Copper 최신 Cash Bid 가격 — 검색어: \"LME copper cash bid price today " + today + "\"\n"
-    + "4. LME Zinc 최신 Cash Bid 가격 — 검색어: \"LME zinc cash bid price today " + today + "\"\n\n"
+    + "아래 뉴스 헤드라인을 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 작성하십시오.\n\n"
     + "[절대 규칙]\n"
     + "- news 배열의 각 항목에는 반드시 입력 데이터의 id 값을 그대로 포함하십시오.\n"
     + "- url 필드는 포함하지 마십시오.\n"
-    + "- 가격을 찾지 못한 경우에도 절대 N/A로 두지 말고 가장 최근 검색된 추정값을 기입하십시오.\n\n"
+    + "- 모든 필드를 반드시 채우십시오. 빈 문자열 금지.\n\n"
+    + "[가격 정보 — 오늘 날짜 " + today + " 기준 최신 시장 추정값 기입]\n"
+    + "- LME Aluminum: 최근 Cash Bid 가격 (달러)\n"
+    + "- 조달청 알루미늄 서구산: 최근 방출 가격 (원화, 부가세 포함)\n"
+    + "- LME Copper: 최근 Cash Bid 가격 (달러)\n"
+    + "- LME Zinc: 최근 Cash Bid 가격 (달러)\n\n"
     + "[prices 항목명 — 반드시 아래 이름 그대로 사용]\n"
-    + "- \"LME Aluminum\"\n"
-    + "- \"조달청 알루미늄\\n(서구산)\"\n"
-    + "- \"LME Copper\"\n"
-    + "- \"LME Zinc\"\n\n"
-    + "[응답 스키마]\n"
-    + "prices: 배열, 각 항목은 item(string), price(string), note(string)\n"
-    + "news: 배열, 각 항목은 id(number), title(string 한국어), summary(string 한국어 1~2문장), source(string)\n"
-    + "snapshot: 문자열 배열 5개\n"
-    + "priceDrivers: string\n"
-    + "aluminumOutlook: string\n"
-    + "copperOutlook: string\n"
-    + "zincOutlook: string\n"
-    + "riskSignals: string (줄바꿈 포함 4가지 리스크)\n"
-    + "procurementStrategy: string\n\n"
+    + "item 값은 정확히 다음과 같이 작성:\n"
+    + "첫번째: LME Aluminum\n"
+    + "두번째: 조달청 알루미늄\\n(서구산)\n"
+    + "세번째: LME Copper\n"
+    + "네번째: LME Zinc\n\n"
     + "[뉴스 데이터]\n"
     + "오늘 날짜: " + today + "\n"
     + JSON.stringify(newsForAI, null, 2);
@@ -159,23 +138,21 @@ async function generateAndSave(today) {
   let briefingData = null;
 
   try {
-    console.log("Gemini 2.5 Flash + Google Search 호출 시작...");
-
-    const requestBody = {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      tools: [{ googleSearch: {} }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 8192,
-      },
-    };
+    console.log("Gemini 2.5 Flash 호출 시작...");
 
     const geminiRes = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json",
+          },
+        }),
       }
     );
 
@@ -192,20 +169,16 @@ async function generateAndSave(today) {
       geminiData.candidates &&
       geminiData.candidates[0] &&
       geminiData.candidates[0].content &&
-      geminiData.candidates[0].content.parts
-        ? geminiData.candidates[0].content.parts
-            .filter((p) => p.text)
-            .map((p) => p.text)
-            .join("")
+      geminiData.candidates[0].content.parts &&
+      geminiData.candidates[0].content.parts[0]
+        ? geminiData.candidates[0].content.parts[0].text
         : "";
 
     console.log("Gemini 응답 길이: " + rawText.length + "자");
-    console.log("Gemini 응답 내용 (앞 500자):", rawText.slice(0, 500));
-    console.log("Gemini 응답 내용 (뒤 500자):", rawText.slice(-500));
     if (!rawText) throw new Error("Gemini 응답 텍스트 비어있음");
 
-    // Google Search 도구 사용 시 responseMimeType 못 쓰므로 직접 추출
-    briefingData = extractJSON(rawText);
+    // responseMimeType: application/json 이므로 바로 파싱
+    briefingData = JSON.parse(rawText);
     console.log("JSON 파싱 성공");
 
     // id 기반으로 원본 url 복원
