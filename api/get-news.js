@@ -101,7 +101,7 @@ async function generateAndSave(today) {
       seen.add(n.title);
       return true;
     })
-    .slice(0, 25)
+    .slice(0, 10)
     .map((n, index) => {
       let source = "News";
       try {
@@ -182,7 +182,7 @@ async function generateAndSave(today) {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 16384,
           },
         }),
       }
