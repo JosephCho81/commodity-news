@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
     // 1. 오늘 브리핑이 이미 있는지 확인
     try {
-      const todayDoc = await getDoc(doc(db, "daily_news", today));
+      const todayDoc = await getDoc(doc(db, "commodity-news", today));
       if (todayDoc.exists()) {
         return res.json({
           status: "already-exists",

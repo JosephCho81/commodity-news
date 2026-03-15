@@ -2,7 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import generateNewsHandler from "./api/collect-news.js";
+import generateNewsHandler from "./api/generate-news.js";
 import getNewsHandler from "./api/get-news.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,7 +15,6 @@ async function startServer() {
   app.use(express.json());
 
   // Use the handlers from the /api folder as requested
-  app.get("/api/collect-news", (req, res) => generateNewsHandler(req, res));
   app.get("/api/generate-news", (req, res) => generateNewsHandler(req, res));
   app.get("/api/get-news", (req, res) => getNewsHandler(req, res));
 

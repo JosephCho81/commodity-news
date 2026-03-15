@@ -23,7 +23,7 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    match /daily_news/{date} {
+    match /commodity-news/{date} {
       allow read, write: if true;
     }
   }

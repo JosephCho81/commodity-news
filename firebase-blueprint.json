@@ -34,7 +34,7 @@
       "schema": "DailyBriefing",
       "description": "Store one briefing per day"
     },
-    "/daily_news/{date}": {
+    "/commodity-news/{date}": {
       "schema": "DailyBriefing",
       "description": "Daily market briefing document"
     }

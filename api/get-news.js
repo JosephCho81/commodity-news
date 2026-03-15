@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
   try {
-    const docRef = doc(db, "daily_news", today);
+    const docRef = doc(db, "commodity-news", today);
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {

@@ -55,7 +55,7 @@ JSON 구조 예시:
     { "item": "LME Zinc", "price": "$2,450", "note": "공급 과잉 우려로 하락" }
   ],
   "news": [
-    { "title": "뉴스 제목", "summary": "뉴스 요약", "url": "https://...", "source": "출처" }
+    { "title": "제공된 뉴스 데이터의 제목을 한국어로 번역", "summary": "해당 뉴스의 핵심 내용을 1~2문장으로 요약", "url": "제공된 뉴스 데이터의 원본 URL (절대 수정 금지)", "source": "출처" }
   ],
   "snapshot": ["이슈1", "이슈2", "이슈3", "이슈4", "이슈5"],
   "priceDrivers": "가격 변동 동인 내용...",
@@ -80,7 +80,7 @@ export default function App() {
         setStatusMsg("오늘의 리포트를 확인하고 있습니다...");
         
         // 1. 파이어베이스에서 오늘 데이터가 있는지 먼저 확인 (임시로 캐시 우회하여 새로 생성 강제)
-        const docRef = doc(db, "daily_news", today);
+        const docRef = doc(db, "commodity-news", today);
         const docSnap = await getDoc(docRef);
 
         // "지금에 한해서" 캐시를 무시하고 새로 생성하도록 수정 (한 번 생성 후 다시 원복 예정)
@@ -93,7 +93,7 @@ export default function App() {
         } else {
           // 2. 없거나 강제 새로고침인 경우 뉴스 수집 및 생성 시작
           console.log("새로운 리포트를 생성합니다.");
-          const response = await fetch('/api/collect-news');
+          const response = await fetch('/api/generate-news');
           const data = await response.json();
           await generateBriefing(data.news);
         }
@@ -122,7 +122,7 @@ export default function App() {
         3. LME Copper (Cash Bid) - 현재 약 $12,757 수준인지 확인
         4. LME Zinc (Cash Bid)
         
-        뉴스 데이터 (이 데이터에 포함된 URL만 사용하고, 제목과 요약은 한국어로 번역하여 작성하라):
+        뉴스 데이터 (이 데이터에 포함된 모든 항목을 'news' 섹션에 포함하고, 제목과 요약은 한국어로 번역하여 작성하라. URL은 절대 변경하지 마라):
         ${JSON.stringify(newsItems)}
       `;
 
@@ -146,7 +146,7 @@ export default function App() {
       };
 
       try {
-        await setDoc(doc(db, "daily_news", today), finalBriefing);
+        await setDoc(doc(db, "commodity-news", today), finalBriefing);
         console.log("새로운 리포트가 파이어베이스에 저장되었습니다.");
       } catch (e) {
         console.error("파이어베이스 저장 실패:", e);
@@ -169,14 +169,18 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded flex items-center justify-center overflow-hidden">
               <img 
-                src="/logo.png" 
+                src="logo.png" 
                 alt="Company Logo" 
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  // Fallback if logo.png is still broken
-                  console.log("Logo load failed, using fallback");
-                  (e.target as HTMLImageElement).src = "https://picsum.photos/seed/metal/100/100";
+                  console.log("Logo load failed, trying absolute path");
+                  const target = e.target as HTMLImageElement;
+                  if (target.src.includes("logo.png") && !target.src.startsWith("http")) {
+                    target.src = window.location.origin + "/logo.png";
+                  } else {
+                    target.src = "https://picsum.photos/seed/metal/100/100";
+                  }
                 }}
               />
             </div>
