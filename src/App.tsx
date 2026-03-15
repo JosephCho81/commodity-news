@@ -36,18 +36,15 @@ const SYSTEM_INSTRUCTION = `당신은 글로벌 원자재 시장 전략가입니
 2. 해외 뉴스 제목과 요약은 반드시 한국어로 번역하십시오.
 3. **중요: 뉴스 링크 (url)**는 반드시 클릭 가능한 실제 유효한 URL이어야 합니다. 검색 도구를 통해 얻은 실제 기사 주소를 기입하십시오.
 4. "prices" 섹션에는 위 4가지 항목만 포함하십시오.
-4. **중요: 조달청 알루미늄 항목의 경우**
+5. **중요: 조달청 알루미늄 항목의 경우**
    - item 명칭은 반드시 "조달청 알루미늄\\n(서구산)"으로 작성하십시오. (줄바꿈 문자 \\n 포함)
    - price 값은 반드시 "가격원\\n(부가세 포함)" 형식으로 작성하십시오. (예: "3,450,000원\\n(부가세 포함)")
-5. 가격이 검색되지 않는다면 'N/A'라고 적지 말고, 가장 최근의 시장 추정치라도 검색하여 기입하십시오.
-6. "note" 필드에는 해당 품목의 가격 등락 원인이나 특이사항을 한 문장으로 간략히 적으십시오.
-7. "snapshot" 섹션에는 현재 시장의 가장 중요한 핵심 이슈 5가지를 리스트로 작성하십시오.
-8. **중요: 리스크 신호 (riskSignals) 섹션**은 반드시 다음 4가지 항목을 줄바꿈하여 작성하십시오:
-   1. 중동 분쟁 장기화에 따른 물류비 급증
-   2. 미국발 관세 전쟁 본격화
-   3. 고금리 장기화에 따른 실물 수요 위축 가능성
-   4. 중국의 전격적인 수출 제한 조치 가능성
-9. 반드시 아래 JSON 구조를 엄격히 지켜서 응답하십시오.
+6. 가격이 검색되지 않는다면 'N/A'라고 적지 말고, 가장 최근의 시장 추정치라도 검색하여 기입하십시오.
+7. "note" 필드에는 해당 품목의 가격 등락 원인이나 특이사항을 한 문장으로 간략히 적으십시오.
+8. "snapshot" 섹션에는 현재 시장의 가장 중요한 핵심 이슈 5가지를 리스트로 작성하십시오.
+9. **중요: 리스크 신호 (riskSignals) 섹션**은 반드시 다음 4가지 항목을 줄바꿈 문자(\\n)를 사용하여 구분하십시오:
+   1. 중동 분쟁 장기화에 따른 물류비 급증\n2. 미국발 관세 전쟁 본격화\n3. 고금리 장기화에 따른 실물 수요 위축 가능성\n4. 중국의 전격적인 수출 제한 조치 가능성
+10. 반드시 아래 JSON 구조를 엄격히 지켜서 응답하십시오. 모든 필드를 반드시 포함하십시오.
 
 JSON 구조 예시:
 {
@@ -57,7 +54,16 @@ JSON 구조 예시:
     { "item": "LME Copper", "price": "$12,757", "note": "공급 부족 우려 심화" },
     { "item": "LME Zinc", "price": "$2,450", "note": "공급 과잉 우려로 하락" }
   ],
-  ...
+  "news": [
+    { "title": "뉴스 제목", "summary": "뉴스 요약", "url": "https://...", "source": "출처" }
+  ],
+  "snapshot": ["이슈1", "이슈2", "이슈3", "이슈4", "이슈5"],
+  "priceDrivers": "가격 변동 동인 내용...",
+  "aluminumOutlook": "알루미늄 전망 내용...",
+  "copperOutlook": "구리 전망 내용...",
+  "zincOutlook": "아연 전망 내용...",
+  "riskSignals": "1. 중동 분쟁...\\n2. 미국발...\\n3. 고금리...\\n4. 중국의...",
+  "procurementStrategy": "구매 전략 인사이트 내용..."
 }
 `;
 
@@ -73,26 +79,23 @@ export default function App() {
         const today = new Date().toISOString().slice(0, 10);
         setStatusMsg("오늘의 리포트를 확인하고 있습니다...");
         
-        // 1. 파이어베이스에서 오늘 데이터가 있는지 먼저 확인
+        // 1. 파이어베이스에서 오늘 데이터가 있는지 먼저 확인 (임시로 캐시 우회하여 새로 생성 강제)
         const docRef = doc(db, "daily_news", today);
         const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
+        // "지금에 한해서" 캐시를 무시하고 새로 생성하도록 수정 (한 번 생성 후 다시 원복 예정)
+        const forceRefresh = true; 
+
+        if (docSnap.exists() && !forceRefresh) {
           console.log("파이어베이스에서 기존 데이터를 불러왔습니다.");
           setBriefing(docSnap.data() as MarketBriefing);
           setLoading(false);
         } else {
-          // 2. 없으면 뉴스 수집 및 생성 시작
-          console.log("오늘의 데이터가 없어 새로 생성합니다.");
+          // 2. 없거나 강제 새로고침인 경우 뉴스 수집 및 생성 시작
+          console.log("새로운 리포트를 생성합니다.");
           const response = await fetch('/api/collect-news');
           const data = await response.json();
-          
-          if (data.status === 'already-exists') {
-            setBriefing(data.data);
-            setLoading(false);
-          } else {
-            await generateBriefing(data.news);
-          }
+          await generateBriefing(data.news);
         }
       } catch (err) {
         console.error("Init Error:", err);
@@ -118,6 +121,10 @@ export default function App() {
         2. 조달청 알루미늄 (서구산, 부가세 포함, 원화)
         3. LME Copper (Cash Bid) - 현재 약 $12,757 수준인지 확인
         4. LME Zinc (Cash Bid)
+        
+        추가 참고 뉴스 URL (반드시 분석에 포함할 것):
+        - https://www.fastmarkets.com/insights/chinas-steel-exports-to-persian-gulf-face-near-term-setback-amid-hormuz-disruption/
+        - https://www.weforum.org/stories/2026/03/middle-east-conflict-shipping-oil-prices-trade/
         
         뉴스 데이터:
         ${JSON.stringify(newsItems)}
@@ -166,12 +173,13 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded flex items-center justify-center overflow-hidden">
               <img 
-                src="/src/logo.png" 
+                src={logo} 
                 alt="Company Logo" 
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   // Fallback if logo.png is still broken
+                  console.log("Logo load failed, using fallback");
                   (e.target as HTMLImageElement).src = "https://picsum.photos/seed/metal/100/100";
                 }}
               />
