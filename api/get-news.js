@@ -60,18 +60,12 @@ async function fetchRSS(url) {
 // ── JSON 추출 헬퍼 ────────────────────────────────────────────────────────
 function extractJSON(text) {
   const fenceMatch = text.match(/```json\s*([\s\S]*?)```/);
-  if (fenceMatch) {
-    return JSON.parse(fenceMatch[1].trim());
-  }
+  if (fenceMatch) return JSON.parse(fenceMatch[1].trim());
   const fenceMatch2 = text.match(/```\s*([\s\S]*?)```/);
-  if (fenceMatch2) {
-    return JSON.parse(fenceMatch2[1].trim());
-  }
+  if (fenceMatch2) return JSON.parse(fenceMatch2[1].trim());
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
-  if (start !== -1 && end !== -1) {
-    return JSON.parse(text.slice(start, end + 1));
-  }
+  if (start !== -1 && end !== -1) return JSON.parse(text.slice(start, end + 1));
   throw new Error("JSON을 찾을 수 없음");
 }
 
@@ -93,7 +87,7 @@ async function generateAndSave(today) {
     rawNews = rawNews.concat(await fetchRSS(f));
   }
 
-  // 중복 제거
+  // 중복 제거 + 상위 8개만 사용
   const seen = new Set();
   const processedNews = rawNews
     .filter((n) => {
@@ -101,7 +95,7 @@ async function generateAndSave(today) {
       seen.add(n.title);
       return true;
     })
-    .slice(0, 10)
+    .slice(0, 8)
     .map((n, index) => {
       let source = "News";
       try {
@@ -122,7 +116,8 @@ async function generateAndSave(today) {
 
   console.log("RSS 수집 완료: " + processedNews.length + "건");
 
-  // 2. Gemini 1.5 Pro 호출
+  // 2. Gemini 호출
+  // url은 AI에 전달 안 함 — id로 나중에 원본 url 복원
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 환경변수 없음");
 
@@ -130,20 +125,18 @@ async function generateAndSave(today) {
     id: n.id,
     title: n.title,
     source: n.source,
-    url: n.url,
   }));
 
   const prompt = "당신은 글로벌 원자재 시장 전략가입니다.\n"
-    + "아래 뉴스 데이터를 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 JSON으로 작성하십시오.\n\n"
+    + "아래 뉴스 헤드라인을 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 JSON으로 작성하십시오.\n\n"
     + "[절대 규칙]\n"
-    + "- 반드시 순수 JSON만 출력하십시오. 설명이나 마크다운 없이 { 로 시작해서 } 로 끝나야 합니다.\n"
-    + "- news 배열의 url은 아래 입력 데이터의 url을 절대 변경하지 말고 그대로 복사하십시오.\n"
-    + "- url을 새로 만들거나 추측하지 마십시오.\n\n"
-    + "[가격 정보]\n"
-    + "최신 시장 데이터를 기반으로 아래 4가지 가격을 추정하여 기입하십시오:\n"
-    + "1. LME Aluminum Cash Bid (약 $3,500대)\n"
+    + "- 반드시 순수 JSON만 출력하십시오. { 로 시작해서 } 로 끝나야 합니다.\n"
+    + "- news 배열의 각 항목에는 반드시 입력 데이터의 id 값을 그대로 포함하십시오.\n"
+    + "- url 필드는 포함하지 마십시오. id만 포함하면 됩니다.\n\n"
+    + "[가격 정보 — 최신 시장 추정값 기입]\n"
+    + "1. LME Aluminum Cash Bid\n"
     + "2. 조달청 알루미늄 서구산 (원화, 부가세 포함)\n"
-    + "3. LME Copper Cash Bid (약 $12,700대)\n"
+    + "3. LME Copper Cash Bid\n"
     + "4. LME Zinc Cash Bid\n\n"
     + "[출력 JSON 구조]\n"
     + "{\n"
@@ -154,7 +147,7 @@ async function generateAndSave(today) {
     + '    { "item": "LME Zinc", "price": "$2,450", "note": "공급 과잉 우려로 하락" }\n'
     + "  ],\n"
     + '  "news": [\n'
-    + '    { "title": "한국어로 번역된 제목", "summary": "핵심 내용 1~2문장", "url": "입력 데이터 url 그대로", "source": "출처" }\n'
+    + '    { "id": 0, "title": "한국어로 번역된 제목", "summary": "핵심 내용 1~2문장", "source": "출처" }\n'
     + "  ],\n"
     + '  "snapshot": ["이슈1", "이슈2", "이슈3", "이슈4", "이슈5"],\n'
     + '  "priceDrivers": "가격 변동 동인 설명",\n'
@@ -171,7 +164,7 @@ async function generateAndSave(today) {
   let briefingData = null;
 
   try {
-    console.log("Gemini 1.5 Pro 호출 시작...");
+    console.log("Gemini 2.5 Flash 호출 시작...");
 
     const geminiRes = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY,
@@ -181,8 +174,8 @@ async function generateAndSave(today) {
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 16384,
+            temperature: 0.1,
+            maxOutputTokens: 4096,
           },
         }),
       }
@@ -212,20 +205,16 @@ async function generateAndSave(today) {
     briefingData = extractJSON(rawText);
     console.log("JSON 파싱 성공");
 
-    // 링크 검증 — AI가 url을 바꿨으면 원본으로 복원
-    const urlByTitle = new Map(newsForAI.map((n) => [n.title, n.url]));
-    const validUrls = new Set(newsForAI.map((n) => n.url));
+    // id 기반으로 원본 url 복원
+    const urlById = new Map(processedNews.map((n) => [n.id, n.url]));
 
     if (briefingData.news && Array.isArray(briefingData.news)) {
       briefingData.news = briefingData.news.map((item) => {
-        if (!item.url || !validUrls.has(item.url)) {
-          const restored = urlByTitle.get(item.title) || "";
-          console.log("URL 복원: " + item.title + " -> " + restored);
-          return Object.assign({}, item, { url: restored });
-        }
-        return item;
+        const originalUrl = urlById.get(item.id) || "";
+        return Object.assign({}, item, { url: originalUrl });
       });
     }
+
   } catch (e) {
     console.error("Gemini 처리 오류:", e.message);
     briefingData = {
@@ -236,6 +225,7 @@ async function generateAndSave(today) {
         { item: "LME Zinc", price: "N/A", note: "데이터 조회 실패" },
       ],
       news: processedNews.map((n) => ({
+        id: n.id,
         title: n.title,
         summary: "",
         url: n.url,
@@ -291,6 +281,7 @@ export default async function handler(req, res) {
     return res.json(
       Object.assign({ status: "generated" }, docData)
     );
+
   } catch (error) {
     console.error("핸들러 오류:", error);
     return res.status(500).json({
