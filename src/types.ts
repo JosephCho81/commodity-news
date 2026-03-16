@@ -1,6 +1,7 @@
 export interface LMEPrice {
   price: string | null;
   change: string | null;
+  change_reason: string | null;
   source: string | null;
 }
 
@@ -24,8 +25,32 @@ export interface SubMaterials {
   al_scrap: string | null;
 }
 
+export interface ContainerRoute {
+  route: string;
+  rate: string | null;
+  change: string | null;
+  reason: string | null;
+}
+
+export interface BulkRoute {
+  route: string;
+  vessel: string;
+  rate: string | null;
+  change: string | null;
+  reason: string | null;
+}
+
 export interface Logistics {
-  freight: string | null;
+  container: {
+    index: string | null;
+    outlook: string | null;
+    routes: ContainerRoute[];
+  };
+  bulk: {
+    index: string | null;
+    outlook: string | null;
+    routes: BulkRoute[];
+  };
   customs: string | null;
 }
 
