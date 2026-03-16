@@ -1,540 +1,1022 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Home, BarChart2, Network, Newspaper,
-  TrendingUp, TrendingDown, Minus,
-  AlertTriangle, CheckCircle, AlertCircle,
-  ChevronRight, Loader2, Ship, FileText, Anchor,
-} from 'lucide-react';
-import { db } from './firebase';
-import { doc, getDoc, getDocFromServer } from 'firebase/firestore';
+// src/App.tsx — 비철금속 원자재 인텔리전스 앱 전면 재설계
+import { useState, useEffect, useCallback } from 'react';
+import type {
+  TabId, AluminumData, FerrosiliconData, RecarburizerData, SummaryData
+} from './types';
+import { TABS } from './types';
 
-function getKSTDate() {
-  const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  return kst.toISOString().slice(0, 10);
+// ─── 유틸 ─────────────────────────────────────────────────────────────────────
+const API_BASE = '/api/get-news';
+
+function formatAge(min: number) {
+  if (min < 1) return '방금';
+  if (min < 60) return `${min}분 전`;
+  return `${Math.floor(min / 60)}시간 전`;
 }
 
-async function testConnection() {
-  try { await getDocFromServer(doc(db, 'test', 'connection')); } catch {}
+function directionColor(d: string) {
+  if (d === 'UP') return 'var(--up)';
+  if (d === 'DOWN') return 'var(--down)';
+  return 'var(--neutral)';
 }
-testConnection();
 
-const TABS = [
-  { id: 'home', label: '주요 원자재', icon: Home },
-  { id: 'market', label: '제강사 부원료', icon: BarChart2 },
-  { id: 'supply', label: '공급망', icon: Network },
-  { id: 'news', label: '뉴스', icon: Newspaper },
-];
+function urgencyBadge(u: string) {
+  const map: Record<string, string> = { HIGH: '고위험', MEDIUM: '주의', LOW: '참고' };
+  return map[u] ?? u;
+}
 
-function RiskPill({ level }: { level: string | null }) {
-  if (!level) return null;
-  const cfg: Record<string, string> = {
-    '원활': 'bg-emerald-500 text-white',
-    '주의': 'bg-amber-400 text-amber-900',
-    '경고': 'bg-red-500 text-white',
-  };
-  const label: Record<string, string> = {
-    '원활': 'NORMAL', '주의': 'CAUTION', '경고': 'ALERT',
-  };
+// ─── 서브 컴포넌트들 ──────────────────────────────────────────────────────────
+
+function PriceTag({ value, label }: { value: string | null; label: string }) {
+  if (!value) return null;
   return (
-    <span className={"text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap " + (cfg[level] || 'bg-gray-500 text-white')}>
-      {label[level] || level}
-    </span>
-  );
-}
-
-// 변동 태그
-function ChangeTag({ change, size = 'sm' }: { change: string | null; size?: 'sm' | 'xs' }) {
-  if (!change) return <span className="text-gray-300 text-xs">—</span>;
-  const isUp = change.includes('+');
-  const isDown = change.includes('-');
-  const base = size === 'xs' ? 'text-[10px]' : 'text-xs';
-  return (
-    <span className={"font-bold px-1.5 py-0.5 rounded whitespace-nowrap " + base + " " +
-      (isUp ? 'text-red-500 bg-red-50' : isDown ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 bg-gray-100')}>
-      {change}
-    </span>
-  );
-}
-
-// LME 가격 카드 — 숫자 크기 조정
-function MetalCard({ label, price, change, changeReason, source }: {
-  label: string; price: string | null; change: string | null;
-  changeReason?: string | null; source?: string | null;
-}) {
-  const isUp = change && change.includes('+');
-  const isDown = change && change.includes('-');
-  return (
-    <div className="bg-white rounded-xl p-4 border border-gray-100">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-gray-500">{label}</span>
-        {change && (
-          <span className={"text-xs font-bold px-1.5 py-0.5 rounded whitespace-nowrap " +
-            (isUp ? 'text-red-500 bg-red-50' : isDown ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 bg-gray-100')}>
-            {change}
-          </span>
-        )}
-      </div>
-      {/* 숫자 크기 줄임: text-4xl → text-2xl */}
-      <p className="text-2xl font-bold text-gray-900 tracking-tight whitespace-nowrap" style={{ fontFamily: "'DM Mono', monospace" }}>
-        {price || <span className="text-gray-300 text-base font-sans">—</span>}
-      </p>
-      <p className="text-[10px] text-gray-400 mt-0.5">LME Cash / USD</p>
-      {source && <p className="text-[10px] text-blue-400 mt-0.5">{source}</p>}
-      {changeReason && (
-        <p className="text-xs text-gray-500 leading-relaxed border-t border-gray-100 pt-2 mt-2">
-          {changeReason}
-        </p>
-      )}
+    <div className="price-tag">
+      <span className="price-label">{label}</span>
+      <span className="price-value">{value}</span>
     </div>
   );
 }
 
-// 보고서 섹션 컴포넌트
-function ReportSection({ title, content, color = 'blue' }: {
-  title: string; content: string | null; color?: 'blue' | 'amber' | 'purple' | 'gray';
+function SectionCard({ title, accent, children }: {
+  title: string; accent?: string; children: React.ReactNode;
 }) {
-  const colorMap: Record<string, { border: string; bg: string; label: string; text: string }> = {
-    blue: { border: 'border-blue-200', bg: 'bg-blue-50', label: 'text-blue-700', text: 'text-gray-700' },
-    amber: { border: 'border-amber-200', bg: 'bg-amber-50', label: 'text-amber-700', text: 'text-gray-700' },
-    purple: { border: 'border-purple-200', bg: 'bg-purple-50', label: 'text-purple-700', text: 'text-gray-700' },
-    gray: { border: 'border-gray-200', bg: 'bg-gray-50', label: 'text-gray-600', text: 'text-gray-700' },
-  };
-  const c = colorMap[color];
   return (
-    <div className={"rounded-xl border " + c.border + " " + c.bg + " overflow-hidden"}>
-      <div className={"px-4 py-2.5 border-b " + c.border}>
-        <p className={"text-xs font-bold uppercase tracking-wider " + c.label}>{title}</p>
+    <div className="section-card">
+      <div className="section-header">
+        {accent && <span className="section-accent">{accent}</span>}
+        <span className="section-title">{title}</span>
       </div>
-      <div className="px-4 py-3">
-        {content
-          ? <p className={"text-sm leading-relaxed " + c.text}>{content}</p>
-          : <p className="text-xs text-gray-400">관련 데이터 수집 중</p>}
-      </div>
+      <div className="section-body">{children}</div>
     </div>
   );
 }
 
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="info-row">
+      <span className="info-label">{label}</span>
+      <span className="info-value">{value}</span>
+    </div>
+  );
+}
+
+function TextBlock({ text }: { text: string }) {
+  return <p className="text-block">{text}</p>;
+}
+
+function LoadingState() {
+  return (
+    <div className="loading-state">
+      <div className="loading-spinner" />
+      <p>시장 데이터 수집 중…</p>
+    </div>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="error-state">
+      <p>데이터를 불러오지 못했습니다.</p>
+      <button onClick={onRetry} className="retry-btn">다시 시도</button>
+    </div>
+  );
+}
+
+// ─── 탭 콘텐츠: 알루미늄 ──────────────────────────────────────────────────────
+function AluminumTab({ data }: { data: AluminumData }) {
+  const { lme, scrap, dross_deox } = data;
+  const isUp = lme.change && !lme.change.startsWith('-');
+  return (
+    <div className="tab-content">
+      {/* LME 가격 헤더 */}
+      <div className="price-hero">
+        <div className="price-hero-main">
+          <span className="price-hero-label">LME 알루미늄 3개월</span>
+          {lme.price
+            ? <span className="price-hero-value">{lme.price} <small>USD/톤</small></span>
+            : <span className="price-hero-na">가격 확인 중</span>
+          }
+          {lme.change && (
+            <span className="price-hero-change" style={{ color: isUp ? 'var(--up)' : 'var(--down)' }}>
+              {lme.change} ({lme.change_pct})
+            </span>
+          )}
+        </div>
+        {lme.date && <span className="price-hero-date">기준: {lme.date}</span>}
+      </div>
+
+      <SectionCard title="가격 변동 이유" accent="WHY">
+        <TextBlock text={lme.move_reason} />
+      </SectionCard>
+
+      <SectionCard title="시장 현황" accent="NOW">
+        <TextBlock text={lme.market_status} />
+      </SectionCard>
+
+      <SectionCard title="단기 전망" accent="NEXT">
+        <TextBlock text={lme.outlook} />
+      </SectionCard>
+
+      <SectionCard title="알루미늄 스크랩 주간 시황" accent="SCRAP">
+        <TextBlock text={scrap.weekly_summary} />
+        <div className="region-grid">
+          {scrap.regions.map((r) => (
+            <div key={r.region} className="region-card">
+              <div className="region-name">{r.region}</div>
+              <div className="region-grades">{r.grades}</div>
+              {r.price_range && <div className="region-price">{r.price_range}</div>}
+              <div className="region-flow">{r.flow}</div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="드로스 세계 시황" accent="DROSS">
+        <TextBlock text={dross_deox.dross_status} />
+      </SectionCard>
+
+      <SectionCard title="탈산제 세계 시황" accent="DEOX">
+        <TextBlock text={dross_deox.deox_status} />
+      </SectionCard>
+    </div>
+  );
+}
+
+// ─── 탭 콘텐츠: 페로실리콘 ────────────────────────────────────────────────────
+function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
+  const { china_price, china_production, non_china, export_flows, market_summary } = data;
+  return (
+    <div className="tab-content">
+      <div className="price-hero">
+        <div className="price-hero-main">
+          <span className="price-hero-label">FeSi75 닝샤 현물가</span>
+          {china_price.fesi75_ningxia
+            ? <span className="price-hero-value">{china_price.fesi75_ningxia} <small>CNY/톤</small></span>
+            : <span className="price-hero-na">가격 확인 중</span>
+          }
+          {china_price.change && (
+            <span className="price-hero-change"
+              style={{ color: china_price.change.startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
+              {china_price.change}
+            </span>
+          )}
+        </div>
+        <div className="price-hero-sub">
+          {china_price.fesi75_neimenggu &&
+            <span>내몽골: {china_price.fesi75_neimenggu} CNY/톤</span>}
+          {china_price.date && <span>기준: {china_price.date}</span>}
+        </div>
+      </div>
+
+      <SectionCard title="가격 맥락" accent="CTX">
+        <TextBlock text={china_price.price_context} />
+      </SectionCard>
+
+      <SectionCard title="중국 생산 현황" accent="PROD">
+        <div className="production-grid">
+          <div className="prod-region">
+            <div className="prod-region-name">닝샤 寧夏</div>
+            <InfoRow label="전력" value={china_production.ningxia.power_situation} />
+            {china_production.ningxia.utilization_rate &&
+              <InfoRow label="가동률" value={china_production.ningxia.utilization_rate} />}
+            <InfoRow label="날씨" value={china_production.ningxia.weather_impact} />
+          </div>
+          <div className="prod-region">
+            <div className="prod-region-name">윈난 雲南</div>
+            <InfoRow label="전력" value={china_production.yunnan.power_situation} />
+            {china_production.yunnan.utilization_rate &&
+              <InfoRow label="가동률" value={china_production.yunnan.utilization_rate} />}
+            <InfoRow label="날씨" value={china_production.yunnan.weather_impact} />
+          </div>
+        </div>
+        <TextBlock text={china_production.overall} />
+      </SectionCard>
+
+      <SectionCard title="비중국 생산국 동향" accent="INTL">
+        {non_china.map((c) => (
+          <div key={c.country} className="country-row">
+            <div className="country-header">
+              <span className="country-name">{c.country}</span>
+              <span className="country-producer">{c.producer}</span>
+            </div>
+            <p className="country-status">{c.status}</p>
+            <div className="country-flow-tag">→ {c.export_direction}</div>
+          </div>
+        ))}
+      </SectionCard>
+
+      <SectionCard title="수출 방향 (한국·일본·EU·인도)" accent="FLOW">
+        <InfoRow label="한국" value={export_flows.korea} />
+        <InfoRow label="일본" value={export_flows.japan} />
+        <InfoRow label="EU" value={export_flows.eu} />
+        <InfoRow label="인도" value={export_flows.india} />
+      </SectionCard>
+
+      <SectionCard title="시장 종합 및 전망" accent="SUM">
+        <TextBlock text={market_summary} />
+      </SectionCard>
+    </div>
+  );
+}
+
+// ─── 탭 콘텐츠: 가탄제 ────────────────────────────────────────────────────────
+function RecarburizerTab({ data }: { data: RecarburizerData }) {
+  const { china_price, china_production, russia, asia_flows, market_summary } = data;
+  return (
+    <div className="tab-content">
+      <div className="price-hero">
+        <div className="price-hero-main">
+          <span className="price-hero-label">중국 무연탄 현물가</span>
+          {china_price.anthracite_shanxi
+            ? <span className="price-hero-value">{china_price.anthracite_shanxi} <small>CNY/톤</small></span>
+            : <span className="price-hero-na">가격 확인 중</span>
+          }
+          {china_price.change && (
+            <span className="price-hero-change"
+              style={{ color: china_price.change.startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
+              {china_price.change}
+            </span>
+          )}
+        </div>
+        <div className="price-hero-sub">
+          {china_price.anthracite_guizhou &&
+            <span>귀저우: {china_price.anthracite_guizhou} CNY/톤</span>}
+          {china_price.calcined_anthracite &&
+            <span>하소 안트라사이트: {china_price.calcined_anthracite} CNY/톤</span>}
+          {china_price.date && <span>기준: {china_price.date}</span>}
+        </div>
+      </div>
+
+      <SectionCard title="가격 맥락" accent="CTX">
+        <TextBlock text={china_price.price_context} />
+      </SectionCard>
+
+      <SectionCard title="중국 생산 현황" accent="PROD">
+        <InfoRow label="채굴 현황" value={china_production.mining_status} />
+        <InfoRow label="가공 현황" value={china_production.processing_status} />
+        <InfoRow label="정책 영향" value={china_production.policy_impact} />
+      </SectionCard>
+
+      <SectionCard title="러시아 안트라사이트" accent="RUS">
+        <InfoRow label="수출 현황" value={russia.export_volume} />
+        <InfoRow label="제재 영향" value={russia.sanctions_impact} />
+        <InfoRow label="가격 경쟁력" value={russia.price_competitiveness} />
+      </SectionCard>
+
+      <SectionCard title="아시아 물동량 흐름" accent="FLOW">
+        <div className="flow-table">
+          <div className="flow-table-header">
+            <span>수입국</span>
+            <span>주요 공급국</span>
+            <span>물량 추이</span>
+            <span>단가 동향</span>
+          </div>
+          {asia_flows.map((f) => (
+            <div key={f.importer} className="flow-table-row">
+              <span className="flow-importer">{f.importer}</span>
+              <span>{f.main_sources}</span>
+              <span>{f.volume_trend}</span>
+              <span>{f.price_trend}</span>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="시장 종합 및 전망" accent="SUM">
+        <TextBlock text={market_summary} />
+      </SectionCard>
+    </div>
+  );
+}
+
+// ─── 탭 콘텐츠: 시황 종합 ─────────────────────────────────────────────────────
+function SummaryTab({ data }: { data: SummaryData }) {
+  const { one_liner, key_signals, risk_signals, week_ahead } = data;
+  return (
+    <div className="tab-content">
+      <div className="one-liner-card">
+        <div className="one-liner-label">TODAY</div>
+        <div className="one-liner-text">"{one_liner}"</div>
+      </div>
+
+      <SectionCard title="품목별 핵심 시그널" accent="SIGNAL">
+        {key_signals.map((s) => (
+          <div key={s.commodity} className="signal-row">
+            <div className="signal-meta">
+              <span className="signal-commodity">{s.commodity}</span>
+              <span className="signal-dir" style={{ color: directionColor(s.direction) }}>
+                {s.direction === 'UP' ? '▲' : s.direction === 'DOWN' ? '▼' : '—'}
+              </span>
+              <span className={`signal-urgency urgency-${s.urgency.toLowerCase()}`}>
+                {urgencyBadge(s.urgency)}
+              </span>
+            </div>
+            <p className="signal-text">{s.signal}</p>
+          </div>
+        ))}
+      </SectionCard>
+
+      <SectionCard title="주요 리스크 신호" accent="RISK">
+        {risk_signals.map((r, i) => (
+          <div key={i} className="risk-row">
+            <div className="risk-header">
+              <span className="risk-name">{r.risk}</span>
+              <span className={`risk-prob prob-${r.probability.toLowerCase()}`}>
+                {r.probability === 'HIGH' ? '고' : r.probability === 'MEDIUM' ? '중' : '저'}위험
+              </span>
+            </div>
+            <p className="risk-affected">영향: {r.affected}</p>
+            <p className="risk-impact">{r.impact}</p>
+          </div>
+        ))}
+      </SectionCard>
+
+      <SectionCard title="이번 주 주목 변수" accent="WATCH">
+        <div className="watch-text">{week_ahead}</div>
+      </SectionCard>
+    </div>
+  );
+}
+
+// ─── 메인 앱 ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const [briefing, setBriefing] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [statusMsg, setStatusMsg] = useState('데이터 확인 중...');
-  const [tab, setTab] = useState('home');
-  const [logoError, setLogoError] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('summary');
+  const [data, setData] = useState<Record<string, unknown>>({});
+  const [loading, setLoading] = useState<Record<TabId, boolean>>({
+    aluminum: false, ferrosilicon: false, recarburizer: false, summary: false,
+  });
+  const [error, setError] = useState<Record<TabId, boolean>>({
+    aluminum: false, ferrosilicon: false, recarburizer: false, summary: false,
+  });
 
-  const fetchBriefing = async () => {
-    setStatusMsg('AI가 시장을 분석 중입니다...');
+  const fetchTab = useCallback(async (tab: TabId, force = false) => {
+    setLoading(p => ({ ...p, [tab]: true }));
+    setError(p => ({ ...p, [tab]: false }));
     try {
-      const res = await fetch('/api/get-news');
-      if (!res.ok) throw new Error('서버 오류: ' + res.status);
-      const data = await res.json();
-      if (data.status === 'cached' || data.status === 'generated') setBriefing(data);
-      else throw new Error('데이터 없음');
-    } catch (e: any) {
-      setError(e.message);
+      const res = await fetch(`${API_BASE}?tab=${tab}${force ? '&force=true' : ''}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setData(p => ({ ...p, [tab]: json }));
+    } catch {
+      setError(p => ({ ...p, [tab]: true }));
     } finally {
-      setLoading(false);
+      setLoading(p => ({ ...p, [tab]: false }));
     }
-  };
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, 'commodity-news', getKSTDate()));
-        if (snap.exists()) { setBriefing(snap.data()); setLoading(false); }
-        else await fetchBriefing();
-      } catch (e: any) {
-        setError(e.message); setLoading(false);
-      }
-    })();
   }, []);
 
-  const al = briefing?.lme_summary?.aluminum;
-  const cu = briefing?.lme_summary?.copper;
-  const zn = briefing?.lme_summary?.zinc;
-  const allNews = briefing?.allNews || briefing?.key_news || [];
-  const risk = briefing?.supply_chain_risk;
-  const sub = briefing?.sub_materials;
-  const log = briefing?.logistics;
-  const expert = briefing?.expert_comment;
-  const container = log?.container;
-  const bulk = log?.bulk;
+  // 탭 변경 시 데이터 없으면 fetch
+  useEffect(() => {
+    if (!data[activeTab] && !loading[activeTab]) {
+      fetchTab(activeTab);
+    }
+  }, [activeTab]);
+
+  const tabData = data[activeTab] as never;
+  const isLoading = loading[activeTab];
+  const isError = error[activeTab];
+
+  function renderContent() {
+    if (isLoading) return <LoadingState />;
+    if (isError) return <ErrorState onRetry={() => fetchTab(activeTab)} />;
+    if (!tabData) return null;
+    switch (activeTab) {
+      case 'aluminum':     return <AluminumTab data={tabData as AluminumData} />;
+      case 'ferrosilicon': return <FerrosiliconTab data={tabData as FerrosiliconData} />;
+      case 'recarburizer': return <RecarburizerTab data={tabData as RecarburizerData} />;
+      case 'summary':      return <SummaryTab data={tabData as SummaryData} />;
+    }
+  }
+
+  const meta = tabData as (AluminumData | null);
+  const ageMin = meta?._age_min ?? null;
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet" />
-
-      {/* 헤더 */}
-      <header className="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#0A1628] rounded-lg flex items-center justify-center overflow-hidden">
-            {!logoError ? (
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain p-0.5"
-                onError={() => setLogoError(true)} />
-            ) : (
-              <span className="text-green-400 font-black text-xs">A1</span>
+    <>
+      <style>{CSS}</style>
+      <div className="app">
+        {/* 헤더 */}
+        <header className="app-header">
+          <div className="header-brand">
+            <div className="brand-mark">A1</div>
+            <div className="brand-text">
+              <div className="brand-name">한국에이원</div>
+              <div className="brand-sub">비철금속 원자재 인텔리전스</div>
+            </div>
+          </div>
+          <div className="header-actions">
+            {ageMin !== null && (
+              <span className="cache-badge">{meta?._cached ? `캐시 ${formatAge(ageMin)}` : '실시간'}</span>
             )}
+            <button
+              className="refresh-btn"
+              onClick={() => fetchTab(activeTab, true)}
+              disabled={isLoading}
+            >
+              {isLoading ? '↻' : '↺'} 새로고침
+            </button>
           </div>
-          <span className="font-bold text-sm text-gray-900">오늘의 원자재</span>
-        </div>
-        <div className="text-xs text-gray-400">
-          {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'short', day: 'numeric' })}
-        </div>
-      </header>
+        </header>
 
-      <main className="flex-1 overflow-y-auto pb-20">
-        {error && (
-          <div className="mx-4 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-            <p className="text-xs text-red-600">{error}</p>
-          </div>
-        )}
-        {loading && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-            <p className="text-sm text-gray-500">{statusMsg}</p>
-            <p className="text-xs text-gray-400">하루 한 번 생성됩니다</p>
-          </div>
-        )}
+        {/* 바텀탭 */}
+        <nav className="bottom-nav">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <span className="nav-icon">{tab.icon}</span>
+              <span className="nav-label">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
 
-        {briefing && (
-          <AnimatePresence mode="wait">
-            <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}>
-
-              {/* ══ 주요 원자재 ══ */}
-              {tab === 'home' && (
-                <div>
-                  {/* 히어로 — 알루미늄 메인 */}
-                  <div className="bg-[#0A1628] px-5 pt-5 pb-6 relative overflow-hidden">
-                    <div className="absolute right-0 bottom-0 flex items-end gap-1 opacity-15 pr-4 pb-0">
-                      {[40, 55, 45, 65, 58, 72, 80].map((h, i) => (
-                        <div key={i} className="w-4 bg-blue-400 rounded-t" style={{ height: h + 'px' }} />
-                      ))}
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-[11px] text-blue-300 font-medium tracking-wider uppercase">전일 LME 기준</p>
-                        <RiskPill level={risk?.level} />
-                      </div>
-                      <p className="text-sm text-blue-200 mb-0.5">Aluminum</p>
-                      {/* 알루미늄 가격 — 크기 줄임 */}
-                      <div className="flex items-baseline gap-2 mb-1 flex-wrap">
-                        <span className="text-3xl font-bold text-white tracking-tight whitespace-nowrap"
-                          style={{ fontFamily: "'DM Mono', monospace" }}>
-                          {al?.price || '—'}
-                        </span>
-                        {al?.price && <span className="text-xs text-blue-300">USD/mt</span>}
-                        {al?.change && (
-                          <span className={"text-sm font-bold whitespace-nowrap " +
-                            (al.change.includes('+') ? 'text-emerald-400' : 'text-red-400')}>
-                            {al.change}
-                          </span>
-                        )}
-                      </div>
-                      {al?.source && <p className="text-[10px] text-blue-400 mb-1">{al.source}</p>}
-                      {al?.change_reason && (
-                        <p className="text-xs text-blue-200 leading-relaxed mb-3">{al.change_reason}</p>
-                      )}
-                    </div>
-
-                    {/* 오늘의 원자재 한 줄 요약 */}
-                    {expert ? (
-                      <div className="relative z-10 bg-white/10 rounded-xl p-3.5 border border-white/10">
-                        <p className="text-[10px] text-blue-300 font-medium mb-1.5 uppercase tracking-wider">
-                          오늘의 원자재 한 줄 요약
-                        </p>
-                        <p className="text-sm text-white leading-relaxed">{expert.text}</p>
-                        <button onClick={() => setTab('market')}
-                          className="mt-2.5 w-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold py-2 rounded-lg transition flex items-center justify-center gap-1">
-                          상세 분석 보기 <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="relative z-10 bg-white/10 rounded-xl p-3.5 border border-white/10">
-                        <p className="text-[10px] text-blue-300 mb-1">오늘의 원자재 한 줄 요약</p>
-                        <p className="text-sm text-blue-200 italic">분석 준비 중입니다.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 구리/아연 — 2열 그리드 */}
-                  <div className="px-4 mt-4">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">주요 금속 시세</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <MetalCard label="Copper" price={cu?.price} change={cu?.change}
-                        changeReason={cu?.change_reason} source={cu?.source} />
-                      <MetalCard label="Zinc" price={zn?.price} change={zn?.change}
-                        changeReason={zn?.change_reason} source={zn?.source} />
-                    </div>
-                  </div>
-
-                  {/* 공급망 리스크 */}
-                  {risk?.reason && (
-                    <div className="px-4 mt-3 pb-4">
-                      <div className={"rounded-xl p-3.5 flex items-start gap-3 " +
-                        (risk.level === '경고' ? 'bg-red-50 border border-red-200' :
-                         risk.level === '주의' ? 'bg-amber-50 border border-amber-200' :
-                         'bg-emerald-50 border border-emerald-200')}>
-                        {risk.level === '원활'
-                          ? <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                          : <AlertTriangle className={"w-4 h-4 shrink-0 mt-0.5 " +
-                              (risk.level === '경고' ? 'text-red-500' : 'text-amber-500')} />}
-                        <div>
-                          <p className={"text-xs font-bold mb-1 whitespace-nowrap " +
-                            (risk.level === '경고' ? 'text-red-600' :
-                             risk.level === '주의' ? 'text-amber-600' : 'text-emerald-600')}>
-                            공급망 {risk.level}
-                          </p>
-                          <p className="text-xs text-gray-600 leading-relaxed">{risk.reason}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ══ 제강사 부원료 ══ */}
-              {tab === 'market' && (
-                <div className="px-4 pt-5 pb-4 space-y-4">
-                  <h2 className="font-bold text-sm text-gray-900">제강사 부원료 레이더</h2>
-
-                  {/* 전문가 한 줄 요약 */}
-                  {expert && (
-                    <div className="bg-[#0A1628] rounded-xl p-4">
-                      <p className="text-[10px] text-blue-300 font-medium mb-2 uppercase tracking-wider">
-                        오늘의 원자재 한 줄 요약
-                      </p>
-                      <p className="text-sm text-white leading-relaxed">{expert.text}</p>
-                    </div>
-                  )}
-
-                  {/* 알루미늄 스크랩 */}
-                  <ReportSection
-                    title="알루미늄 스크랩 · MJP · ISRI"
-                    content={sub?.al_scrap}
-                    color="blue"
-                  />
-
-                  {/* 가탄제 */}
-                  <ReportSection
-                    title="가탄제 (소괴탄 · 분탄) · 러시아 석탄"
-                    content={sub?.carburizer}
-                    color="amber"
-                  />
-
-                  {/* 페로실리콘 */}
-                  <ReportSection
-                    title="페로실리콘 (FeSi60/75) · 탈중국화"
-                    content={sub?.ferro_silicon}
-                    color="purple"
-                  />
-
-                  {/* LME 전일 종가 — 세로 배치 */}
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">LME 전일 종가</p>
-                    <div className="space-y-2">
-                      <MetalCard label="Aluminum (알루미늄)" price={al?.price} change={al?.change}
-                        changeReason={al?.change_reason} source={al?.source} />
-                      <MetalCard label="Copper (구리)" price={cu?.price} change={cu?.change}
-                        changeReason={cu?.change_reason} source={cu?.source} />
-                      <MetalCard label="Zinc (아연)" price={zn?.price} change={zn?.change}
-                        changeReason={zn?.change_reason} source={zn?.source} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ══ 공급망 ══ */}
-              {tab === 'supply' && (
-                <div className="px-4 pt-5 pb-4 space-y-4">
-                  <h2 className="font-bold text-sm text-gray-900">공급망 현황</h2>
-
-                  {/* 리스크 */}
-                  {risk && (
-                    <div className={"rounded-xl p-3.5 flex items-start gap-3 " +
-                      (risk.level === '경고' ? 'bg-red-50 border border-red-200' :
-                       risk.level === '주의' ? 'bg-amber-50 border border-amber-200' :
-                       'bg-emerald-50 border border-emerald-200')}>
-                      {risk.level === '원활'
-                        ? <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        : <AlertTriangle className={"w-4 h-4 shrink-0 mt-0.5 " +
-                            (risk.level === '경고' ? 'text-red-500' : 'text-amber-500')} />}
-                      <div>
-                        <p className={"text-xs font-bold mb-1 " +
-                          (risk.level === '경고' ? 'text-red-700' :
-                           risk.level === '주의' ? 'text-amber-700' : 'text-emerald-700')}>
-                          공급망 {risk.level || '—'}
-                        </p>
-                        {risk.reason && <p className="text-xs text-gray-600 leading-relaxed">{risk.reason}</p>}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 컨테이너 운임 */}
-                  <div className="bg-white rounded-xl overflow-hidden border border-gray-100">
-                    <div className="px-4 py-3 bg-blue-600 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Ship className="w-4 h-4 text-white" />
-                        <span className="text-xs font-bold text-white">컨테이너 운임 (40ft FEU)</span>
-                      </div>
-                      {container?.index && (
-                        <span className="text-[10px] text-blue-100 font-medium whitespace-nowrap">{container.index}</span>
-                      )}
-                    </div>
-                    {container?.outlook && (
-                      <div className="px-4 py-2.5 bg-blue-50 border-b border-blue-100">
-                        <p className="text-xs text-blue-700 leading-relaxed">{container.outlook}</p>
-                      </div>
-                    )}
-                    {container?.routes && container.routes.length > 0 ? (
-                      <div className="divide-y divide-gray-100">
-                        {container.routes.map((r: any, i: number) => (
-                          <div key={i} className="px-4 py-2.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-medium text-gray-700 whitespace-nowrap">{r.route}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-xs font-bold text-gray-900 whitespace-nowrap"
-                                  style={{ fontFamily: "'DM Mono', monospace" }}>
-                                  {r.rate || '—'}
-                                </span>
-                                <ChangeTag change={r.change} size="xs" />
-                              </div>
-                            </div>
-                            {r.reason && (
-                              <p className="text-[11px] text-gray-400 leading-relaxed mt-1">{r.reason}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 px-4 py-4">데이터 수집 중</p>
-                    )}
-                  </div>
-
-                  {/* 벌크선 운임 */}
-                  <div className="bg-white rounded-xl overflow-hidden border border-gray-100">
-                    <div className="px-4 py-3 bg-gray-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Anchor className="w-4 h-4 text-white" />
-                        <span className="text-xs font-bold text-white">벌크선 운임 (석탄 · 원자재)</span>
-                      </div>
-                      {bulk?.index && (
-                        <span className="text-[10px] text-gray-300 font-medium whitespace-nowrap">{bulk.index}</span>
-                      )}
-                    </div>
-                    {bulk?.outlook && (
-                      <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                        <p className="text-xs text-gray-600 leading-relaxed">{bulk.outlook}</p>
-                      </div>
-                    )}
-                    {bulk?.routes && bulk.routes.length > 0 ? (
-                      <div className="divide-y divide-gray-100">
-                        {bulk.routes.map((r: any, i: number) => (
-                          <div key={i} className="px-4 py-2.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="min-w-0">
-                                <span className="text-xs font-medium text-gray-700 block leading-snug">{r.route}</span>
-                                {r.vessel && (
-                                  <span className="text-[10px] text-gray-400">{r.vessel}</span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-xs font-bold text-gray-900 whitespace-nowrap"
-                                  style={{ fontFamily: "'DM Mono', monospace" }}>
-                                  {r.rate || '—'}
-                                </span>
-                                <ChangeTag change={r.change} size="xs" />
-                              </div>
-                            </div>
-                            {r.reason && (
-                              <p className="text-[11px] text-gray-400 leading-relaxed mt-1">{r.reason}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 px-4 py-4">데이터 수집 중</p>
-                    )}
-                  </div>
-
-                  {/* 관세 · 통관 */}
-                  <ReportSection
-                    title="관세 · 통관 · 무역정책"
-                    content={log?.customs}
-                    color="gray"
-                  />
-
-                  {briefing.disclaimer && (
-                    <p className="text-[10px] text-gray-300 text-center leading-relaxed px-2">
-                      {briefing.disclaimer}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* ══ 뉴스 ══ */}
-              {tab === 'news' && (
-                <div className="px-4 pt-5 pb-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="font-bold text-sm text-gray-900">수집 뉴스</h2>
-                    <span className="text-xs text-gray-400">{allNews.length}건</span>
-                  </div>
-                  <div className="space-y-3">
-                    {allNews.map((n: any, i: number) => (
-                      <div key={i} className="bg-white rounded-xl p-4 border border-gray-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase whitespace-nowrap">
-                            {n.source}
-                          </span>
-                          {n.url && (
-                            <a href={n.url} target="_blank" rel="noopener noreferrer"
-                              className="text-[10px] text-gray-400 hover:text-blue-500 flex items-center gap-0.5 whitespace-nowrap">
-                              원문 <ChevronRight className="w-3 h-3" />
-                            </a>
-                          )}
-                        </div>
-                        <h3 className="text-sm font-semibold text-gray-900 leading-snug mb-1">{n.title}</h3>
-                        {n.summary && (
-                          <p className="text-xs text-gray-500 leading-relaxed">{n.summary}</p>
-                        )}
-                        {n.relevance && (
-                          <div className="mt-2 pt-2 border-t border-gray-100 flex items-start gap-1.5">
-                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded whitespace-nowrap shrink-0">
-                              업계 영향
-                            </span>
-                            <p className="text-xs text-amber-700 leading-relaxed">{n.relevance}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {allNews.length === 0 && (
-                      <p className="text-sm text-gray-400 text-center py-12">뉴스 없음</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-            </motion.div>
-          </AnimatePresence>
-        )}
-      </main>
-
-      {/* 바텀 탭 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex z-50"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={"flex-1 flex flex-col items-center gap-1 py-3 transition-colors " +
-              (tab === id ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600')}>
-            <Icon className="w-5 h-5" />
-            <span className="text-[10px] font-medium">{label}</span>
-          </button>
-        ))}
-      </nav>
-    </div>
+        {/* 콘텐츠 영역 */}
+        <main className="app-main">
+          {renderContent()}
+        </main>
+      </div>
+    </>
   );
 }
+
+// ─── CSS ──────────────────────────────────────────────────────────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:       #0d0f13;
+    --surface:  #141720;
+    --surface2: #1a1e28;
+    --border:   #262c3a;
+    --accent:   #e8b84b;
+    --accent2:  #c98f2a;
+    --text:     #d4dae8;
+    --text2:    #8492a6;
+    --text3:    #4f5a6e;
+    --up:       #4ade80;
+    --down:     #f87171;
+    --neutral:  #94a3b8;
+    --high:     #ef4444;
+    --medium:   #f59e0b;
+    --low:      #6b7280;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans KR', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 앱 레이아웃 ── */
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* ── 헤더 ── */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-brand { display: flex; align-items: center; gap: 10px; }
+
+  .brand-mark {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    color: #000;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: -0.5px;
+  }
+
+  .brand-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+
+  .brand-sub {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+  }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+
+  .cache-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+  }
+
+  .refresh-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── 바텀 네비 ── */
+  .bottom-nav {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    z-index: 10;
+  }
+
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 4px 12px;
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    transition: color 0.15s;
+    gap: 3px;
+    position: relative;
+  }
+
+  .nav-tab::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 20%; right: 20%; height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.2s;
+  }
+
+  .nav-tab.active { color: var(--accent); }
+  .nav-tab.active::before { transform: scaleX(1); }
+
+  .nav-icon { font-size: 16px; line-height: 1; }
+  .nav-label { font-size: 10px; font-family: var(--mono); }
+
+  /* ── 메인 콘텐츠 ── */
+  .app-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 90px;
+  }
+
+  .tab-content { display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── 가격 히어로 ── */
+  .price-hero {
+    background: linear-gradient(135deg, var(--surface2) 0%, #1f2535 100%);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .price-hero-main { display: flex; flex-direction: column; gap: 4px; }
+
+  .price-hero-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .price-hero-value {
+    font-size: 28px;
+    font-family: var(--mono);
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: -1px;
+  }
+
+  .price-hero-value small {
+    font-size: 13px;
+    color: var(--text3);
+    font-weight: 400;
+  }
+
+  .price-hero-na {
+    font-size: 20px;
+    font-family: var(--mono);
+    color: var(--text3);
+  }
+
+  .price-hero-change {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .price-hero-date {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  .price-hero-sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  /* ── 섹션 카드 ── */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .section-accent {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--accent2);
+    letter-spacing: 1.5px;
+    padding: 1px 5px;
+    border: 1px solid var(--accent2);
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .section-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── 텍스트 블록 ── */
+  .text-block {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.75;
+  }
+
+  /* ── 인포 로우 ── */
+  .info-row {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-row:last-child { border-bottom: none; }
+
+  .info-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    min-width: 64px;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .info-value {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ── 지역 그리드 (스크랩) ── */
+  .region-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .region-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .region-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .region-grades {
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  .region-price {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--up);
+    font-weight: 500;
+  }
+
+  .region-flow {
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  /* ── 생산 그리드 ── */
+  .production-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .prod-region {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .prod-region-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+
+  /* ── 국가 로우 ── */
+  .country-row {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .country-row:last-child { border-bottom: none; }
+
+  .country-header { display: flex; align-items: baseline; gap: 8px; }
+
+  .country-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .country-producer {
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  .country-status {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .country-flow-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    display: inline-block;
+    margin-top: 2px;
+  }
+
+  /* ── 물동량 테이블 ── */
+  .flow-table { display: flex; flex-direction: column; gap: 0; }
+
+  .flow-table-header {
+    display: grid;
+    grid-template-columns: 80px 1fr 80px 80px;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.5px;
+  }
+
+  .flow-table-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 80px 80px;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text);
+    align-items: start;
+  }
+  .flow-table-row:last-child { border-bottom: none; }
+
+  .flow-importer {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ── ONE-LINER 카드 ── */
+  .one-liner-card {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f1420 100%);
+    border: 1px solid var(--accent2);
+    padding: 20px 18px;
+  }
+
+  .one-liner-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--accent2);
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
+  .one-liner-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* ── 시그널 로우 ── */
+  .signal-row {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .signal-row:last-child { border-bottom: none; }
+
+  .signal-meta { display: flex; align-items: center; gap: 8px; }
+
+  .signal-commodity {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .signal-dir {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .signal-urgency {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 1px 5px;
+    margin-left: auto;
+  }
+  .urgency-high { color: var(--high); border: 1px solid var(--high); }
+  .urgency-medium { color: var(--medium); border: 1px solid var(--medium); }
+  .urgency-low { color: var(--low); border: 1px solid var(--low); }
+
+  .signal-text { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+  /* ── 리스크 로우 ── */
+  .risk-row {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .risk-row:last-child { border-bottom: none; }
+
+  .risk-header { display: flex; align-items: center; justify-content: space-between; }
+
+  .risk-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .risk-prob {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 1px 6px;
+  }
+  .prob-high { color: var(--high); border: 1px solid var(--high); }
+  .prob-medium { color: var(--medium); border: 1px solid var(--medium); }
+  .prob-low { color: var(--low); border: 1px solid var(--low); }
+
+  .risk-affected {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+
+  .risk-impact { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+  /* ── 주목 변수 ── */
+  .watch-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.8;
+    white-space: pre-line;
+  }
+
+  /* ── 로딩 / 에러 ── */
+  .loading-state, .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 60px 20px;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .loading-spinner {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .retry-btn {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 16px;
+    cursor: pointer;
+  }
+
+  /* ── 스크롤바 ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ── 반응형 ── */
+  @media (max-width: 360px) {
+    .region-grid { grid-template-columns: 1fr; }
+    .production-grid { grid-template-columns: 1fr; }
+    .flow-table-header,
+    .flow-table-row { grid-template-columns: 60px 1fr 60px 60px; }
+  }
+`;
 
