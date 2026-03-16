@@ -7,7 +7,6 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ── Firebase 초기화 ───────────────────────────────────────────────────────
 let db;
 function getDB() {
   if (db) return db;
@@ -22,14 +21,12 @@ function getDB() {
   return db;
 }
 
-// ── KST 기준 오늘 날짜 ───────────────────────────────────────────────────
 function getKSTDate() {
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   return kst.toISOString().slice(0, 10);
 }
 
-// ── RSS 수집 ──────────────────────────────────────────────────────────────
 async function fetchRSS(url) {
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
@@ -59,19 +56,17 @@ async function fetchRSS(url) {
   }
 }
 
-// ── 뉴스 생성 메인 함수 ───────────────────────────────────────────────────
 async function generateAndSave(today) {
   const database = getDB();
 
-  // 1. RSS 수집 — 비철/부원료 특화 피드
   const feeds = [
     "https://news.google.com/rss/search?q=LME+aluminum+aluminium+price&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=aluminium+scrap+secondary+market&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=ferro+silicon+ferrosilicon+market&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=petroleum+coke+calcined+market&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=aluminium+scrap+secondary+aluminium&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=ferro+silicon+ferrosilicon+price&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=petroleum+coke+calcined+coke&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=LME+copper+zinc+nickel+price&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=shipping+freight+rate+commodity&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=China+aluminium+export+import&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=shipping+freight+SCFI+commodity&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=China+aluminium+aluminum+export&hl=en&gl=US&ceid=US:en",
   ];
 
   let rawNews = [];
@@ -79,7 +74,6 @@ async function generateAndSave(today) {
     rawNews = rawNews.concat(await fetchRSS(f));
   }
 
-  // 중복 제거
   const seen = new Set();
   const allNews = rawNews
     .filter((n) => {
@@ -93,17 +87,14 @@ async function generateAndSave(today) {
       return { id: index, title: n.title, url: n.url, source, pubDate: n.pubDate };
     });
 
-  if (allNews.length === 0) throw new Error("RSS 수집 실패 — 뉴스 없음");
+  if (allNews.length === 0) throw new Error("RSS 수집 실패");
 
-  // 분석용 15개 / 표시용 전체 25개
   const newsForAnalysis = allNews.slice(0, 15);
   const allNewsForDisplay = allNews.slice(0, 25);
+  console.log("RSS 수집: 분석용 " + newsForAnalysis.length + "건 / 표시용 " + allNewsForDisplay.length + "건");
 
-  console.log("RSS 수집 완료: 분석용 " + newsForAnalysis.length + "건 / 표시용 " + allNewsForDisplay.length + "건");
-
-  // 2. Gemini 호출
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 환경변수 없음");
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 없음");
 
   const newsForAI = newsForAnalysis.map((n) => ({
     id: n.id,
@@ -111,95 +102,89 @@ async function generateAndSave(today) {
     source: n.source,
   }));
 
-  // ── 시스템 프롬프트 ───────────────────────────────────────────────────
-  const systemPrompt =
+  // 프롬프트를 하나로 통합 (system_instruction 미사용)
+  const prompt =
     "당신은 20년 경력의 비철금속 및 제강 부원료 시장 전문 애널리스트입니다.\n" +
     "알루미늄 탈산제(Al 30~90%), 알루미늄 드로스(Al 20~65%), 가탄제(소괴탄/분탄 FC80~84%),\n" +
-    "페로실리콘(FeSi60/75), 알루미늄 스크랩(12종), 알루미늄 재생 인곳을 직접 취급하는\n" +
-    "국내 제강사(동국제강, 포스코, 현대제철) 납품 실무자들을 위한 브리핑을 작성합니다.\n\n" +
+    "페로실리콘(FeSi60/75), 알루미늄 스크랩(12종)을 국내 제강사(동국제강, 포스코, 현대제철)에\n" +
+    "납품하는 실무자들을 위한 전문 시황 브리핑을 작성하세요.\n\n" +
 
-    "## 분석 원칙\n\n" +
+    "## 가격 데이터 규칙\n" +
+    "- 뉴스에 구체적 가격 있으면: 그대로 사용, source에 출처 명시\n" +
+    "- 뉴스에 가격 없으면: 최신 시장 지식 기반 추정값 기입 + 반드시 '(추정)' 표시\n" +
+    "- 가격 필드를 절대 비워두지 마세요. null 금지.\n" +
+    "- 예시: '$2,485 (추정)', '$9,842 (추정)', '$2,910 (추정)'\n\n" +
 
-    "### 가격 데이터 처리\n" +
-    "- 뉴스에 구체적인 가격이 언급된 경우: 해당 가격을 그대로 사용하고 source에 출처 명시\n" +
-    "- 뉴스에 가격이 없는 경우: 최신 시장 지식 기반 추정값을 기입하고 반드시 '(추정)' 표시\n" +
-    "- 절대 가격을 null로 두지 마. 추정값이라도 반드시 채워라.\n" +
-    "- 예시: '$2,485 (추정)', '$9,842 (추정)'\n\n" +
+    "## 분석 품질 기준\n" +
+    "나쁜 분석(금지): '중동 분쟁으로 알루미늄 공급 차질 우려'\n" +
+    "좋은 분석(목표): 'UAE Qatalum, 바레인 Alba 물량 아시아 도착 지연 → LME 재고 감소 →\n" +
+    "현물 프리미엄 상승. 국내 수입 알루미늄 원가 톤당 $30~50 추가 상승 가능성 있음'\n\n" +
+    "반드시 포함할 것: 인과관계, 구체적 수치(%, 톤, 달러), 국내 납품 환경 연관성\n\n" +
 
-    "### 분석 깊이 요구사항\n" +
-    "- 단순 뉴스 요약 금지. 반드시 인과관계 분석을 포함할 것\n" +
-    "- 예시 나쁜 분석: '중동 분쟁으로 알루미늄 공급 차질 우려'\n" +
-    "- 예시 좋은 분석: '중동 물류 차질로 UAE Qatalum, 바레인 Alba 등 중동 제련소 물량이\n" +
-    "  아시아 도착 지연 → LME 재고 감소 → 현물 프리미엄 상승 압력. 국내 수입 알루미늄\n" +
-    "  원가 톤당 $30~50 추가 상승 가능성'\n" +
-    "- 수치가 있으면 반드시 포함 (등락률 %, 재고 변화, 프리미엄 수준 등)\n" +
-    "- 국내 납품 환경(동국제강/포스코/현대제철)과의 연관성을 최대한 연결해서 분석\n\n" +
+    "## 부원료별 핵심 분석 변수\n" +
+    "- 가탄제: 중국 내륙 석탄 가격, 수출 관세, 내몽골/산시성 전력 규제\n" +
+    "- 페로실리콘: 중국 윈난성 수력발전 시즌, 노르웨이/카자흐스탄 생산량\n" +
+    "- 알루미늄 스크랩: 일본 프리미엄(MJP), 미국 UBC 수출량, 국내 회수율\n" +
+    "관련 뉴스가 없어도 현재 시장 상황 기반으로 각 품목 동향을 반드시 2문장 이상 작성\n\n" +
 
-    "### 부원료 분석 특이사항\n" +
-    "- 가탄제: 중국 내륙 석탄 가격, 수출 관세, 내몽골 전력 규제가 핵심 변수\n" +
-    "- 페로실리콘: 중국 윈난성 수력발전 시즌, 노르웨이/카자흐스탄 생산량이 핵심 변수\n" +
-    "- 알루미늄 스크랩: 일본 프리미엄(MJP), 미국 UBC 수출량, 국내 회수율이 핵심 변수\n" +
-    "- 관련 뉴스가 없어도 현재 시장 상황 기반으로 각 품목 동향을 반드시 작성\n\n" +
+    "## 출력 형식\n" +
+    "반드시 순수 JSON만 출력. 설명 없이 { 로 시작 } 로 끝.\n" +
+    "모든 텍스트 한국어. url 필드 포함하지 말 것. 각 news 항목에 id 포함.\n\n" +
 
-    "### 공급망 리스크 판단\n" +
-    "'원활' / '주의' / '경고' 중 하나. 반드시 구체적 근거 수치와 함께 판단.\n\n" +
-
-    "### 출력 규칙\n" +
-    "- 반드시 순수 JSON만 출력. { 로 시작 } 로 끝\n" +
-    "- 모든 텍스트 한국어\n" +
-    "- 전문 용어 그대로 사용 (탈산제, 드로스, 소괴탄, 분탄, 인곳, MJP 등)\n" +
-    "- news 배열 각 항목에 입력 데이터의 id 값 포함\n" +
-    "- url 필드 포함하지 말 것\n\n" +
-
-    "## 출력 JSON 구조\n" +
     "{\n" +
     '  "lme_summary": {\n' +
     '    "aluminum": {\n' +
-    '      "price": "가격 (추정) 또는 실제값",\n' +
-    '      "change": "전일 대비 등락 예: +1.2% 또는 -0.8%",\n' +
+    '      "price": "예: $2,485.50 (추정)",\n' +
+    '      "change": "예: +1.2% 또는 -0.8%",\n' +
+    '      "change_reason": "가격 변동 주요 원인 1~2문장. 반드시 구체적 사유 포함",\n' +
     '      "source": "뉴스 출처 또는 시장 추정"\n' +
     "    },\n" +
-    '    "copper": { "price": "...", "change": "...", "source": "..." },\n' +
-    '    "zinc": { "price": "...", "change": "...", "source": "..." }\n' +
+    '    "copper": {\n' +
+    '      "price": "예: $9,842.00 (추정)",\n' +
+    '      "change": "예: -0.8%",\n' +
+    '      "change_reason": "가격 변동 주요 원인 1~2문장",\n' +
+    '      "source": "뉴스 출처 또는 시장 추정"\n' +
+    "    },\n" +
+    '    "zinc": {\n' +
+    '      "price": "예: $2,910.50 (추정)",\n' +
+    '      "change": "예: +2.4%",\n' +
+    '      "change_reason": "가격 변동 주요 원인 1~2문장",\n' +
+    '      "source": "뉴스 출처 또는 시장 추정"\n' +
+    "    }\n" +
     "  },\n" +
     '  "key_news": [\n' +
     '    {\n' +
     '      "id": 0,\n' +
     '      "title": "한국어 번역 제목",\n' +
-    '      "summary": "핵심 내용 요약 (뉴스 내용 기반)",\n' +
-    '      "relevance": "국내 비철/부원료 취급자에게 미치는 영향 — 구체적 수치 포함",\n' +
+    '      "summary": "핵심 내용 요약",\n' +
+    '      "relevance": "국내 비철/부원료 취급자 영향 — 구체적 수치 포함",\n' +
     '      "source": "출처"\n' +
     "    }\n" +
     "  ],\n" +
     '  "supply_chain_risk": {\n' +
     '    "level": "원활 또는 주의 또는 경고",\n' +
-    '    "reason": "구체적 수치와 인과관계 포함한 판단 근거 (2~3문장)"\n' +
+    '    "reason": "구체적 수치와 인과관계 포함한 판단 근거 2~3문장"\n' +
     "  },\n" +
     '  "sub_materials": {\n' +
-    '    "carburizer": "가탄제 동향 — 중국 석탄 가격/수출 관세/전력 규제 현황 포함. 최소 2문장",\n' +
-    '    "ferro_silicon": "페로실리콘 동향 — 중국 생산 현황/윈난성 전력 상황 포함. 최소 2문장",\n' +
-    '    "al_scrap": "알루미늄 스크랩 동향 — MJP/UBC 수출/국내 수급 포함. 최소 2문장"\n' +
+    '    "carburizer": "가탄제 동향 — 중국 석탄가격/수출관세/전력규제 현황 포함. 최소 2문장",\n' +
+    '    "ferro_silicon": "페로실리콘 동향 — 중국 생산현황/윈난성 전력 포함. 최소 2문장",\n' +
+    '    "al_scrap": "알루미늄 스크랩 동향 — MJP/UBC/국내 수급 포함. 최소 2문장"\n' +
     "  },\n" +
     '  "logistics": {\n' +
-    '    "freight": "해상운임 동향 — SCFI/BDI 지수나 주요 항로 운임 수준 포함",\n' +
-    '    "customs": "관세/통관 동향 — 있으면 구체적으로, 없으면 최근 동향 요약"\n' +
+    '    "freight": "해상운임 동향 — SCFI/BDI 수준 또는 주요 항로 운임 포함",\n' +
+    '    "customs": "관세/통관 동향 — 최근 변화사항 또는 현재 상황 요약"\n' +
     "  },\n" +
-    '  "disclaimer": "이 브리핑은 공개된 뉴스와 시장 데이터를 AI가 분석한 것입니다. 가격은 추정치를 포함하며, 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
-    "}";
+    '  "disclaimer": "이 브리핑은 공개된 뉴스와 시장 데이터를 AI가 분석한 것입니다. 가격은 추정치를 포함하며 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
+    "}\n\n" +
 
-  const userPrompt =
-    "오늘 날짜: " + today + "\n\n" +
-    "아래 뉴스 헤드라인 " + newsForAI.length + "건을 분석해서 비철금속 및 부원료 업계 실무자를 위한\n" +
-    "전문적인 시황 브리핑을 작성해줘.\n\n" +
-    "중요: 가격 데이터는 반드시 채울 것. 뉴스에 없으면 최신 시장 지식 기반 추정값 + '(추정)' 표시.\n" +
-    "분석은 단순 요약이 아니라 인과관계와 국내 납품 환경에 미치는 영향까지 포함할 것.\n\n" +
-    "[뉴스 데이터]\n" +
+    "오늘 날짜: " + today + "\n" +
+    "[분석할 뉴스 " + newsForAI.length + "건]\n" +
     JSON.stringify(newsForAI, null, 2);
 
   let briefingData = null;
 
   try {
-    console.log("Gemini 2.5 Flash 호출 시작...");
+    console.log("Gemini 호출 시작...");
 
     const geminiRes = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY,
@@ -207,8 +192,7 @@ async function generateAndSave(today) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.2,
             maxOutputTokens: 8192,
@@ -237,17 +221,16 @@ async function generateAndSave(today) {
         : "";
 
     console.log("Gemini 응답 길이: " + rawText.length + "자");
-    if (!rawText) throw new Error("Gemini 응답 텍스트 비어있음");
+    if (!rawText) throw new Error("Gemini 응답 비어있음");
 
     briefingData = JSON.parse(rawText);
     console.log("JSON 파싱 성공");
 
-    // id 기반으로 원본 url 복원
+    // id 기반 url 복원
     const urlById = new Map(newsForAnalysis.map((n) => [n.id, n.url]));
     if (briefingData.key_news && Array.isArray(briefingData.key_news)) {
       briefingData.key_news = briefingData.key_news.map((item) => {
-        const originalUrl = urlById.get(item.id) || "";
-        return Object.assign({}, item, { url: originalUrl });
+        return Object.assign({}, item, { url: urlById.get(item.id) || "" });
       });
     }
 
@@ -255,17 +238,12 @@ async function generateAndSave(today) {
     console.error("Gemini 처리 오류:", e.message);
     briefingData = {
       lme_summary: {
-        aluminum: { price: null, change: null, source: null },
-        copper: { price: null, change: null, source: null },
-        zinc: { price: null, change: null, source: null },
+        aluminum: { price: null, change: null, change_reason: null, source: null },
+        copper: { price: null, change: null, change_reason: null, source: null },
+        zinc: { price: null, change: null, change_reason: null, source: null },
       },
       key_news: newsForAnalysis.slice(0, 5).map((n) => ({
-        id: n.id,
-        title: n.title,
-        summary: "",
-        relevance: null,
-        url: n.url,
-        source: n.source,
+        id: n.id, title: n.title, summary: "", relevance: null, url: n.url, source: n.source,
       })),
       supply_chain_risk: { level: null, reason: null },
       sub_materials: { carburizer: null, ferro_silicon: null, al_scrap: null },
@@ -274,7 +252,6 @@ async function generateAndSave(today) {
     };
   }
 
-  // 3. Firestore 저장
   const docData = Object.assign({}, briefingData, {
     date: today,
     updatedAt: new Date().toISOString(),
@@ -283,38 +260,27 @@ async function generateAndSave(today) {
 
   await setDoc(doc(database, "commodity-news", today), docData);
   console.log(today + " Firestore 저장 완료");
-
   return docData;
 }
 
-// ── 핸들러 ────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-
   try {
     const today = getKSTDate();
     const database = getDB();
-
     const docSnap = await getDoc(doc(database, "commodity-news", today));
-
     if (docSnap.exists()) {
       console.log(today + " 캐시 히트");
       res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate");
       return res.json(Object.assign({ status: "cached" }, docSnap.data()));
     }
-
     console.log(today + " 캐시 미스 — 생성 시작");
     const docData = await generateAndSave(today);
-
     return res.json(Object.assign({ status: "generated" }, docData));
-
   } catch (error) {
     console.error("핸들러 오류:", error);
-    return res.status(500).json({
-      error: "Internal Server Error",
-      message: error.message,
-    });
+    return res.status(500).json({ error: "Internal Server Error", message: error.message });
   }
 }
