@@ -190,6 +190,33 @@ async function getFromFirestore(token, collection, docId) {
   return out;
 }
 
+// ─── LME 알루미늄 가격 직접 fetch (Yahoo Finance) ─────────────────────────
+// ALI=F: LME Aluminium 3-month futures (Yahoo Finance)
+async function fetchLmePrice() {
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/ALI=F?interval=1d&range=5d';
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+    if (!res.ok) throw new Error(`Yahoo HTTP ${res.status}`);
+    const json = await res.json();
+    const meta = json?.chart?.result?.[0]?.meta;
+    if (!meta) throw new Error('Yahoo 응답 구조 이상');
+
+    const price = meta.regularMarketPrice ?? meta.previousClose;
+    const prevClose = meta.previousClose ?? meta.chartPreviousClose;
+    const change = price && prevClose ? +(price - prevClose).toFixed(2) : null;
+    const changePct = change && prevClose ? `${change >= 0 ? '+' : ''}${((change / prevClose) * 100).toFixed(2)}%` : null;
+    const date = new Date(meta.regularMarketTime * 1000).toISOString().slice(0, 10);
+
+    console.log(`[Yahoo] LME 가격 fetch 성공: ${price} USD/톤 (${date})`);
+    return { price: String(price), change: String(change), change_pct: changePct, date, source: 'yahoo' };
+  } catch (e) {
+    console.warn('[Yahoo] LME 가격 fetch 실패:', e.message);
+    return null;
+  }
+}
+
 // ─── Perplexity 호출 ───────────────────────────────────────────────────────
 async function callPerplexity(prompt) {
   const res = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -238,13 +265,11 @@ const PROMPTS = {
 
   aluminum: `오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
 
-【LME 가격 수집 방법 — 반드시 따르세요】
-1. https://www.lme.com/en/metals/non-ferrous/lme-aluminium 페이지를 직접 검색하여 "Trading Summary" 또는 "Official Prices" 섹션에서 오늘 또는 가장 최근 거래일의 3-month Closing Price(USD/톤)를 가져오세요.
-2. 오늘 날짜: ${new Date().toISOString().slice(0,10)}. 주말/공휴일이면 직전 영업일 가격.
-3. LME 알루미늄 3-month 가격은 현재 $3,300~$3,600/톤 범위입니다. 이 범위를 크게 벗어나는 값은 잘못된 값이므로 재확인하세요.
-4. price 필드에는 반드시 숫자만 (예: 3439.50). 단위·문자 포함 금지.
-5. [1][2] 각주 번호 절대 금지.
-6. 스크랩 가격: metal.com/aluminum-scrap, scrapmonster.com, AMM, Fastmarkets 기준 실제 확인된 가격대.
+【중요 지침】
+- LME 가격(price, change, change_pct, date)은 별도로 제공되므로 JSON에서 제외하세요. 텍스트 분석만 작성.
+- [1][2] 각주 번호 절대 금지.
+- 스크랩 가격: metal.com/aluminum-scrap, scrapmonster.com, AMM, Fastmarkets 기준 실제 확인된 가격대.
+- 확인 불가 숫자는 null, 불확실한 추정치 금지.
 
 {
   "lme": {
@@ -468,7 +493,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── 2. Perplexity 호출 ─────────────────────────────────────────────────
+    // ── 2. LME 가격 직접 fetch (aluminum 탭만) ────────────────────────────
+    let lmeData = null;
+    if (tab === 'aluminum') {
+      lmeData = await fetchLmePrice();
+    }
+
+    // ── 3. Perplexity 호출 (텍스트 시황만) ────────────────────────────────
     console.log(`[Perplexity] 호출 시작: ${tab}`);
     const raw = await callPerplexity(PROMPTS[tab]);
 
@@ -482,6 +513,22 @@ export default async function handler(req, res) {
         detail: e.message,
         raw_preview: raw.slice(0, 300),
       });
+    }
+
+    // ── LME 가격 주입: Yahoo 성공 시 덮어씌움, 실패 시 Perplexity 값 유지
+    if (tab === 'aluminum' && lmeData) {
+      console.log(`[LME] Yahoo 가격 주입: ${lmeData.price} (${lmeData.date})`);
+      parsed.lme = {
+        ...parsed.lme,
+        price:      lmeData.price,
+        change:     lmeData.change,
+        change_pct: lmeData.change_pct,
+        date:       lmeData.date,
+        source:     'yahoo',
+      };
+    } else if (tab === 'aluminum') {
+      console.warn('[LME] Yahoo 실패 — Perplexity 값 사용 (신뢰도 낮음)');
+      parsed.lme = { ...parsed.lme, source: 'perplexity' };
     }
 
     // ── 3. Firestore 캐시 저장 시도 ───────────────────────────────────────
