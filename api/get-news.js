@@ -22,7 +22,7 @@ function getDB() {
   return db;
 }
 
-// ── KST 기준 오늘 날짜 반환 (YYYY-MM-DD) ─────────────────────────────────
+// ── KST 기준 오늘 날짜 (YYYY-MM-DD) ──────────────────────────────────────
 function getKSTDate() {
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -45,16 +45,11 @@ async function fetchRSS(url) {
           "";
         const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
         const cleanTitle = title
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&amp;/g, "&")
-          .replace(/&quot;/g, '"')
+          .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+          .replace(/&amp;/g, "&").replace(/&quot;/g, '"')
           .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
-          .replace(/<[^>]+>/g, "")
-          .trim();
-        const cleanLink = link
-          .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
-          .trim();
+          .replace(/<[^>]+>/g, "").trim();
+        const cleanLink = link.replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1").trim();
         return { title: cleanTitle, url: cleanLink, pubDate };
       })
       .filter((i) => i.title && i.url && i.url.startsWith("http"));
@@ -68,13 +63,14 @@ async function fetchRSS(url) {
 async function generateAndSave(today) {
   const database = getDB();
 
-  // 1. RSS 수집 — 분석용 5개 + 표시용 전체 따로 관리
+  // 1. RSS 수집 — 비철/부원료 특화 피드
   const feeds = [
-    "https://news.google.com/rss/search?q=aluminum+market+LME&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=copper+market+LME&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=zinc+market+LME&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=nickel+market+LME&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=raw+material+commodity+price&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=aluminum+LME+market&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=aluminium+scrap+market&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=ferro+silicon+market&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=petroleum+coke+carburizer+market&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=LME+copper+zinc+nickel&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=shipping+freight+commodity&hl=en&gl=US&ceid=US:en",
   ];
 
   let rawNews = [];
@@ -92,30 +88,19 @@ async function generateAndSave(today) {
     })
     .map((n, index) => {
       let source = "News";
-      try {
-        source = new URL(n.url).hostname.replace("www.", "");
-      } catch (e) {}
-      return {
-        id: index,
-        title: n.title,
-        url: n.url,
-        source: source,
-        pubDate: n.pubDate,
-      };
+      try { source = new URL(n.url).hostname.replace("www.", ""); } catch (e) {}
+      return { id: index, title: n.title, url: n.url, source, pubDate: n.pubDate };
     });
 
-  if (allNews.length === 0) {
-    throw new Error("RSS 수집 실패 — 뉴스 없음");
-  }
+  if (allNews.length === 0) throw new Error("RSS 수집 실패 — 뉴스 없음");
 
-  // 분석용: 상위 5개만 Gemini에 전달 (토큰 절약)
+  // 분석용 5개 / 표시용 전체
   const newsForAnalysis = allNews.slice(0, 5);
-  // 표시용: 전체 뉴스 (최대 25개) Firestore에 저장
   const allNewsForDisplay = allNews.slice(0, 25);
 
   console.log("RSS 수집 완료: 분석용 " + newsForAnalysis.length + "건 / 표시용 " + allNewsForDisplay.length + "건");
 
-  // 2. Gemini 호출 — 분석용 5개만 전달
+  // 2. Gemini 호출 — 메타프롬프트 적용
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 환경변수 없음");
 
@@ -125,39 +110,67 @@ async function generateAndSave(today) {
     source: n.source,
   }));
 
-  const prompt = "당신은 글로벌 원자재 시장 전략가입니다.\n"
-    + "오늘 날짜: " + today + "\n\n"
-    + "아래 뉴스 헤드라인을 분석하여 한국 제강사 원료구매팀 임원 보고용 시장 리포트를 작성하십시오.\n\n"
-    + "[가격 입력 규칙]\n"
-    + "현재 시장의 추정 가격을 기입하고, note에 반드시 (추정치) 라고 명시하십시오.\n"
-    + "- LME Aluminum: 현재 Cash Bid 가격 (예: $2,650.50)\n"
-    + "- 조달청 알루미늄 서구산: 현재 방출 가격 (예: 3,200,000원\\n(부가세 포함))\n"
-    + "- LME Copper: 현재 Cash Bid 가격 (예: $9,850.00)\n"
-    + "- LME Zinc: 현재 Cash Bid 가격 (예: $2,850.00)\n\n"
-    + "[prices 항목명 — 정확히 아래와 같이 작성]\n"
-    + "item[0]: LME Aluminum\n"
-    + "item[1]: 조달청 알루미늄\\n(서구산)\n"
-    + "item[2]: LME Copper\n"
-    + "item[3]: LME Zinc\n\n"
-    + "[모든 필드 필수 — 빈 문자열 금지]\n"
-    + "snapshot: 반드시 5개 항목\n"
-    + "priceDrivers: 200자 이상\n"
-    + "aluminumOutlook: 100자 이상\n"
-    + "copperOutlook: 100자 이상\n"
-    + "zincOutlook: 100자 이상\n"
-    + "riskSignals: 반드시 아래 4가지 포함\n"
-    + "1. 중동 분쟁 장기화에 따른 물류비 급증\n"
-    + "2. 미국발 관세 전쟁 본격화\n"
-    + "3. 고금리 장기화에 따른 실물 수요 위축 가능성\n"
-    + "4. 중국의 전격적인 수출 제한 조치 가능성\n"
-    + "procurementStrategy: 100자 이상\n\n"
-    + "[news 규칙]\n"
-    + "- 각 항목에 입력 데이터의 id 값 그대로 포함\n"
-    + "- title은 한국어로 번역\n"
-    + "- summary는 한국어 1~2문장\n"
-    + "- url 필드 포함하지 말 것\n\n"
-    + "[뉴스 데이터]\n"
-    + JSON.stringify(newsForAI, null, 2);
+  // ── 메타프롬프트 (할루시네이션 방지 설계) ──────────────────────────────
+  const systemPrompt =
+    "너는 비철금속 및 제강 부원료 시장 전문 브리핑 작성 보조 AI야.\n" +
+    "주요 독자는 알루미늄 탈산제, 알루미늄 드로스, 가탄제, 페로실리콘, 알루미늄 스크랩을 취급하는 국내 업계 실무자 및 제강사 구매팀이야.\n\n" +
+    "## 절대 규칙\n\n" +
+    "### [규칙 1] 모르면 null로 처리해\n" +
+    "- 입력된 뉴스 데이터에 없는 내용은 절대 만들어내지 마.\n" +
+    "- 확인되지 않은 가격, 수치, 업체명, 사건은 절대 언급하지 마.\n" +
+    "- 정보가 부족한 필드는 null로 두고 절대 임의로 채우지 마.\n\n" +
+    "### [규칙 2] 숫자와 가격은 출처가 있을 때만 써\n" +
+    "- 가격 수치는 반드시 입력 데이터에서 나온 것만 사용해.\n" +
+    "- 입력 데이터에 가격이 없으면 절대 추정하거나 예시로 넣지 마.\n" +
+    "- lme_summary의 price/change 필드: 입력 뉴스에 LME 가격이 없으면 반드시 null.\n\n" +
+    "### [규칙 3] 예측은 범위로, 단정하지 마\n" +
+    "- '~할 것이다' 대신 '~가능성이 있다', '~우려가 있다'로 표현해.\n" +
+    "- 납품 단가나 입찰가는 절대 예측하지 마.\n" +
+    "- 시장 방향성은 '상방 압력', '하방 압력' 수준까지만 표현해.\n\n" +
+    "### [규칙 4] 관련 없는 내용은 포함하지 마\n" +
+    "- 알루미늄, 구리, 아연, 니켈, 가탄제, 페로실리콘, 해상운임과 무관한 뉴스는 제외해.\n" +
+    "- 철근, 열연 등 철강 완제품 가격은 다루지 마.\n" +
+    "- 주식, 부동산, 일반 경제 뉴스는 절대 포함하지 마.\n\n" +
+    "### [규칙 5] supply_chain_risk.level 판단 기준\n" +
+    "- '원활': 특별한 공급망 이슈 없음\n" +
+    "- '주의': 잠재적 리스크 뉴스 있음\n" +
+    "- '경고': 실제 공급 차질 뉴스 있음\n" +
+    "- 근거 뉴스가 없으면 null\n\n" +
+    "## 출력 규칙\n" +
+    "- 반드시 순수 JSON만 출력해. { 로 시작해서 } 로 끝나야 해.\n" +
+    "- 모든 텍스트는 한국어로 작성해.\n" +
+    "- 전문 용어는 업계 용어 그대로 사용해 (탈산제, 드로스, 소괴탄, 분탄 등).\n" +
+    "- news 배열의 각 항목에는 반드시 입력 데이터의 id 값을 그대로 포함해.\n" +
+    "- url 필드는 포함하지 마. id만 포함하면 돼.\n\n" +
+    "## 출력 JSON 구조\n" +
+    "{\n" +
+    '  "lme_summary": {\n' +
+    '    "aluminum": { "price": null, "change": null, "source": null },\n' +
+    '    "copper": { "price": null, "change": null, "source": null },\n' +
+    '    "zinc": { "price": null, "change": null, "source": null }\n' +
+    "  },\n" +
+    '  "key_news": [\n' +
+    '    { "id": 0, "title": "한국어 번역 제목", "summary": "핵심 내용 1~2문장. 입력 뉴스 내용만.", "relevance": "왜 비철/부원료 취급자에게 중요한지 한 문장. 없으면 null", "source": "출처" }\n' +
+    "  ],\n" +
+    '  "supply_chain_risk": { "level": "원활 또는 주의 또는 경고 또는 null", "reason": "판단 근거. 없으면 null" },\n' +
+    '  "sub_materials": {\n' +
+    '    "carburizer": "가탄제 관련 뉴스 요약. 없으면 null",\n' +
+    '    "ferro_silicon": "페로실리콘 관련 뉴스 요약. 없으면 null",\n' +
+    '    "al_scrap": "알루미늄 스크랩 관련 뉴스 요약. 없으면 null"\n' +
+    "  },\n" +
+    '  "logistics": {\n' +
+    '    "freight": "해상운임 관련 뉴스. 없으면 null",\n' +
+    '    "customs": "관세/통관 관련 뉴스. 없으면 null"\n' +
+    "  },\n" +
+    '  "disclaimer": "이 브리핑은 공개된 뉴스 데이터를 AI가 요약한 것입니다. 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
+    "}";
+
+  const userPrompt =
+    "오늘 날짜: " + today + "\n\n" +
+    "아래 뉴스 헤드라인을 분석해서 비철금속 및 부원료 업계 실무자를 위한 브리핑을 작성해줘.\n" +
+    "입력 데이터에 없는 내용은 절대 만들어내지 마. 없으면 null.\n\n" +
+    "[뉴스 데이터]\n" +
+    JSON.stringify(newsForAI, null, 2);
 
   let briefingData = null;
 
@@ -170,7 +183,8 @@ async function generateAndSave(today) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 8192,
@@ -204,10 +218,10 @@ async function generateAndSave(today) {
     briefingData = JSON.parse(rawText);
     console.log("JSON 파싱 성공");
 
-    // id 기반으로 원본 url 복원 (분석용 5개)
+    // id 기반으로 원본 url 복원
     const urlById = new Map(newsForAnalysis.map((n) => [n.id, n.url]));
-    if (briefingData.news && Array.isArray(briefingData.news)) {
-      briefingData.news = briefingData.news.map((item) => {
+    if (briefingData.key_news && Array.isArray(briefingData.key_news)) {
+      briefingData.key_news = briefingData.key_news.map((item) => {
         const originalUrl = urlById.get(item.id) || "";
         return Object.assign({}, item, { url: originalUrl });
       });
@@ -216,39 +230,35 @@ async function generateAndSave(today) {
   } catch (e) {
     console.error("Gemini 처리 오류:", e.message);
     briefingData = {
-      prices: [
-        { item: "LME Aluminum", price: "N/A", note: "데이터 조회 실패" },
-        { item: "조달청 알루미늄\n(서구산)", price: "N/A", note: "데이터 조회 실패" },
-        { item: "LME Copper", price: "N/A", note: "데이터 조회 실패" },
-        { item: "LME Zinc", price: "N/A", note: "데이터 조회 실패" },
-      ],
-      news: newsForAnalysis.map((n) => ({
+      lme_summary: {
+        aluminum: { price: null, change: null, source: null },
+        copper: { price: null, change: null, source: null },
+        zinc: { price: null, change: null, source: null },
+      },
+      key_news: newsForAnalysis.map((n) => ({
         id: n.id,
         title: n.title,
         summary: "",
+        relevance: null,
         url: n.url,
         source: n.source,
       })),
-      snapshot: ["AI 분석 일시 오류 — 잠시 후 다시 시도해 주세요"],
-      priceDrivers: "AI 분석 생성 중 오류가 발생했습니다.",
-      aluminumOutlook: "",
-      copperOutlook: "",
-      zincOutlook: "",
-      riskSignals: "",
-      procurementStrategy: "",
+      supply_chain_risk: { level: null, reason: null },
+      sub_materials: { carburizer: null, ferro_silicon: null, al_scrap: null },
+      logistics: { freight: null, customs: null },
+      disclaimer: "AI 분석 일시 오류. 원본 뉴스를 확인하세요.",
     };
   }
 
   // 3. Firestore 저장
-  // allNewsForDisplay: 전체 뉴스 목록 (url 포함) 별도 저장
   const docData = Object.assign({}, briefingData, {
     date: today,
     updatedAt: new Date().toISOString(),
-    allNews: allNewsForDisplay,  // 전체 뉴스 목록
+    allNews: allNewsForDisplay,
   });
 
   await setDoc(doc(database, "commodity-news", today), docData);
-  console.log(today + " Firestore 저장 완료 (전체 뉴스 " + allNewsForDisplay.length + "건)");
+  console.log(today + " Firestore 저장 완료");
 
   return docData;
 }
