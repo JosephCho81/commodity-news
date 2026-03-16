@@ -148,7 +148,7 @@ export default function App() {
               <span className="text-green-400 font-black text-xs">A1</span>
             )}
           </div>
-          <span className="font-bold text-sm text-gray-900">(주)한국에이원</span>
+          <span className="font-bold text-sm text-gray-900">오늘의 원자재 시황</span>
         </div>
         <div className="text-xs text-gray-400">
           {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'short', day: 'numeric' })}
