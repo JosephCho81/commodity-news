@@ -31,10 +31,7 @@ export interface AluminumData extends ApiMeta {
       flow: string;
     }>;
   };
-  dross_deox: {
-    dross_status: string;
-    deox_status: string;
-  };
+
 }
 
 // ─── 페로실리콘 탭 ────────────────────────────────────────────────────────────
