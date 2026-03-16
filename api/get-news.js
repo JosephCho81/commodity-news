@@ -176,60 +176,56 @@ const PROMPTS = {
 
   aluminum: `오늘 날짜 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
 
-【필수 지침】
-1. LME 가격: https://www.lme.com/en/metals/non-ferrous/lme-aluminium 공식 사이트 기준 가장 최근 거래일 공식가. 확인 불가 시 null.
-2. 각주 번호([1][2] 등) 절대 금지. 출처 표기 없이 텍스트만.
-3. 추측·추정 금지. 확인된 정보만. 없으면 null.
-4. 스크랩 시황: 아래 소스를 검색해 실제 정보를 가져오세요.
-   - AMM (American Metal Market), Fastmarkets, Metal Bulletin
-   - https://www.metal.com/aluminum-scrap (Zorba, Taint/Tabor 등 실제 시세)
-   - https://www.scrapmonster.com/scrap-yard/price/aluminum-scrap/1
-   - scrapwatch.co.kr (한국 스크랩 시황)
-   - 분기별 프리미엄(미국/유럽/일본 P1020A 프리미엄) 최신 발표치
+【반드시 지켜야 할 지침】
+1. LME 공식가: https://www.lme.com/en/metals/non-ferrous/lme-aluminium 에서 "Official prices" 섹션의 3-month 또는 Cash Bid/Offer 가격. 오늘 기준 최신 거래일. 반드시 실제 숫자로 반환.
+2. 오늘 날짜: ${new Date().toISOString().slice(0,10)}. 이 날짜 기준으로 가장 최근 데이터를 찾으세요.
+3. [1][2] 각주 번호 절대 금지.
+4. 스크랩 가격: metal.com/aluminum-scrap, scrapmonster.com, AMM, Fastmarkets에서 실제 확인된 가격대. 없으면 "확인 필요"라고 쓰지 말고 최근 뉴스 기반 방향성이라도 써주세요.
+5. 각 지역 스크랩 시황은 반드시 채워주세요. 가격이 오르는 이유, 내리는 이유, 수급 상황을 구체적으로.
 
 {
   "lme": {
-    "price": "LME 알루미늄 공식가 (USD/톤, 숫자만, 예: 2485.00) — lme.com 최신 거래일 기준. 확인 불가 시 null",
-    "change": "전일 대비 변동액 (숫자만, 예: 12.50 또는 -8.00)",
+    "price": "숫자만 (예: 2485.50) — lme.com 최신 공식가 USD/톤. 반드시 실제 값.",
+    "change": "전일 대비 변동액 숫자만 (예: 12.50 또는 -8.00)",
     "change_pct": "전일 대비 변동률 (예: +0.52%)",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "move_reason": "가격 변동 이유 — 달러 강약, LME 재고 변화, 중국 수요, 에너지 비용 등 실제 요인 2~3문장",
-    "market_status": "현재 시장 상황 — LME 재고 수준, 글로벌 수요 동향, 주요 생산국 상황 2~3문장",
-    "outlook": "단기 전망 — 상승/하락 압력 요인과 방향성 2~3문장"
+    "move_reason": "오늘 가격 변동 이유 — 달러 인덱스, LME 재고 증감, 중국 수요, 미국 관세, 에너지 가격 등 실제 요인 2~3문장",
+    "market_status": "현재 시장 상황 — LME 재고 톤수, 글로벌 수요 동향, 중국 생산/수출 현황 2~3문장",
+    "outlook": "가격 전망 — 단기 상승/하락 압력 요인과 방향성 2~3문장"
   },
   "scrap": {
-    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩 시장 전반 요약. 가격 방향성, 주요 수급 변화, 관세·물류 이슈 등 포함 (3~4문장)",
-    "us_premium": "미국 P1020A 프리미엄 최신 발표치 (USc/lb 또는 USD/톤, 분기 기준일 포함, 없으면 null)",
-    "eu_premium": "유럽 P1020A 프리미엄 최신 발표치 (USD/톤, 분기 기준일 포함, 없으면 null)",
-    "japan_premium": "일본 P1020A 프리미엄 최신 발표치 (USD/톤, 분기 기준일 포함, 없으면 null)",
+    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩 시장 전반 요약. 미국 관세 영향, 중국 수요, 물류 변화 등 포함 (3~4문장 구체적으로)",
+    "us_premium": "미국 P1020A 프리미엄 최신 분기 발표치 (USc/lb, 기준분기 명시, 예: 2026 Q1: 21.0 USc/lb)",
+    "eu_premium": "유럽 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 기준분기 명시)",
+    "japan_premium": "일본 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 기준분기 명시)",
     "regions": [
       {
         "region": "미국",
-        "key_grades": "주요 거래 등급 (Zorba, Taint/Tabor, Twitch, 356 등)",
-        "price_range": "최근 실제 거래 가격대 (USD/톤 또는 USc/lb, metal.com·AMM·scrapmonster 기반, 없으면 null)",
-        "price_driver": "이번 주/이번 달 가격 변동 주요 원인 (관세, 수요 변화, 환율, 수출 흐름 등)",
-        "flow": "주요 수출입 방향 및 물동량 특이사항"
+        "key_grades": "Zorba, Taint/Tabor, Twitch, 356 cast",
+        "price_range": "최근 실제 가격대 (USD/톤 또는 USc/lb). metal.com·AMM·scrapmonster 기준. 예: Zorba $1,450~1,520/톤",
+        "price_driver": "가격 변동 주요 원인: 미국 내 스크랩 공급량, 중국 수입 수요, 관세 영향, 달러 강세/약세 등 구체적으로 2~3문장",
+        "flow": "주요 수출 방향 (중국, 한국, 인도 등) 및 물동량 특이사항"
       },
       {
         "region": "유럽",
-        "key_grades": "주요 등급 (Old Alloy, Tense, 등)",
-        "price_range": "최근 가격대 또는 null",
-        "price_driver": "가격 변동 주요 원인",
-        "flow": "물동량 동향"
+        "key_grades": "Old Alloy, Tense, 6063 extrusion scrap",
+        "price_range": "최근 가격대 (EUR/톤 또는 USD/톤) 또는 방향성",
+        "price_driver": "유럽 스크랩 수급 상황: 자동차 해체 물량, 건설경기, 에너지 비용, 아시아 수출 경쟁 등 2~3문장",
+        "flow": "아시아·터키 수출 동향"
       },
       {
         "region": "일본",
-        "key_grades": "주요 등급 (UBC, 압출재 스크랩 등)",
-        "price_range": "최근 가격대 (JPY/kg 또는 USD/톤) 또는 null",
-        "price_driver": "가격 변동 주요 원인",
-        "flow": "물동량 동향 (한국·동남아 수출 포함)"
+        "key_grades": "UBC (Used Beverage Can), 압출재 스크랩, 주물 스크랩",
+        "price_range": "최근 가격대 (JPY/kg 또는 USD/톤) 또는 방향성",
+        "price_driver": "일본 스크랩 수급: 엔화 환율 영향, 국내 소비 vs 수출 경쟁, 한국·동남아 바이어 동향 2~3문장",
+        "flow": "한국·동남아·인도 수출 현황"
       },
       {
         "region": "중동",
-        "key_grades": "주요 등급",
-        "price_range": "최근 가격대 또는 null",
-        "price_driver": "가격 변동 주요 원인",
-        "flow": "물동량 동향"
+        "key_grades": "Mixed alloy, UBC",
+        "price_range": "최근 가격대 또는 방향성",
+        "price_driver": "중동 스크랩 발생량, 역내 제련소 수요, 아시아 수출 경쟁 2~3문장",
+        "flow": "인도·아시아 수출 동향"
       }
     ]
   },
