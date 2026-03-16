@@ -3,30 +3,68 @@
 
 export const config = { maxDuration: 60 };
 
-// ─── 환경변수 ─────────────────────────────────────────────────────────────────
+// ─── 환경변수 ───────────────────────────────────────────────────────────────
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
-// Vercel 환경변수에서 \n이 리터럴 문자열로 저장되는 경우 처리
-const RAW_KEY = process.env.FIREBASE_PRIVATE_KEY || '';
-const FIREBASE_PRIVATE_KEY = RAW_KEY.replace(/\\n/g, '\n');
 
-// Firestore 활성화 여부: 3개 환경변수 모두 필요
+/**
+ * Vercel 환경변수 Private Key 정규화
+ * 케이스 1: Vercel이 \n을 리터럴 \\n으로 저장한 경우 → replace로 복원
+ * 케이스 2: Vercel이 실제 줄바꿈으로 저장한 경우 → 그대로 사용
+ * 케이스 3: 헤더/푸터 없이 raw base64만 들어온 경우 → 래핑 추가
+ */
+function normalizePrivateKey(raw) {
+  if (!raw) return '';
+
+  // Step 1: 리터럴 \n → 실제 줄바꿈
+  let key = raw.replace(/\\n/g, '\n');
+
+  // Step 2: 앞뒤 공백/따옴표 제거
+  key = key.trim().replace(/^["']|["']$/g, '');
+
+  // Step 3: 헤더가 없는 경우 (raw base64만 있는 경우) 래핑
+  if (!key.includes('-----BEGIN')) {
+    // 공백/줄바꿈 제거 후 PEM 형식으로 래핑
+    const b64 = key.replace(/\s/g, '');
+    const lines = b64.match(/.{1,64}/g)?.join('\n') ?? b64;
+    key = `-----BEGIN PRIVATE KEY-----\n${lines}\n-----END PRIVATE KEY-----`;
+  }
+
+  // Step 4: 헤더/푸터 사이 줄바꿈 정규화
+  // (헤더와 본문 사이, 본문과 푸터 사이에 줄바꿈 보장)
+  key = key
+    .replace(/(-----BEGIN[^-]+-----)([^\n])/g, '$1\n$2')
+    .replace(/([^\n])(-----END[^-]+-----)/g, '$1\n$2');
+
+  return key;
+}
+
+const FIREBASE_PRIVATE_KEY = normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
+
+// Firestore 활성화 여부: 3개 환경변수 + 키 형식 확인
+const KEY_VALID =
+  FIREBASE_PRIVATE_KEY.includes('BEGIN PRIVATE KEY') &&
+  FIREBASE_PRIVATE_KEY.length > 200; // 유효한 키는 최소 수백 자
+
 const FIREBASE_ENABLED = !!(
   FIREBASE_PROJECT_ID &&
   FIREBASE_CLIENT_EMAIL &&
-  (FIREBASE_PRIVATE_KEY.includes('BEGIN RSA PRIVATE KEY') ||
-   FIREBASE_PRIVATE_KEY.includes('BEGIN PRIVATE KEY'))
+  KEY_VALID
 );
 
-// 시작 시 진단 로그 (Vercel 함수 로그에서 확인)
+// ─── 진단 로그 ───────────────────────────────────────────────────────────────
+console.log('=== [Firebase Diagnostics] ===');
 console.log('[Firebase] ENABLED:', FIREBASE_ENABLED);
-console.log('[Firebase] PROJECT_ID:', FIREBASE_PROJECT_ID ? '✅' : '❌ 없음');
-console.log('[Firebase] CLIENT_EMAIL:', FIREBASE_CLIENT_EMAIL ? '✅' : '❌ 없음');
-console.log('[Firebase] PRIVATE_KEY:', FIREBASE_PRIVATE_KEY.length > 10 ? `✅ (${FIREBASE_PRIVATE_KEY.length}자)` : '❌ 없음/짧음');
-console.log('[Firebase] KEY_HEADER:', FIREBASE_PRIVATE_KEY.slice(0, 40));
+console.log('[Firebase] PROJECT_ID:', FIREBASE_PROJECT_ID ? `✅ ${FIREBASE_PROJECT_ID}` : '❌ 없음');
+console.log('[Firebase] CLIENT_EMAIL:', FIREBASE_CLIENT_EMAIL ? `✅ ${FIREBASE_CLIENT_EMAIL}` : '❌ 없음');
+console.log('[Firebase] PRIVATE_KEY length:', FIREBASE_PRIVATE_KEY.length);
+console.log('[Firebase] KEY_VALID:', KEY_VALID);
+console.log('[Firebase] KEY_HEADER (first 60):', FIREBASE_PRIVATE_KEY.slice(0, 60).replace(/\n/g, '↵'));
+console.log('[Firebase] KEY_FOOTER (last 30):', FIREBASE_PRIVATE_KEY.slice(-30).replace(/\n/g, '↵'));
+console.log('=== [End Diagnostics] ===');
 
-// ─── JWT / Firestore 헬퍼 ────────────────────────────────────────────────────
+// ─── JWT / Firestore 헬퍼 ──────────────────────────────────────────────────
 function pemToBinary(pem) {
   const b64 = pem
     .replace(/-----BEGIN[^-]*-----/g, '')
@@ -64,26 +102,44 @@ async function getFirestoreToken() {
     })
   );
   const signingInput = `${header}.${payload}`;
-  const key = await crypto.subtle.importKey(
-    'pkcs8',
-    pemToBinary(FIREBASE_PRIVATE_KEY),
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
+
+  let keyBinary;
+  try {
+    keyBinary = pemToBinary(FIREBASE_PRIVATE_KEY);
+  } catch (e) {
+    throw new Error(`PEM → Binary 변환 실패: ${e.message}`);
+  }
+
+  let key;
+  try {
+    key = await crypto.subtle.importKey(
+      'pkcs8',
+      keyBinary,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+  } catch (e) {
+    throw new Error(`crypto.subtle.importKey 실패: ${e.message}`);
+  }
+
   const sig = await crypto.subtle.sign(
     'RSASSA-PKCS1-v1_5',
     key,
     new TextEncoder().encode(signingInput)
   );
   const jwt = `${signingInput}.${bufToBase64Url(sig)}`;
+
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
   });
   const data = await res.json();
-  if (!data.access_token) throw new Error(`Firebase token error: ${JSON.stringify(data)}`);
+  if (!data.access_token) {
+    throw new Error(`Firebase 토큰 발급 실패: ${JSON.stringify(data)}`);
+  }
+  console.log('[Firebase] ✅ 토큰 발급 성공');
   return data.access_token;
 }
 
@@ -96,7 +152,7 @@ async function saveToFirestore(token, collection, docId, data) {
     else if (typeof v === 'boolean') fields[k] = { booleanValue: v };
     else fields[k] = { stringValue: JSON.stringify(v) };
   }
-  await fetch(url, {
+  const res = await fetch(url, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -104,6 +160,11 @@ async function saveToFirestore(token, collection, docId, data) {
     },
     body: JSON.stringify({ fields }),
   });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Firestore PATCH 실패 ${res.status}: ${text.slice(0, 200)}`);
+  }
+  console.log(`[Firestore] ✅ 저장 성공: ${collection}/${docId}`);
 }
 
 async function getFromFirestore(token, collection, docId) {
@@ -111,17 +172,25 @@ async function getFromFirestore(token, collection, docId) {
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) return null;
+  if (res.status === 404) {
+    console.log(`[Firestore] 캐시 없음: ${collection}/${docId}`);
+    return null;
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Firestore GET 실패 ${res.status}: ${text.slice(0, 200)}`);
+  }
   const doc = await res.json();
   if (!doc.fields) return null;
   const out = {};
   for (const [k, v] of Object.entries(doc.fields)) {
     out[k] = v.stringValue ?? v.integerValue ?? v.booleanValue ?? null;
   }
+  console.log(`[Firestore] ✅ 캐시 읽기 성공: ${collection}/${docId}`);
   return out;
 }
 
-// ─── Perplexity 호출 ─────────────────────────────────────────────────────────
+// ─── Perplexity 호출 ───────────────────────────────────────────────────────
 async function callPerplexity(prompt) {
   const res = await fetch('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
@@ -134,12 +203,7 @@ async function callPerplexity(prompt) {
       messages: [
         {
           role: 'system',
-          content: `당신은 비철금속 원자재 시장 전문 애널리스트입니다.
-응답은 반드시 유효한 JSON만 출력하세요. 마크다운 코드블록 없이 순수 JSON만.
-숫자 데이터는 출처가 확인된 경우에만 포함하고, 확인 불가 시 null로 표시.
-(추정), (예상) 등 불확실한 단가는 절대 포함하지 마세요.
-텍스트 안에 [1], [2] 같은 각주 번호를 절대 포함하지 마세요.
-확인되지 않은 인과관계나 근거 없는 시황 설명을 만들어내지 마세요. 모르면 null을 반환하세요.`,
+          content: `당신은 비철금속 원자재 시장 전문 애널리스트입니다. 응답은 반드시 유효한 JSON만 출력하세요. 마크다운 코드블록 없이 순수 JSON만. 숫자 데이터는 출처가 확인된 경우에만 포함하고, 확인 불가 시 null로 표시. (추정), (예상) 등 불확실한 단가는 절대 포함하지 마세요. 텍스트 안에 [1], [2] 같은 각주 번호를 절대 포함하지 마세요. 확인되지 않은 인과관계나 근거 없는 시황 설명을 만들어내지 마세요. 모르면 null을 반환하세요.`,
         },
         { role: 'user', content: prompt },
       ],
@@ -155,15 +219,13 @@ async function callPerplexity(prompt) {
   return data.choices?.[0]?.message?.content ?? '';
 }
 
-// ─── JSON 파싱 (코드펜스 제거 포함) ─────────────────────────────────────────
+// ─── JSON 파싱 (코드펜스 제거 포함) ───────────────────────────────────────
 function parseJSON(raw) {
   let clean = raw.trim();
-  // ```json ... ``` 또는 ``` ... ``` 제거
   const fenceMatch = clean.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenceMatch) {
     clean = fenceMatch[1].trim();
   } else {
-    // 첫 { 부터 마지막 } 까지만 추출
     const start = clean.indexOf('{');
     const end = clean.lastIndexOf('}');
     if (start !== -1 && end !== -1) clean = clean.slice(start, end + 1);
@@ -171,7 +233,7 @@ function parseJSON(raw) {
   return JSON.parse(clean);
 }
 
-// ─── 탭별 프롬프트 ────────────────────────────────────────────────────────────
+// ─── 탭별 프롬프트 ──────────────────────────────────────────────────────────
 const PROMPTS = {
 
   aluminum: `오늘 날짜 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
@@ -342,8 +404,7 @@ const PROMPTS = {
 }`,
 };
 
-// ─── 캐시 TTL (분) ───────────────────────────────────────────────────────────
-// 하루 1회 업데이트 컨셉 — 24시간 TTL
+// ─── 캐시 TTL (분) — 하루 1회 업데이트 컨셉
 const CACHE_TTL = {
   aluminum: 1440,
   ferrosilicon: 1440,
@@ -351,27 +412,28 @@ const CACHE_TTL = {
   summary: 1440,
 };
 
-// ─── 메인 핸들러 ─────────────────────────────────────────────────────────────
+// ─── 메인 핸들러 ────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Perplexity 키 필수
   if (!PERPLEXITY_API_KEY) {
     return res.status(500).json({ error: 'PERPLEXITY_API_KEY not set' });
   }
 
   const tab = (req.query.tab || 'summary').toLowerCase();
-  // 하루 1회 컨셉: force 파라미터 무시 (관리자만 ?force=true 사용 가능)
-  const force = req.query.force === 'true' && req.query.secret === process.env.ADMIN_SECRET;
+  const force =
+    req.query.force === 'true' && req.query.secret === process.env.ADMIN_SECRET;
 
   if (!PROMPTS[tab]) {
-    return res.status(400).json({ error: `Unknown tab: ${tab}. Use: aluminum, ferrosilicon, recarburizer, summary` });
+    return res
+      .status(400)
+      .json({ error: `Unknown tab: ${tab}. Use: aluminum, ferrosilicon, recarburizer, summary` });
   }
 
   try {
-    // ── 1. Firestore 캐시 읽기 시도 ─────────────────────────────────────────
+    // ── 1. Firestore 캐시 읽기 시도 ───────────────────────────────────────
     let token = null;
     if (FIREBASE_ENABLED) {
       try {
@@ -379,6 +441,8 @@ export default async function handler(req, res) {
       } catch (e) {
         console.warn('[Firebase] 토큰 발급 실패 (캐시 비활성화):', e.message);
       }
+    } else {
+      console.log('[Firebase] 비활성 — Perplexity 직접 호출');
     }
 
     if (token && !force) {
@@ -387,12 +451,15 @@ export default async function handler(req, res) {
         if (cached?.data && cached?.cached_at) {
           const ageMin = (Date.now() - Number(cached.cached_at)) / 60000;
           if (ageMin < CACHE_TTL[tab]) {
+            console.log(`[Cache] HIT: ${tab}, age: ${Math.round(ageMin)}분`);
             const parsed = JSON.parse(cached.data);
             return res.status(200).json({
               ...parsed,
               _cached: true,
               _age_min: Math.round(ageMin),
             });
+          } else {
+            console.log(`[Cache] EXPIRED: ${tab}, age: ${Math.round(ageMin)}분`);
           }
         }
       } catch (e) {
@@ -400,7 +467,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── 2. Perplexity 호출 ───────────────────────────────────────────────────
+    // ── 2. Perplexity 호출 ─────────────────────────────────────────────────
+    console.log(`[Perplexity] 호출 시작: ${tab}`);
     const raw = await callPerplexity(PROMPTS[tab]);
 
     let parsed;
@@ -415,7 +483,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── 3. Firestore 캐시 저장 시도 ─────────────────────────────────────────
+    // ── 3. Firestore 캐시 저장 시도 ───────────────────────────────────────
     if (token) {
       try {
         await saveToFirestore(token, 'commodity_cache', tab, {
