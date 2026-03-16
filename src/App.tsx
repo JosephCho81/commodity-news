@@ -89,7 +89,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 // ─── 탭 콘텐츠: 알루미늄 ──────────────────────────────────────────────────────
 function AluminumTab({ data }: { data: AluminumData }) {
   const { lme, scrap, dross_deox } = data;
-  const isUp = lme.change && !lme.change.startsWith('-');
+  const isUp = lme.change != null && !String(lme.change).startsWith('-');
   return (
     <div className="tab-content">
       {/* LME 가격 헤더 */}
@@ -160,7 +160,7 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           }
           {china_price.change && (
             <span className="price-hero-change"
-              style={{ color: china_price.change.startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
+              style={{ color: china_price.change != null && String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
               {china_price.change}
             </span>
           )}
@@ -237,7 +237,7 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           }
           {china_price.change && (
             <span className="price-hero-change"
-              style={{ color: china_price.change.startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
+              style={{ color: china_price.change != null && String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
               {china_price.change}
             </span>
           )}
