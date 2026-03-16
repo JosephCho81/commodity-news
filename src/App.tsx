@@ -88,7 +88,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 // ─── 탭 콘텐츠: 알루미늄 ──────────────────────────────────────────────────────
 function AluminumTab({ data }: { data: AluminumData }) {
-  const { lme, scrap, dross_deox } = data;
+  const { lme, scrap } = data;
   const isUp = lme.change != null && !String(lme.change).startsWith('-');
   return (
     <div className="tab-content">
@@ -135,13 +135,7 @@ function AluminumTab({ data }: { data: AluminumData }) {
         </div>
       </SectionCard>
 
-      <SectionCard title="드로스 세계 시황" accent="DROSS">
-        <TextBlock text={dross_deox.dross_status} />
-      </SectionCard>
 
-      <SectionCard title="탈산제 세계 시황" accent="DEOX">
-        <TextBlock text={dross_deox.deox_status} />
-      </SectionCard>
     </div>
   );
 }
