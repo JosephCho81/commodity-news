@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, Minus,
   AlertTriangle, CheckCircle, AlertCircle,
   ChevronRight, Loader2, ShieldCheck,
-  Ship, FileText,
+  Ship, FileText, Container, Anchor,
 } from 'lucide-react';
 import { db } from './firebase';
 import { doc, getDoc, getDocFromServer } from 'firebase/firestore';
@@ -36,9 +36,7 @@ function RiskPill({ level }: { level: string | null }) {
     '경고': 'bg-red-500 text-white',
   };
   const label: Record<string, string> = {
-    '원활': 'NORMAL',
-    '주의': 'CAUTION',
-    '경고': 'ALERT',
+    '원활': 'NORMAL', '주의': 'CAUTION', '경고': 'ALERT',
   };
   return (
     <span className={"text-[10px] font-bold px-2 py-0.5 rounded-full " + (cfg[level] || 'bg-gray-500 text-white')}>
@@ -48,10 +46,7 @@ function RiskPill({ level }: { level: string | null }) {
 }
 
 function MetalCard({ label, price, change, changeReason }: {
-  label: string;
-  price: string | null;
-  change: string | null;
-  changeReason?: string | null;
+  label: string; price: string | null; change: string | null; changeReason?: string | null;
 }) {
   const isUp = change && change.includes('+');
   const isDown = change && change.includes('-');
@@ -76,6 +71,19 @@ function MetalCard({ label, price, change, changeReason }: {
         </p>
       )}
     </div>
+  );
+}
+
+// 운임 변동 색상
+function ChangeTag({ change }: { change: string | null }) {
+  if (!change) return <span className="text-gray-300 text-xs">—</span>;
+  const isUp = change.includes('+');
+  const isDown = change.includes('-');
+  return (
+    <span className={"text-[10px] font-bold px-1.5 py-0.5 rounded " +
+      (isUp ? 'text-red-500 bg-red-50' : isDown ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 bg-gray-100')}>
+      {change}
+    </span>
   );
 }
 
@@ -122,6 +130,8 @@ export default function App() {
   const sub = briefing?.sub_materials;
   const log = briefing?.logistics;
   const expert = briefing?.expert_comment;
+  const container = log?.container;
+  const bulk = log?.bulk;
 
   return (
     <div className="min-h-screen bg-[#F0F2F5] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -145,7 +155,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* 메인 */}
       <main className="flex-1 overflow-y-auto pb-20">
         {error && (
           <div className="mx-4 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2">
@@ -153,7 +162,6 @@ export default function App() {
             <p className="text-xs text-red-600">{error}</p>
           </div>
         )}
-
         {loading && (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
@@ -170,7 +178,6 @@ export default function App() {
               {/* ══ 주요 원자재 ══ */}
               {tab === 'home' && (
                 <div>
-                  {/* 히어로 네이비 */}
                   <div className="bg-[#0A1628] px-5 pt-6 pb-8 relative overflow-hidden">
                     <div className="absolute right-0 bottom-0 flex items-end gap-1 opacity-20 pr-4 pb-0">
                       {[40, 55, 45, 65, 58, 72, 80].map((h, i) => (
@@ -198,8 +205,6 @@ export default function App() {
                         <p className="text-xs text-blue-200 leading-relaxed mb-4">{al.change_reason}</p>
                       )}
                     </div>
-
-                    {/* 전문가 코멘트 */}
                     {expert ? (
                       <div className="relative z-10 bg-white/10 rounded-2xl p-4 border border-white/10">
                         <div className="flex items-start gap-3">
@@ -222,7 +227,6 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* 주요 금속 시세 — 구리/아연 (change_reason 포함) */}
                   <div className="px-4 mt-5">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-bold text-sm text-gray-900">주요 금속 시세</h3>
@@ -237,7 +241,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 공급망 리스크 */}
                   {risk?.reason && (
                     <div className="px-4 mt-4 pb-4">
                       <div className={"rounded-2xl p-4 flex items-start gap-3 " +
@@ -264,7 +267,6 @@ export default function App() {
               {tab === 'market' && (
                 <div className="px-4 pt-5 pb-4 space-y-4">
                   <h2 className="font-bold text-base text-gray-900">제강사 부원료 레이더</h2>
-
                   {expert && (
                     <div className="bg-[#0A1628] rounded-2xl p-5">
                       <p className="text-xs text-blue-300 font-medium mb-2">(주)한국에이원 의견</p>
@@ -275,23 +277,18 @@ export default function App() {
                       </p>
                     </div>
                   )}
-
                   {[
-                    { key: 'al_scrap', label: '알루미늄 스크랩', colorClass: 'border-blue-100 bg-blue-50', labelClass: 'text-blue-600' },
-                    { key: 'carburizer', label: '가탄제 (소괴탄 · 분탄)', colorClass: 'border-amber-100 bg-amber-50', labelClass: 'text-amber-600' },
-                    { key: 'ferro_silicon', label: '페로실리콘 (FeSi60/75)', colorClass: 'border-purple-100 bg-purple-50', labelClass: 'text-purple-600' },
-                  ].map(({ key, label, colorClass, labelClass }) => {
-                    const value = sub?.[key];
-                    return (
-                      <div key={key} className={"rounded-2xl border p-4 " + colorClass}>
-                        <p className={"text-xs font-bold uppercase tracking-wider mb-2 " + labelClass}>{label}</p>
-                        {value
-                          ? <p className="text-sm text-gray-700 leading-relaxed">{value}</p>
-                          : <p className="text-xs text-gray-400">관련 데이터 수집 중</p>}
-                      </div>
-                    );
-                  })}
-
+                    { key: 'al_scrap', label: '알루미늄 스크랩 (MJP · ISRI)', colorClass: 'border-blue-100 bg-blue-50', labelClass: 'text-blue-600' },
+                    { key: 'carburizer', label: '가탄제 (소괴탄 · 분탄) · 러시아 석탄', colorClass: 'border-amber-100 bg-amber-50', labelClass: 'text-amber-600' },
+                    { key: 'ferro_silicon', label: '페로실리콘 (FeSi60/75) · 탈중국화', colorClass: 'border-purple-100 bg-purple-50', labelClass: 'text-purple-600' },
+                  ].map(({ key, label, colorClass, labelClass }) => (
+                    <div key={key} className={"rounded-2xl border p-4 " + colorClass}>
+                      <p className={"text-xs font-bold uppercase tracking-wider mb-2 " + labelClass}>{label}</p>
+                      {sub?.[key]
+                        ? <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{sub[key]}</p>
+                        : <p className="text-xs text-gray-400">관련 데이터 수집 중</p>}
+                    </div>
+                  ))}
                   <h3 className="font-bold text-sm text-gray-900 pt-2">LME 전일 종가</h3>
                   <div className="space-y-3">
                     <MetalCard label="Aluminum (알루미늄)" price={al?.price} change={al?.change} changeReason={al?.change_reason} />
@@ -306,6 +303,7 @@ export default function App() {
                 <div className="px-4 pt-5 pb-4 space-y-4">
                   <h2 className="font-bold text-base text-gray-900">공급망 현황</h2>
 
+                  {/* 리스크 배너 */}
                   {risk && (
                     <div className={"rounded-2xl p-4 flex items-start gap-3 " +
                       (risk.level === '경고' ? 'bg-red-50 border border-red-200' :
@@ -324,25 +322,97 @@ export default function App() {
                     </div>
                   )}
 
-                  <div className="bg-white rounded-2xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Ship className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm font-bold text-gray-900">해상운임 · 물류</span>
+                  {/* 컨테이너 운임 */}
+                  <div className="bg-white rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3 bg-blue-600 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Ship className="w-4 h-4 text-white" />
+                        <span className="text-sm font-bold text-white">컨테이너 운임 (40ft FEU)</span>
+                      </div>
+                      {container?.index && (
+                        <span className="text-[10px] font-bold text-blue-100">{container.index}</span>
+                      )}
                     </div>
-                    {log?.freight
-                      ? <p className="text-sm text-gray-600 leading-relaxed">{log.freight}</p>
-                      : <p className="text-xs text-gray-400">관련 데이터 수집 중</p>}
+                    {container?.outlook && (
+                      <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
+                        <p className="text-xs text-blue-700 leading-relaxed">{container.outlook}</p>
+                      </div>
+                    )}
+                    {container?.routes && container.routes.length > 0 ? (
+                      <div className="divide-y divide-gray-100">
+                        {container.routes.map((r: any, i: number) => (
+                          <div key={i} className="px-4 py-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-semibold text-gray-700">{r.route}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-900" style={{ fontFamily: "'DM Mono', monospace" }}>
+                                  {r.rate || '—'}
+                                </span>
+                                <ChangeTag change={r.change} />
+                              </div>
+                            </div>
+                            {r.reason && <p className="text-[11px] text-gray-400 leading-relaxed">{r.reason}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 px-4 py-4">데이터 수집 중</p>
+                    )}
                   </div>
 
-                  <div className="bg-white rounded-2xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <FileText className="w-4 h-4 text-amber-500" />
-                      <span className="text-sm font-bold text-gray-900">관세 · 통관</span>
+                  {/* 벌크선 운임 */}
+                  <div className="bg-white rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3 bg-gray-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Anchor className="w-4 h-4 text-white" />
+                        <span className="text-sm font-bold text-white">벌크선 운임 (석탄 · 원자재)</span>
+                      </div>
+                      {bulk?.index && (
+                        <span className="text-[10px] font-bold text-gray-300">{bulk.index}</span>
+                      )}
                     </div>
-                    {log?.customs
-                      ? <p className="text-sm text-gray-600 leading-relaxed">{log.customs}</p>
-                      : <p className="text-xs text-gray-400">관련 데이터 수집 중</p>}
+                    {bulk?.outlook && (
+                      <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                        <p className="text-xs text-gray-600 leading-relaxed">{bulk.outlook}</p>
+                      </div>
+                    )}
+                    {bulk?.routes && bulk.routes.length > 0 ? (
+                      <div className="divide-y divide-gray-100">
+                        {bulk.routes.map((r: any, i: number) => (
+                          <div key={i} className="px-4 py-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <div>
+                                <span className="text-xs font-semibold text-gray-700">{r.route}</span>
+                                {r.vessel && (
+                                  <span className="text-[10px] text-gray-400 ml-2">{r.vessel}</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-900" style={{ fontFamily: "'DM Mono', monospace" }}>
+                                  {r.rate || '—'}
+                                </span>
+                                <ChangeTag change={r.change} />
+                              </div>
+                            </div>
+                            {r.reason && <p className="text-[11px] text-gray-400 leading-relaxed">{r.reason}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 px-4 py-4">데이터 수집 중</p>
+                    )}
                   </div>
+
+                  {/* 관세 */}
+                  {log?.customs && (
+                    <div className="bg-white rounded-2xl p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <FileText className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm font-bold text-gray-900">관세 · 통관</span>
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed">{log.customs}</p>
+                    </div>
+                  )}
 
                   {briefing.disclaimer && (
                     <p className="text-[10px] text-gray-300 text-center leading-relaxed px-2">{briefing.disclaimer}</p>
@@ -391,7 +461,7 @@ export default function App() {
             </motion.div>
           </AnimatePresence>
         )}
-      </main> 
+      </main>
 
       {/* 바텀 탭 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex z-50"
