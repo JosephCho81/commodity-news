@@ -169,34 +169,61 @@ const PROMPTS = {
 
   aluminum: `오늘 날짜 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
 
-중요 지침:
-- LME 가격은 반드시 lme.com 공식 사이트(https://www.lme.com/en/metals/non-ferrous/lme-aluminium) 또는 westmetall.com의 가장 최근 공식 데이터를 사용하세요. 오늘 또는 가장 최근 거래일 기준입니다.
-- 텍스트에 [1][2] 같은 각주 번호를 절대 포함하지 마세요.
-- 드로스와 탈산제는 확인된 뉴스 기반 정보만 작성하고, 없으면 null을 반환하세요. 추측 금지.
-- 알루미늄 스크랩 가격대는 최근 업계 뉴스(AMM, Metal Bulletin, Fastmarkets 등)에서 확인된 범위를 작성하세요.
+【필수 지침】
+1. LME 가격: https://www.lme.com/en/metals/non-ferrous/lme-aluminium 공식 사이트 기준 가장 최근 거래일 공식가. 확인 불가 시 null.
+2. 각주 번호([1][2] 등) 절대 금지. 출처 표기 없이 텍스트만.
+3. 추측·추정 금지. 확인된 정보만. 없으면 null.
+4. 스크랩 시황: 아래 소스를 검색해 실제 정보를 가져오세요.
+   - AMM (American Metal Market), Fastmarkets, Metal Bulletin
+   - https://www.metal.com/aluminum-scrap (Zorba, Taint/Tabor 등 실제 시세)
+   - https://www.scrapmonster.com/scrap-yard/price/aluminum-scrap/1
+   - scrapwatch.co.kr (한국 스크랩 시황)
+   - 분기별 프리미엄(미국/유럽/일본 P1020A 프리미엄) 최신 발표치
 
 {
   "lme": {
-    "price": "LME 알루미늄 3개월물 공식가 (USD/톤) — lme.com 또는 westmetall.com 최신값, 확인 불가 시 null",
-    "change": "전일 대비 변동액 (숫자만, 예: 12.5 또는 -8.0)",
+    "price": "LME 알루미늄 공식가 (USD/톤, 숫자만, 예: 2485.00) — lme.com 최신 거래일 기준. 확인 불가 시 null",
+    "change": "전일 대비 변동액 (숫자만, 예: 12.50 또는 -8.00)",
     "change_pct": "전일 대비 변동률 (예: +0.52%)",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "move_reason": "가격 변동 이유 — 확인된 뉴스 기반으로 2~3문장. 각주 번호 없이.",
-    "market_status": "현재 시장 상황 — 확인된 수급/재고/수요 동향 2~3문장. 각주 번호 없이.",
-    "outlook": "단기 전망 — 실제 시장 요인 기반 2~3문장. 각주 번호 없이."
+    "move_reason": "가격 변동 이유 — 달러 강약, LME 재고 변화, 중국 수요, 에너지 비용 등 실제 요인 2~3문장",
+    "market_status": "현재 시장 상황 — LME 재고 수준, 글로벌 수요 동향, 주요 생산국 상황 2~3문장",
+    "outlook": "단기 전망 — 상승/하락 압력 요인과 방향성 2~3문장"
   },
   "scrap": {
-    "weekly_summary": "이번 주 알루미늄 스크랩 시장 전반 요약 (확인된 뉴스 기반 2문장)",
+    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩 시장 전반 요약. 가격 방향성, 주요 수급 변화, 관세·물류 이슈 등 포함 (3~4문장)",
+    "us_premium": "미국 P1020A 프리미엄 최신 발표치 (USc/lb 또는 USD/톤, 분기 기준일 포함, 없으면 null)",
+    "eu_premium": "유럽 P1020A 프리미엄 최신 발표치 (USD/톤, 분기 기준일 포함, 없으면 null)",
+    "japan_premium": "일본 P1020A 프리미엄 최신 발표치 (USD/톤, 분기 기준일 포함, 없으면 null)",
     "regions": [
       {
         "region": "미국",
-        "grades": "주요 거래 등급 (예: Taint/Tabor, Twitch, 356 등)",
-        "price_range": "최근 거래 가격대 (USD/톤, AMM 또는 업계 뉴스 기반, 없으면 null)",
-        "flow": "이번 주 물동량 방향 및 주요 동향"
+        "key_grades": "주요 거래 등급 (Zorba, Taint/Tabor, Twitch, 356 등)",
+        "price_range": "최근 실제 거래 가격대 (USD/톤 또는 USc/lb, metal.com·AMM·scrapmonster 기반, 없으면 null)",
+        "price_driver": "이번 주/이번 달 가격 변동 주요 원인 (관세, 수요 변화, 환율, 수출 흐름 등)",
+        "flow": "주요 수출입 방향 및 물동량 특이사항"
       },
-      { "region": "유럽", "grades": "주요 등급", "price_range": "가격대 또는 null", "flow": "물동량 동향" },
-      { "region": "일본", "grades": "주요 등급", "price_range": "가격대 또는 null", "flow": "물동량 동향" },
-      { "region": "중동", "grades": "주요 등급", "price_range": "가격대 또는 null", "flow": "물동량 동향" }
+      {
+        "region": "유럽",
+        "key_grades": "주요 등급 (Old Alloy, Tense, 등)",
+        "price_range": "최근 가격대 또는 null",
+        "price_driver": "가격 변동 주요 원인",
+        "flow": "물동량 동향"
+      },
+      {
+        "region": "일본",
+        "key_grades": "주요 등급 (UBC, 압출재 스크랩 등)",
+        "price_range": "최근 가격대 (JPY/kg 또는 USD/톤) 또는 null",
+        "price_driver": "가격 변동 주요 원인",
+        "flow": "물동량 동향 (한국·동남아 수출 포함)"
+      },
+      {
+        "region": "중동",
+        "key_grades": "주요 등급",
+        "price_range": "최근 가격대 또는 null",
+        "price_driver": "가격 변동 주요 원인",
+        "flow": "물동량 동향"
+      }
     ]
   },
   "updated_at": "응답 생성 시각 (ISO 8601)"
