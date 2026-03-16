@@ -1,4 +1,4 @@
-// src/App.tsx — 비철금속 원자재 인텔리전스 앱 전면 재설계
+// src/App.tsx — 비철금속 원자재 인텔리전스 앱
 import { useState, useEffect, useCallback } from 'react';
 import type {
   TabId, AluminumData, FerrosiliconData, RecarburizerData, SummaryData
@@ -10,7 +10,6 @@ const API_BASE = '/api/get-news';
 
 function formatNum(val: string | null | undefined) {
   if (!val) return null;
-  // 숫자면 콤마 포맷, 문자열이면 그대로
   const n = parseFloat(String(val).replace(/,/g, ''));
   if (isNaN(n)) return String(val);
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -30,21 +29,36 @@ function directionColor(d: string | null | undefined) {
 
 function urgencyBadge(u: string | null | undefined) {
   if (!u) return '참고';
-  u = u.toUpperCase();
   const map: Record<string, string> = { HIGH: '고위험', MEDIUM: '주의', LOW: '참고' };
-  return map[u] ?? u;
+  return map[u.toUpperCase()] ?? u;
+}
 
+/**
+ * LME 알루미늄 가격 유효성 검사
+ * 현실적인 범위: $1,500 ~ $4,000/톤
+ */
+function isValidLmePrice(val: string | null | undefined): boolean {
+  if (!val) return false;
+  const n = parseFloat(String(val).replace(/,/g, ''));
+  if (isNaN(n)) return false;
+  return n >= 1500 && n <= 4000;
 }
 
 // ─── 서브 컴포넌트들 ──────────────────────────────────────────────────────────
 
-function PriceTag({ value, label }: { value: string | null; label: string }) {
-  if (!value) return null;
+function Logo() {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    // 로고 파일 없을 때 텍스트 폴백
+    return <div className="brand-logo-text">A1</div>;
+  }
   return (
-    <div className="price-tag">
-      <span className="price-label">{label}</span>
-      <span className="price-value">{value}</span>
-    </div>
+    <img
+      src="/logo.png"
+      alt="한국에이원"
+      className="brand-logo"
+      onError={() => setFailed(true)}
+    />
   );
 }
 
@@ -98,19 +112,22 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 function AluminumTab({ data }: { data: AluminumData }) {
   const { lme, scrap } = data;
   const isUp = lme.change != null && !String(lme.change).startsWith('-');
+  const priceValid = isValidLmePrice(lme.price);
+
   return (
     <div className="tab-content">
       {/* LME 가격 헤더 */}
       <div className="price-hero">
         <div className="price-hero-main">
           <span className="price-hero-label">LME 알루미늄 공식가</span>
-          {lme.price
+          {priceValid
             ? <span className="price-hero-value">{formatNum(lme.price)} <small>USD/톤</small></span>
             : <span className="price-hero-na">가격 확인 중</span>
           }
-          {lme.change && (
+          {lme.change && priceValid && (
             <span className="price-hero-change" style={{ color: isUp ? 'var(--up)' : 'var(--down)' }}>
-              전일 대비 {isUp ? '+' : ''}{formatNum(lme.change)} USD/톤 ({lme.change_pct})
+              전일 대비 {isUp ? '+' : ''}{formatNum(lme.change)} USD/톤
+              {lme.change_pct ? ` (${lme.change_pct})` : ''}
             </span>
           )}
         </div>
@@ -157,8 +174,6 @@ function AluminumTab({ data }: { data: AluminumData }) {
           ))}
         </div>
       </SectionCard>
-
-
     </div>
   );
 }
@@ -177,7 +192,7 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           }
           {china_price.change && (
             <span className="price-hero-change"
-              style={{ color: china_price.change != null && String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
+              style={{ color: String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
               {china_price.change}
             </span>
           )}
@@ -254,7 +269,7 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           }
           {china_price.change && (
             <span className="price-hero-change"
-              style={{ color: china_price.change != null && String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
+              style={{ color: String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
               {china_price.change}
             </span>
           )}
@@ -263,7 +278,7 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           {china_price.anthracite_guizhou &&
             <span>귀저우: {china_price.anthracite_guizhou} CNY/톤</span>}
           {china_price.calcined_anthracite &&
-            <span>하소 안트라사이트: {china_price.calcined_anthracite} CNY/톤</span>}
+            <span>하소: {china_price.calcined_anthracite} CNY/톤</span>}
           {china_price.date && <span>기준: {china_price.date}</span>}
         </div>
       </div>
@@ -328,7 +343,7 @@ function SummaryTab({ data }: { data: SummaryData }) {
               <span className="signal-dir" style={{ color: directionColor(s.direction) }}>
                 {s.direction === 'UP' ? '▲' : s.direction === 'DOWN' ? '▼' : '—'}
               </span>
-              <span className={`signal-urgency urgency-${(s.urgency ?? "low").toLowerCase()}`}>
+              <span className={`signal-urgency urgency-${(s.urgency ?? 'low').toLowerCase()}`}>
                 {urgencyBadge(s.urgency)}
               </span>
             </div>
@@ -342,7 +357,7 @@ function SummaryTab({ data }: { data: SummaryData }) {
           <div key={i} className="risk-row">
             <div className="risk-header">
               <span className="risk-name">{r.risk}</span>
-              <span className={`risk-prob prob-${(r.probability ?? "low").toLowerCase()}`}>
+              <span className={`risk-prob prob-${(r.probability ?? 'low').toLowerCase()}`}>
                 {r.probability === 'HIGH' ? '고' : r.probability === 'MEDIUM' ? '중' : '저'}위험
               </span>
             </div>
@@ -386,7 +401,6 @@ export default function App() {
     }
   }, []);
 
-  // 탭 변경 시 데이터 없으면 fetch
   useEffect(() => {
     if (!data[activeTab] && !loading[activeTab]) {
       fetchTab(activeTab);
@@ -419,7 +433,7 @@ export default function App() {
         {/* 헤더 */}
         <header className="app-header">
           <div className="header-brand">
-            <img src="/logo.png" alt="한국에이원" className="brand-logo" />
+            <Logo />
             <div className="brand-text">
               <div className="brand-name">오늘의 원자재 뉴스</div>
               <div className="brand-sub">비철금속 원자재 인텔리전스</div>
@@ -492,7 +506,6 @@ const CSS = `
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ── 앱 레이아웃 ── */
   .app {
     max-width: 480px;
     margin: 0 auto;
@@ -523,6 +536,21 @@ const CSS = `
     object-fit: contain;
   }
 
+  /* 로고 로드 실패 시 텍스트 폴백 */
+  .brand-logo-text {
+    height: 36px;
+    width: 36px;
+    background: var(--accent);
+    color: #0d0f13;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
   .brand-name {
     font-size: 15px;
     font-weight: 600;
@@ -546,19 +574,6 @@ const CSS = `
     padding: 2px 6px;
     border: 1px solid var(--border);
   }
-
-  .refresh-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text2);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* ── 바텀 네비 ── */
   .bottom-nav {
@@ -650,7 +665,7 @@ const CSS = `
   }
 
   .price-hero-na {
-    font-size: 20px;
+    font-size: 18px;
     font-family: var(--mono);
     color: var(--text3);
   }
@@ -740,47 +755,6 @@ const CSS = `
     line-height: 1.6;
   }
 
-  /* ── 지역 그리드 (스크랩) ── */
-  .region-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .region-card {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .region-name {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--accent);
-  }
-
-  .region-grades {
-    font-size: 10px;
-    color: var(--text3);
-  }
-
-  .region-price {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--up);
-    font-weight: 500;
-  }
-
-  .region-flow {
-    font-size: 11px;
-    color: var(--text2);
-    line-height: 1.5;
-  }
-
   /* ── 생산 그리드 ── */
   .production-grid {
     display: grid;
@@ -825,16 +799,9 @@ const CSS = `
     color: var(--accent);
   }
 
-  .country-producer {
-    font-size: 10px;
-    color: var(--text3);
-  }
+  .country-producer { font-size: 10px; color: var(--text3); }
 
-  .country-status {
-    font-size: 12px;
-    color: var(--text);
-    line-height: 1.6;
-  }
+  .country-status { font-size: 12px; color: var(--text); line-height: 1.6; }
 
   .country-flow-tag {
     font-family: var(--mono);
@@ -922,11 +889,7 @@ const CSS = `
     color: var(--accent);
   }
 
-  .signal-dir {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-  }
+  .signal-dir { font-family: var(--mono); font-size: 12px; font-weight: 500; }
 
   .signal-urgency {
     font-family: var(--mono);
@@ -934,9 +897,9 @@ const CSS = `
     padding: 1px 5px;
     margin-left: auto;
   }
-  .urgency-high { color: var(--high); border: 1px solid var(--high); }
+  .urgency-high   { color: var(--high);   border: 1px solid var(--high); }
   .urgency-medium { color: var(--medium); border: 1px solid var(--medium); }
-  .urgency-low { color: var(--low); border: 1px solid var(--low); }
+  .urgency-low    { color: var(--low);    border: 1px solid var(--low); }
 
   .signal-text { font-size: 12px; color: var(--text); line-height: 1.6; }
 
@@ -952,28 +915,15 @@ const CSS = `
 
   .risk-header { display: flex; align-items: center; justify-content: space-between; }
 
-  .risk-name {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text);
-  }
+  .risk-name { font-size: 12px; font-weight: 500; color: var(--text); }
 
-  .risk-prob {
-    font-family: var(--mono);
-    font-size: 9px;
-    padding: 1px 6px;
-  }
-  .prob-high { color: var(--high); border: 1px solid var(--high); }
+  .risk-prob { font-family: var(--mono); font-size: 9px; padding: 1px 6px; }
+  .prob-high   { color: var(--high);   border: 1px solid var(--high); }
   .prob-medium { color: var(--medium); border: 1px solid var(--medium); }
-  .prob-low { color: var(--low); border: 1px solid var(--low); }
+  .prob-low    { color: var(--low);    border: 1px solid var(--low); }
 
-  .risk-affected {
-    font-size: 10px;
-    color: var(--text3);
-    font-family: var(--mono);
-  }
-
-  .risk-impact { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .risk-affected { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+  .risk-impact   { font-size: 12px; color: var(--text2); line-height: 1.6; }
 
   /* ── 주목 변수 ── */
   .watch-text {
@@ -1034,11 +984,7 @@ const CSS = `
     text-transform: uppercase;
   }
 
-  .premium-values {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
+  .premium-values { display: flex; flex-wrap: wrap; gap: 16px; }
 
   .premium-values span {
     font-family: var(--mono);
@@ -1054,11 +1000,7 @@ const CSS = `
   }
 
   /* ── 스크랩 지역 리스트 ── */
-  .region-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
+  .region-list { display: flex; flex-direction: column; gap: 0; }
 
   .region-item {
     padding: 12px 0;
@@ -1076,23 +1018,28 @@ const CSS = `
     gap: 8px;
   }
 
+  .region-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .region-price {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--up);
+    font-weight: 500;
+  }
+
   .region-grades-line {
     font-family: var(--mono);
     font-size: 10px;
     color: var(--text3);
   }
 
-  .region-driver {
-    font-size: 12px;
-    color: var(--text);
-    line-height: 1.65;
-  }
-
-  .region-flow-text {
-    font-size: 11px;
-    color: var(--text2);
-    line-height: 1.6;
-  }
+  .region-driver { font-size: 12px; color: var(--text); line-height: 1.65; }
+  .region-flow-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
 
   /* ── 스크롤바 ── */
   ::-webkit-scrollbar { width: 4px; }
@@ -1101,7 +1048,6 @@ const CSS = `
 
   /* ── 반응형 ── */
   @media (max-width: 360px) {
-    .region-grid { grid-template-columns: 1fr; }
     .production-grid { grid-template-columns: 1fr; }
     .flow-table-header,
     .flow-table-row { grid-template-columns: 60px 1fr 60px 60px; }
