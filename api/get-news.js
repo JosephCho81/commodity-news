@@ -60,7 +60,7 @@ async function generateAndSave(today) {
   const database = getDB();
 
   const feeds = [
-    // LME 알루미늄/비철
+    // LME 비철
     "https://news.google.com/rss/search?q=LME+aluminum+aluminium+price&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=aluminium+Middle+East+supply+disruption&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=LME+copper+zinc+nickel+price&hl=en&gl=US&ceid=US:en",
@@ -78,16 +78,16 @@ async function generateAndSave(today) {
     "https://news.google.com/rss/search?q=aluminum+scrap+ISRI+price+US&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=Japan+aluminium+premium+MJP&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=aluminium+premium+Midwest+Europe+duty+paid&hl=en&gl=US&ceid=US:en",
-    // 컨테이너 운임
+    // 컨테이너/벌크 운임
     "https://news.google.com/rss/search?q=SCFI+container+freight+rate+Asia&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=container+shipping+rate+Busan+China+US+Europe&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=container+freight+index+CCFI+WCI&hl=en&gl=US&ceid=US:en",
-    // 벌크선 운임 — 러시아/석탄
     "https://news.google.com/rss/search?q=BDI+Baltic+dry+index+bulk+carrier&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=Russia+coal+bulk+shipping+Korea+China&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=Panamax+Supramax+bulk+freight+coal&hl=en&gl=US&ceid=US:en",
-    // 관세
-    "https://news.google.com/rss/search?q=metal+tariff+customs+trade+policy&hl=en&gl=US&ceid=US:en",
+    // 관세 — 미국 철강 + 중국 우회 + 한국 영향
+    "https://news.google.com/rss/search?q=US+steel+tariff+Korea+Section232&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=China+steel+dumping+Korea+anti+dumping&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=China+steel+export+Southeast+Asia+redirect&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=Korea+steel+US+export+tariff+impact&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=Trump+steel+tariff+trade+policy+2025+2026&hl=en&gl=US&ceid=US:en",
   ];
 
   let rawNews = [];
@@ -124,7 +124,7 @@ async function generateAndSave(today) {
   }));
 
   const prompt =
-    "당신은 20년 경력의 비철금속·제강 부원료·해운 시장 전문 애널리스트입니다.\n" +
+    "당신은 20년 경력의 비철금속·제강 부원료·해운·무역정책 전문 애널리스트입니다.\n" +
     "알루미늄 탈산제, 가탄제(소괴탄/분탄), 페로실리콘(FeSi60/75), 알루미늄 스크랩을\n" +
     "동국제강·포스코·현대제철에 납품하는 실무자를 위한 전문 시황 브리핑을 작성하세요.\n\n" +
 
@@ -134,7 +134,7 @@ async function generateAndSave(today) {
     "## 부원료 분석 필수 항목\n\n" +
 
     "### carburizer (가탄제)\n" +
-    "- 러시아 석탄 수출 물동량: 유럽향 감소분이 아시아(한국/인도/중국)로 얼마나 전환됐는지\n" +
+    "- 러시아 석탄 수출 물동량: 유럽향 감소 → 아시아(한국/인도/중국) 전환 현황\n" +
     "- 러시아-한국 석탄 수입 현황 및 제재 리스크\n" +
     "- 중국 내륙 석탄가·수출 관세·전력 규제 현황\n" +
     "- 국내 가탄제 조달 영향 (러시아산 vs 중국산 비중)\n\n" +
@@ -147,8 +147,8 @@ async function generateAndSave(today) {
 
     "### al_scrap (알루미늄 스크랩)\n" +
     "- MJP (일본): 현재 분기 수준 ($/mt), Midwest 프리미엄, 유럽 duty paid 프리미엄 비교\n" +
-    "- 지역별 프리미엄 차이 원인 (수급 불균형, 환경 규제, 수요 차이 등)\n" +
-    "- ISRI 등급별 단가: Taint/Tabor, Twitch, Zorba, Tensor 등 주요 등급 현재 가격·등락·이유\n" +
+    "- 지역별 프리미엄 차이 원인\n" +
+    "- ISRI 등급별 단가: Taint/Tabor, Twitch, Zorba, Tensor 현재 가격·등락·이유\n" +
     "- 미국/유럽 스크랩 수출이 아시아 수급에 미치는 영향\n\n" +
 
     "## 물류 분석 필수 항목\n\n" +
@@ -156,25 +156,31 @@ async function generateAndSave(today) {
     "### container (컨테이너)\n" +
     "index: SCFI 또는 WCI 현재 수준과 전주 대비 등락\n" +
     "outlook: 향후 1~2주 운임 방향성 예측과 근거\n" +
-    "routes: 아래 6개 항로 각각 40피트 컨테이너 기준 FOB 부산 운임\n" +
-    "  1) 부산 → 상해 ($/FEU)\n" +
-    "  2) 부산 → 칭다오 ($/FEU)\n" +
-    "  3) 부산 → 미국 서부 ($/FEU)\n" +
-    "  4) 부산 → 유럽 ($/FEU)\n" +
-    "  5) 부산 → 동남아 ($/FEU)\n" +
-    "  6) 부산 → 아프리카/중동 ($/FEU)\n" +
-    "  각 항로마다: 현재 운임(추정 포함), 전월 대비 변동, 변동 원인\n\n" +
+    "routes: 아래 6개 항로 40피트 컨테이너 기준 FOB 부산 운임\n" +
+    "  1) 부산 → 상해 / 2) 부산 → 칭다오 / 3) 부산 → 미국 서부\n" +
+    "  4) 부산 → 유럽 / 5) 부산 → 동남아 / 6) 부산 → 아프리카/중동\n" +
+    "  각 항로: 현재 운임(추정 포함), 전월 대비 변동, 변동 원인\n\n" +
 
     "### bulk (벌크선)\n" +
-    "index: BDI (Baltic Dry Index) 현재 수준과 등락\n" +
+    "index: BDI 현재 수준과 등락\n" +
     "outlook: 향후 벌크 운임 방향성\n" +
-    "routes: 아래 5개 항로 벌크선 운임 (5만톤급 Supramax/Panamax 기준)\n" +
-    "  1) 러시아(보스토치니) → 한국 부산 ($/mt)\n" +
-    "  2) 러시아(보스토치니) → 중국 ($/mt)\n" +
-    "  3) 호주 → 한국 ($/mt)\n" +
-    "  4) 인도네시아 → 한국 ($/mt)\n" +
-    "  5) 러시아 → 인도 ($/mt)\n" +
-    "  각 항로마다: 현재 운임(추정 포함), 변동 추이, 변동 원인\n\n" +
+    "routes: 아래 5개 항로 (5만톤급 Supramax/Panamax 기준)\n" +
+    "  1) 러시아(보스토치니) → 부산 / 2) 러시아(보스토치니) → 중국\n" +
+    "  3) 호주 → 한국 / 4) 인도네시아 → 한국 / 5) 러시아 → 인도\n" +
+    "  각 항로: 현재 운임(추정 포함), 변동 추이, 변동 원인\n\n" +
+
+    "### customs (관세 · 무역정책) — 반드시 아래 항목 포함\n" +
+    "1. 미국 철강 관세 현황 및 전망\n" +
+    "   - 현재 한국산 철강 대미 수출 관세율 (Section 232 기준)\n" +
+    "   - 트럼프 행정부 관세 정책 변화 가능성 및 한국 철강업계 영향\n" +
+    "   - 미국 수출 쿼터 현황 (한국 연간 쿼터 소진율)\n" +
+    "2. 중국산 철강 한국 유입 및 대응\n" +
+    "   - 중국의 저가 철강(열연·선재·형강) 한국 수출 동향\n" +
+    "   - 한국의 반덤핑 관세 현황 및 추가 제소 가능성\n" +
+    "3. 중국/한국 철강의 수출 우회 동향\n" +
+    "   - 미국 수출이 막힌 중국산 철강의 동남아·중동·아프리카 우회 현황\n" +
+    "   - 한국 철강사들의 미국 대체 시장 (동남아, 인도, 중동) 개척 현황\n" +
+    "4. 국내 제강사(동국제강·포스코·현대제철) 관세 영향 종합\n\n" +
 
     "## 출력 형식\n" +
     "반드시 순수 JSON만 출력. { 로 시작 } 로 끝. 모든 텍스트 한국어.\n" +
@@ -191,8 +197,8 @@ async function generateAndSave(today) {
     "  ],\n" +
     '  "supply_chain_risk": { "level": "원활/주의/경고", "reason": "수치와 인과관계 2~3문장" },\n' +
     '  "sub_materials": {\n' +
-    '    "carburizer": "러시아 물동량 유럽→아시아 전환 현황, 중국 석탄가/관세, 국내 조달 영향. 최소 4문장",\n' +
-    '    "ferro_silicon": "탈중국화 현황, 노르웨이/카자흐스탄/말레이시아 대안 공급 가격, 비중국산 프리미엄. 최소 4문장",\n' +
+    '    "carburizer": "러시아 물동량 유럽→아시아 전환, 중국 석탄가/관세, 국내 조달 영향. 최소 4문장",\n' +
+    '    "ferro_silicon": "탈중국화, 노르웨이/카자흐스탄/말레이시아 대안 공급 가격, 비중국산 프리미엄. 최소 4문장",\n' +
     '    "al_scrap": "MJP/Midwest/유럽 프리미엄 각각 수준·차이 원인, ISRI 등급별 단가·등락·이유. 최소 4문장"\n' +
     "  },\n" +
     '  "logistics": {\n' +
@@ -210,7 +216,7 @@ async function generateAndSave(today) {
     "    },\n" +
     '    "bulk": {\n' +
     '      "index": "BDI XXX pt (전주 대비 ±X%)",\n' +
-    '      "outlook": "향후 벌크 운임 방향성 및 근거",\n' +
+    '      "outlook": "향후 벌크 운임 방향성",\n' +
     '      "routes": [\n' +
     '        { "route": "러시아(보스토치니) → 부산", "vessel": "Supramax 5만톤", "rate": "$XX/mt (추정)", "change": "...", "reason": "..." },\n' +
     '        { "route": "러시아(보스토치니) → 중국", "vessel": "Supramax 5만톤", "rate": "...", "change": "...", "reason": "..." },\n' +
@@ -219,7 +225,7 @@ async function generateAndSave(today) {
     '        { "route": "러시아 → 인도", "vessel": "Supramax 5만톤", "rate": "...", "change": "...", "reason": "..." }\n' +
     "      ]\n" +
     "    },\n" +
-    '    "customs": "관세/통관 최근 동향"\n' +
+    '    "customs": "미국 Section232 한국산 관세율·쿼터 현황, 중국산 철강 한국 유입 및 반덤핑 대응, 미국수출막힌 중국/한국 철강의 동남아·중동 우회 현황, 국내 제강사 영향 종합. 최소 5문장"\n' +
     "  },\n" +
     '  "disclaimer": "이 브리핑은 공개된 뉴스와 시장 데이터를 AI가 분석한 것입니다. 가격은 추정치를 포함하며 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
     "}\n\n" +
