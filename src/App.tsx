@@ -368,11 +368,11 @@ export default function App() {
     aluminum: false, ferrosilicon: false, recarburizer: false, summary: false,
   });
 
-  const fetchTab = useCallback(async (tab: TabId, force = false) => {
+  const fetchTab = useCallback(async (tab: TabId) => {
     setLoading(p => ({ ...p, [tab]: true }));
     setError(p => ({ ...p, [tab]: false }));
     try {
-      const res = await fetch(`${API_BASE}?tab=${tab}${force ? '&force=true' : ''}`);
+      const res = await fetch(`${API_BASE}?tab=${tab}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
@@ -417,23 +417,18 @@ export default function App() {
         {/* 헤더 */}
         <header className="app-header">
           <div className="header-brand">
-            <div className="brand-mark">A1</div>
+            <img src="/logo.png" alt="한국에이원" className="brand-logo" />
             <div className="brand-text">
-              <div className="brand-name">한국에이원</div>
+              <div className="brand-name">오늘의 원자재 뉴스</div>
               <div className="brand-sub">비철금속 원자재 인텔리전스</div>
             </div>
           </div>
           <div className="header-actions">
             {ageMin !== null && (
-              <span className="cache-badge">{meta?._cached ? `캐시 ${formatAge(ageMin)}` : '실시간'}</span>
+              <span className="cache-badge">
+                {meta?._cached ? `${formatAge(ageMin)} 업데이트` : '오늘 데이터'}
+              </span>
             )}
-            <button
-              className="refresh-btn"
-              onClick={() => fetchTab(activeTab, true)}
-              disabled={isLoading}
-            >
-              {isLoading ? '↻' : '↺'} 새로고침
-            </button>
           </div>
         </header>
 
@@ -520,15 +515,10 @@ const CSS = `
 
   .header-brand { display: flex; align-items: center; gap: 10px; }
 
-  .brand-mark {
-    width: 36px; height: 36px;
-    background: var(--accent);
-    color: #000;
-    font-family: var(--mono);
-    font-weight: 500;
-    font-size: 13px;
-    display: flex; align-items: center; justify-content: center;
-    letter-spacing: -0.5px;
+  .brand-logo {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
   }
 
   .brand-name {
