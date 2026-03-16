@@ -59,19 +59,47 @@ async function fetchRSS(url) {
 async function generateAndSave(today) {
   const database = getDB();
 
-  const feeds = [
-    "https://news.google.com/rss/search?q=LME+aluminum+aluminium+price&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=aluminium+scrap+secondary+aluminium&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=ferro+silicon+ferrosilicon+price&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=petroleum+coke+calcined+coke&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=LME+copper+zinc+nickel+price&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=shipping+freight+SCFI+commodity&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=China+aluminium+aluminum+export&hl=en&gl=US&ceid=US:en",
-  ];
+  // ── RSS 피드 — 카테고리별 특화 ──────────────────────────────────────
+  const feedGroups = {
+    // LME 알루미늄
+    aluminum: [
+      "https://news.google.com/rss/search?q=LME+aluminum+aluminium+price&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=aluminium+Middle+East+supply+disruption&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=LME+copper+zinc+nickel+price&hl=en&gl=US&ceid=US:en",
+    ],
+    // 가탄제 — 러시아 석탄 + 중국 코크스
+    carburizer: [
+      "https://news.google.com/rss/search?q=Russia+coal+export+shipment+Asia&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=Russian+coal+sanctions+India+China&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=petroleum+coke+calcined+coke+price&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=coal+anthracite+China+export+price&hl=en&gl=US&ceid=US:en",
+    ],
+    // 페로실리콘 — 탈중국화 + 대안 공급국
+    ferrosilicon: [
+      "https://news.google.com/rss/search?q=ferro+silicon+ferrosilicon+price+market&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=ferrosilicon+Norway+Kazakhstan+Malaysia&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=China+ferrosilicon+export+restriction+tariff&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=ferrosilicon+non+China+alternative+supply&hl=en&gl=US&ceid=US:en",
+    ],
+    // 알루미늄 스크랩 — MJP + ISRI + 미국/유럽 프리미엄
+    scrap: [
+      "https://news.google.com/rss/search?q=aluminium+scrap+secondary+aluminium+price&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=aluminum+scrap+ISRI+price+US&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=Japan+aluminium+premium+MJP+scrap&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=aluminium+premium+Midwest+Europe+duty+paid&hl=en&gl=US&ceid=US:en",
+    ],
+    // 물류/관세
+    logistics: [
+      "https://news.google.com/rss/search?q=shipping+freight+SCFI+BDI+commodity&hl=en&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=metal+tariff+customs+trade+policy&hl=en&gl=US&ceid=US:en",
+    ],
+  };
 
   let rawNews = [];
-  for (const f of feeds) {
-    rawNews = rawNews.concat(await fetchRSS(f));
+  for (const group of Object.values(feedGroups)) {
+    for (const url of group) {
+      rawNews = rawNews.concat(await fetchRSS(url));
+    }
   }
 
   const seen = new Set();
@@ -89,8 +117,8 @@ async function generateAndSave(today) {
 
   if (allNews.length === 0) throw new Error("RSS 수집 실패");
 
-  const newsForAnalysis = allNews.slice(0, 15);
-  const allNewsForDisplay = allNews.slice(0, 25);
+  const newsForAnalysis = allNews.slice(0, 20);
+  const allNewsForDisplay = allNews.slice(0, 30);
   console.log("RSS 수집: 분석용 " + newsForAnalysis.length + "건 / 표시용 " + allNewsForDisplay.length + "건");
 
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -102,77 +130,71 @@ async function generateAndSave(today) {
     source: n.source,
   }));
 
-  // 프롬프트를 하나로 통합 (system_instruction 미사용)
   const prompt =
     "당신은 20년 경력의 비철금속 및 제강 부원료 시장 전문 애널리스트입니다.\n" +
-    "알루미늄 탈산제(Al 30~90%), 알루미늄 드로스(Al 20~65%), 가탄제(소괴탄/분탄 FC80~84%),\n" +
-    "페로실리콘(FeSi60/75), 알루미늄 스크랩(12종)을 국내 제강사(동국제강, 포스코, 현대제철)에\n" +
+    "알루미늄 탈산제(Al 30~90%), 알루미늄 드로스, 가탄제(소괴탄/분탄 FC80~84%),\n" +
+    "페로실리콘(FeSi60/75), 알루미늄 스크랩(12종)을 동국제강·포스코·현대제철에\n" +
     "납품하는 실무자들을 위한 전문 시황 브리핑을 작성하세요.\n\n" +
 
     "## 가격 데이터 규칙\n" +
-    "- 뉴스에 구체적 가격 있으면: 그대로 사용, source에 출처 명시\n" +
-    "- 뉴스에 가격 없으면: 최신 시장 지식 기반 추정값 기입 + 반드시 '(추정)' 표시\n" +
-    "- 가격 필드를 절대 비워두지 마세요. null 금지.\n" +
-    "- 예시: '$2,485 (추정)', '$9,842 (추정)', '$2,910 (추정)'\n\n" +
+    "- 뉴스에 구체적 가격 있으면 그대로 사용, source에 출처 명시\n" +
+    "- 없으면 최신 시장 지식 기반 추정값 + '(추정)' 표시. null 절대 금지.\n\n" +
 
     "## 분석 품질 기준\n" +
-    "나쁜 분석(금지): '중동 분쟁으로 알루미늄 공급 차질 우려'\n" +
-    "좋은 분석(목표): 'UAE Qatalum, 바레인 Alba 물량 아시아 도착 지연 → LME 재고 감소 →\n" +
-    "현물 프리미엄 상승. 국내 수입 알루미늄 원가 톤당 $30~50 추가 상승 가능성 있음'\n\n" +
-    "반드시 포함할 것: 인과관계, 구체적 수치(%, 톤, 달러), 국내 납품 환경 연관성\n\n" +
+    "단순 요약 금지. 인과관계 + 수치 + 국내 납품 영향까지 반드시 포함.\n\n" +
 
-    "## 부원료별 핵심 분석 변수\n" +
-    "- 가탄제: 중국 내륙 석탄 가격, 수출 관세, 내몽골/산시성 전력 규제\n" +
-    "- 페로실리콘: 중국 윈난성 수력발전 시즌, 노르웨이/카자흐스탄 생산량\n" +
-    "- 알루미늄 스크랩: 일본 프리미엄(MJP), 미국 UBC 수출량, 국내 회수율\n" +
-    "관련 뉴스가 없어도 현재 시장 상황 기반으로 각 품목 동향을 반드시 2문장 이상 작성\n\n" +
+    "## 부원료별 필수 분석 항목\n\n" +
+
+    "### 가탄제 (carburizer) — 반드시 아래 항목 포함\n" +
+    "1. 러시아 석탄 동향: 현재 러시아 석탄 수출 물동량, 유럽향 vs 아시아향 물량 흐름\n" +
+    "   (러시아산 석탄이 서방 제재로 유럽 감소 → 아시아 전환 여부, 인도/중국 수입량)\n" +
+    "2. 중국 내륙 석탄 가격 및 수출 관세 현황\n" +
+    "3. 내몽골/산시성 전력 규제로 인한 생산 영향\n" +
+    "4. 국내 가탄제 수급 영향: 러시아산 원료 비중, 대안 조달 가능성\n\n" +
+
+    "### 페로실리콘 (ferro_silicon) — 반드시 아래 항목 포함\n" +
+    "1. 탈중국화 동향: 국내 제강사들의 중국산 페로실리콘 의존도 감소 추세\n" +
+    "2. 대안 공급국 현황: 노르웨이(Elkem), 카자흐스탄, 말레이시아 공급 동향 및 가격\n" +
+    "3. 중국 생산 현황: 윈난성 수력발전 시즌 영향, 중국 수출 관세/제한 정책\n" +
+    "4. 비중국산 페로실리콘 프리미엄 수준 (중국산 대비 얼마나 비싼지)\n\n" +
+
+    "### 알루미늄 스크랩 (al_scrap) — 반드시 아래 항목 포함\n" +
+    "1. MJP (일본 프리미엄): 현재 분기 MJP 수준, 미국 Midwest 프리미엄, 유럽 duty paid 프리미엄\n" +
+    "   각 지역 프리미엄 차이 원인과 국내 조달에 미치는 영향\n" +
+    "2. ISRI 스크랩 단가: 주요 등급(Taint/Tabor, Twitch, Zorba 등) 현재 단가 및 등락 원인\n" +
+    "3. 미국/유럽 스크랩 수출 동향이 아시아 수급에 미치는 영향\n" +
+    "4. 국내 재생 알루미늄 수급 온도\n\n" +
 
     "## 출력 형식\n" +
-    "반드시 순수 JSON만 출력. 설명 없이 { 로 시작 } 로 끝.\n" +
-    "모든 텍스트 한국어. url 필드 포함하지 말 것. 각 news 항목에 id 포함.\n\n" +
+    "반드시 순수 JSON만 출력. { 로 시작 } 로 끝. 모든 텍스트 한국어.\n" +
+    "news 각 항목에 id 포함. url 필드 포함하지 말 것.\n\n" +
 
     "{\n" +
     '  "lme_summary": {\n' +
     '    "aluminum": {\n' +
-    '      "price": "예: $2,485.50 (추정)",\n' +
-    '      "change": "예: +1.2% 또는 -0.8%",\n' +
-    '      "change_reason": "가격 변동 주요 원인 1~2문장. 반드시 구체적 사유 포함",\n' +
-    '      "source": "뉴스 출처 또는 시장 추정"\n' +
+    '      "price": "$X,XXX (추정 또는 출처)",\n' +
+    '      "change": "+X.X% 또는 -X.X%",\n' +
+    '      "change_reason": "구체적 변동 원인 — 수치 포함 1~2문장",\n' +
+    '      "source": "출처"\n' +
     "    },\n" +
-    '    "copper": {\n' +
-    '      "price": "예: $9,842.00 (추정)",\n' +
-    '      "change": "예: -0.8%",\n' +
-    '      "change_reason": "가격 변동 주요 원인 1~2문장",\n' +
-    '      "source": "뉴스 출처 또는 시장 추정"\n' +
-    "    },\n" +
-    '    "zinc": {\n' +
-    '      "price": "예: $2,910.50 (추정)",\n' +
-    '      "change": "예: +2.4%",\n' +
-    '      "change_reason": "가격 변동 주요 원인 1~2문장",\n' +
-    '      "source": "뉴스 출처 또는 시장 추정"\n' +
-    "    }\n" +
+    '    "copper": { "price": "...", "change": "...", "change_reason": "...", "source": "..." },\n' +
+    '    "zinc": { "price": "...", "change": "...", "change_reason": "...", "source": "..." }\n' +
     "  },\n" +
     '  "key_news": [\n' +
-    '    {\n' +
-    '      "id": 0,\n' +
-    '      "title": "한국어 번역 제목",\n' +
-    '      "summary": "핵심 내용 요약",\n' +
-    '      "relevance": "국내 비철/부원료 취급자 영향 — 구체적 수치 포함",\n' +
-    '      "source": "출처"\n' +
-    "    }\n" +
+    '    { "id": 0, "title": "한국어 제목", "summary": "요약", "relevance": "국내 영향 — 수치 포함", "source": "출처" }\n' +
     "  ],\n" +
     '  "supply_chain_risk": {\n' +
     '    "level": "원활 또는 주의 또는 경고",\n' +
-    '    "reason": "구체적 수치와 인과관계 포함한 판단 근거 2~3문장"\n' +
+    '    "reason": "수치와 인과관계 포함 2~3문장"\n' +
     "  },\n" +
     '  "sub_materials": {\n' +
-    '    "carburizer": "가탄제 동향 — 중국 석탄가격/수출관세/전력규제 현황 포함. 최소 2문장",\n' +
-    '    "ferro_silicon": "페로실리콘 동향 — 중국 생산현황/윈난성 전력 포함. 최소 2문장",\n' +
-    '    "al_scrap": "알루미늄 스크랩 동향 — MJP/UBC/국내 수급 포함. 최소 2문장"\n' +
+    '    "carburizer": "가탄제 분석 — 러시아 물동량(유럽향/아시아향), 중국 석탄가/관세, 전력규제, 국내 영향 포함. 최소 4문장",\n' +
+    '    "ferro_silicon": "페로실리콘 분석 — 탈중국화 현황, 노르웨이/카자흐스탄/말레이시아 대안 공급, 중국 윈난성 전력, 비중국산 프리미엄 수준. 최소 4문장",\n' +
+    '    "al_scrap": "알루미늄 스크랩 분석 — MJP/Midwest/유럽 프리미엄 각각 수준 및 차이 원인, ISRI 주요 등급 단가 및 등락, 아시아 수급 영향. 최소 4문장"\n' +
     "  },\n" +
     '  "logistics": {\n' +
-    '    "freight": "해상운임 동향 — SCFI/BDI 수준 또는 주요 항로 운임 포함",\n' +
-    '    "customs": "관세/통관 동향 — 최근 변화사항 또는 현재 상황 요약"\n' +
+    '    "freight": "해상운임 — SCFI/BDI 수준, 주요 항로 운임 포함",\n' +
+    '    "customs": "관세/통관 — 최근 정책 변화 또는 현황"\n' +
     "  },\n" +
     '  "disclaimer": "이 브리핑은 공개된 뉴스와 시장 데이터를 AI가 분석한 것입니다. 가격은 추정치를 포함하며 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
     "}\n\n" +
