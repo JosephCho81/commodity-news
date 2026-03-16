@@ -227,6 +227,7 @@ async function generateAndSave(today) {
     "    },\n" +
     '    "customs": "미국 Section232 한국산 관세율·쿼터 현황, 중국산 철강 한국 유입 및 반덤핑 대응, 미국수출막힌 중국/한국 철강의 동남아·중동 우회 현황, 국내 제강사 영향 종합. 최소 5문장"\n' +
     "  },\n" +
+    '  "expert_comment": "오늘 수집된 뉴스와 시장 데이터 전체를 종합하여, 비철금속·부원료·물류 실무자에게 가장 중요한 핵심을 단 한 문장으로 요약. 예: \'중동 공급 차질로 LME 알루미늄 4년 최고치 근접, 단기 재고 확보 검토 필요\'",\n' +
     '  "disclaimer": "이 브리핑은 공개된 뉴스와 시장 데이터를 AI가 분석한 것입니다. 가격은 추정치를 포함하며 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
     "}\n\n" +
 
@@ -304,8 +305,14 @@ async function generateAndSave(today) {
         bulk: { index: null, outlook: null, routes: [] },
         customs: null,
       },
+      expert_comment: null,
       disclaimer: "AI 분석 일시 오류. 잠시 후 다시 시도해 주세요.",
     };
+  }
+
+  // expert_comment 변환
+  if (briefingData.expert_comment && typeof briefingData.expert_comment === "string") {
+    briefingData.expert_comment = { text: briefingData.expert_comment, updatedAt: new Date().toISOString() };
   }
 
   const docData = Object.assign({}, briefingData, {
