@@ -236,14 +236,15 @@ function parseJSON(raw) {
 // ─── 탭별 프롬프트 ──────────────────────────────────────────────────────────
 const PROMPTS = {
 
-  aluminum: `오늘 날짜 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
+  aluminum: `오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
 
-【반드시 지켜야 할 지침】
-1. LME 공식가: https://www.lme.com/en/metals/non-ferrous/lme-aluminium 에서 "Official prices" 섹션의 3-month 또는 Cash Bid/Offer 가격. 오늘 기준 최신 거래일. 반드시 실제 숫자로 반환.
-2. 오늘 날짜: ${new Date().toISOString().slice(0,10)}. 이 날짜 기준으로 가장 최근 데이터를 찾으세요.
-3. [1][2] 각주 번호 절대 금지.
-4. 스크랩 가격: metal.com/aluminum-scrap, scrapmonster.com, AMM, Fastmarkets에서 실제 확인된 가격대. 없으면 "확인 필요"라고 쓰지 말고 최근 뉴스 기반 방향성이라도 써주세요.
-5. 각 지역 스크랩 시황은 반드시 채워주세요. 가격이 오르는 이유, 내리는 이유, 수급 상황을 구체적으로.
+【LME 가격 수집 방법 — 반드시 따르세요】
+1. https://www.lme.com/en/metals/non-ferrous/lme-aluminium 페이지를 직접 검색하여 "Trading Summary" 또는 "Official Prices" 섹션에서 오늘 또는 가장 최근 거래일의 3-month Closing Price(USD/톤)를 가져오세요.
+2. 오늘 날짜: ${new Date().toISOString().slice(0,10)}. 주말/공휴일이면 직전 영업일 가격.
+3. LME 알루미늄 3-month 가격은 현재 $3,300~$3,600/톤 범위입니다. 이 범위를 크게 벗어나는 값은 잘못된 값이므로 재확인하세요.
+4. price 필드에는 반드시 숫자만 (예: 3439.50). 단위·문자 포함 금지.
+5. [1][2] 각주 번호 절대 금지.
+6. 스크랩 가격: metal.com/aluminum-scrap, scrapmonster.com, AMM, Fastmarkets 기준 실제 확인된 가격대.
 
 {
   "lme": {
