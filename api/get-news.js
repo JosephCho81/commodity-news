@@ -124,8 +124,16 @@ async function generateAndSave(today) {
     "실무자를 위한 전문 시황 브리핑을 작성하세요.\n\n" +
 
     "## 실시간 검색 필수 항목\n" +
-    "반드시 웹 검색으로 오늘 또는 가장 최신 실제 데이터를 조회하세요:\n" +
-    "- LME 알루미늄·구리·아연 Cash Bid 실제 가격 (lme.com 또는 금융 데이터 사이트)\n" +
+    "반드시 웹 검색으로 가장 최신 실제 데이터를 조회하세요.\n\n" +
+    "### LME 가격 — 아래 검색어로 최신 Cash Bid 가격 조회 (최신 날짜 우선)\n" +
+    "검색어 1: LME aluminium cash bid price today site:westmetall.com\n" +
+    "검색어 2: LME aluminum cash bid price today site:investing.com\n" +
+    "검색어 3: LME aluminium copper zinc cash price today site:tradingeconomics.com\n" +
+    "- 알루미늄 Cash Bid ($/mt): 가장 최신 날짜 기준 실제값\n" +
+    "- 구리 Cash Bid ($/mt): 가장 최신 날짜 기준 실제값\n" +
+    "- 아연 Cash Bid ($/mt): 가장 최신 날짜 기준 실제값\n" +
+    "- source 필드에 반드시 날짜 명시 (예: 2026-03-13 기준, westmetall.com)\n\n" +
+    "### 나머지 검색 항목\n" +
     "- 알루미늄 MJP (일본 프리미엄) 현재 분기 실제 수준\n" +
     "- 미국 Midwest 프리미엄, 유럽 duty paid 프리미엄 실제 수준\n" +
     "- ISRI 스크랩 등급별 실제 단가 (Taint/Tabor, Twitch, Zorba)\n" +
@@ -136,7 +144,7 @@ async function generateAndSave(today) {
 
     "## 분석 품질 기준\n" +
     "단순 요약 금지. 인과관계 + 실제 수치 + 국내 납품 영향까지 포함.\n" +
-    "검색으로 찾은 실제 가격은 출처 명시. 찾지 못한 경우만 '(추정)' 표시.\n\n" +
+    "검색으로 찾은 실제 가격은 날짜·출처 명시. 찾지 못한 경우만 '(추정)' 표시.\n\n" +
 
     "## 부원료 분석 필수 항목\n\n" +
     "### carburizer: 러시아 석탄 아시아 전환 물동량, 중국 석탄가/관세, 국내 조달 영향. 최소 4문장\n" +
