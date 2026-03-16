@@ -19,6 +19,13 @@ const FIREBASE_ENABLED = !!(
    FIREBASE_PRIVATE_KEY.includes('BEGIN PRIVATE KEY'))
 );
 
+// 시작 시 진단 로그 (Vercel 함수 로그에서 확인)
+console.log('[Firebase] ENABLED:', FIREBASE_ENABLED);
+console.log('[Firebase] PROJECT_ID:', FIREBASE_PROJECT_ID ? '✅' : '❌ 없음');
+console.log('[Firebase] CLIENT_EMAIL:', FIREBASE_CLIENT_EMAIL ? '✅' : '❌ 없음');
+console.log('[Firebase] PRIVATE_KEY:', FIREBASE_PRIVATE_KEY.length > 10 ? `✅ (${FIREBASE_PRIVATE_KEY.length}자)` : '❌ 없음/짧음');
+console.log('[Firebase] KEY_HEADER:', FIREBASE_PRIVATE_KEY.slice(0, 40));
+
 // ─── JWT / Firestore 헬퍼 ────────────────────────────────────────────────────
 function pemToBinary(pem) {
   const b64 = pem
@@ -340,11 +347,12 @@ const PROMPTS = {
 };
 
 // ─── 캐시 TTL (분) ───────────────────────────────────────────────────────────
+// 하루 1회 업데이트 컨셉 — 24시간 TTL
 const CACHE_TTL = {
-  aluminum: 120,
-  ferrosilicon: 180,
-  recarburizer: 180,
-  summary: 60,
+  aluminum: 1440,
+  ferrosilicon: 1440,
+  recarburizer: 1440,
+  summary: 1440,
 };
 
 // ─── 메인 핸들러 ─────────────────────────────────────────────────────────────
@@ -359,7 +367,8 @@ export default async function handler(req, res) {
   }
 
   const tab = (req.query.tab || 'summary').toLowerCase();
-  const force = req.query.force === 'true';
+  // 하루 1회 컨셉: force 파라미터 무시 (관리자만 ?force=true 사용 가능)
+  const force = req.query.force === 'true' && req.query.secret === process.env.ADMIN_SECRET;
 
   if (!PROMPTS[tab]) {
     return res.status(400).json({ error: `Unknown tab: ${tab}. Use: aluminum, ferrosilicon, recarburizer, summary` });
