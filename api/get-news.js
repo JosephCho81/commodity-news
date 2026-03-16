@@ -59,35 +59,28 @@ async function fetchRSS(url) {
 async function generateAndSave(today) {
   const database = getDB();
 
+  // 1. RSS 수집
   const feeds = [
-    // LME 비철
     "https://news.google.com/rss/search?q=LME+aluminum+aluminium+price&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=aluminium+Middle+East+supply+disruption&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=LME+copper+zinc+nickel+price&hl=en&gl=US&ceid=US:en",
-    // 가탄제 — 러시아 석탄
     "https://news.google.com/rss/search?q=Russia+coal+export+shipment+Asia&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=Russian+coal+sanctions+India+China&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=petroleum+coke+calcined+coke+price&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=coal+anthracite+China+export+price&hl=en&gl=US&ceid=US:en",
-    // 페로실리콘 — 탈중국화
     "https://news.google.com/rss/search?q=ferro+silicon+ferrosilicon+price+market&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=ferrosilicon+Norway+Kazakhstan+Malaysia&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=China+ferrosilicon+export+restriction+tariff&hl=en&gl=US&ceid=US:en",
-    // 알루미늄 스크랩 — MJP/ISRI
+    "https://news.google.com/rss/search?q=China+ferrosilicon+export+restriction&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=aluminium+scrap+secondary+price&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=aluminum+scrap+ISRI+price+US&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=Japan+aluminium+premium+MJP&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=aluminium+premium+Midwest+Europe+duty+paid&hl=en&gl=US&ceid=US:en",
-    // 컨테이너/벌크 운임
     "https://news.google.com/rss/search?q=SCFI+container+freight+rate+Asia&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=BDI+Baltic+dry+index+bulk+carrier&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=Russia+coal+bulk+shipping+Korea+China&hl=en&gl=US&ceid=US:en",
-    // 관세 — 미국 철강 + 중국 우회 + 한국 영향
     "https://news.google.com/rss/search?q=US+steel+tariff+Korea+Section232&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=China+steel+dumping+Korea+anti+dumping&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=China+steel+export+Southeast+Asia+redirect&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=Korea+steel+US+export+tariff+impact&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=Trump+steel+tariff+trade+policy+2025+2026&hl=en&gl=US&ceid=US:en",
   ];
 
   let rawNews = [];
@@ -114,8 +107,9 @@ async function generateAndSave(today) {
   const allNewsForDisplay = allNews.slice(0, 30);
   console.log("RSS 수집: 분석용 " + newsForAnalysis.length + "건 / 표시용 " + allNewsForDisplay.length + "건");
 
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 없음");
+  // 2. Perplexity API 호출 (실시간 웹 검색 내장)
+  const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
+  if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY 환경변수 없음");
 
   const newsForAI = newsForAnalysis.map((n) => ({
     id: n.id,
@@ -125,62 +119,34 @@ async function generateAndSave(today) {
 
   const prompt =
     "당신은 20년 경력의 비철금속·제강 부원료·해운·무역정책 전문 애널리스트입니다.\n" +
-    "알루미늄 탈산제, 가탄제(소괴탄/분탄), 페로실리콘(FeSi60/75), 알루미늄 스크랩을\n" +
-    "동국제강·포스코·현대제철에 납품하는 실무자를 위한 전문 시황 브리핑을 작성하세요.\n\n" +
+    "웹 검색을 통해 오늘(" + today + ") 기준 최신 실제 데이터를 조회하고,\n" +
+    "알루미늄 탈산제·가탄제·페로실리콘·알루미늄 스크랩을 동국제강·포스코·현대제철에 납품하는\n" +
+    "실무자를 위한 전문 시황 브리핑을 작성하세요.\n\n" +
 
-    "## 가격 규칙\n" +
-    "뉴스에 가격 없으면 최신 시장 지식 기반 추정값 + '(추정)' 표시. null 절대 금지.\n\n" +
+    "## 실시간 검색 필수 항목\n" +
+    "반드시 웹 검색으로 오늘 또는 가장 최신 실제 데이터를 조회하세요:\n" +
+    "- LME 알루미늄·구리·아연 Cash Bid 실제 가격 (lme.com 또는 금융 데이터 사이트)\n" +
+    "- 알루미늄 MJP (일본 프리미엄) 현재 분기 실제 수준\n" +
+    "- 미국 Midwest 프리미엄, 유럽 duty paid 프리미엄 실제 수준\n" +
+    "- ISRI 스크랩 등급별 실제 단가 (Taint/Tabor, Twitch, Zorba)\n" +
+    "- SCFI (상하이 컨테이너 운임 지수) 최신 수치\n" +
+    "- BDI (발틱 건화물 지수) 최신 수치\n" +
+    "- 러시아 석탄 아시아 수출 최신 물동량\n" +
+    "- 페로실리콘 중국 수출가 및 노르웨이/카자흐스탄 공급가\n\n" +
+
+    "## 분석 품질 기준\n" +
+    "단순 요약 금지. 인과관계 + 실제 수치 + 국내 납품 영향까지 포함.\n" +
+    "검색으로 찾은 실제 가격은 출처 명시. 찾지 못한 경우만 '(추정)' 표시.\n\n" +
 
     "## 부원료 분석 필수 항목\n\n" +
+    "### carburizer: 러시아 석탄 아시아 전환 물동량, 중국 석탄가/관세, 국내 조달 영향. 최소 4문장\n" +
+    "### ferro_silicon: 탈중국화, 노르웨이/카자흐스탄/말레이시아 대안 공급가, 비중국산 프리미엄. 최소 4문장\n" +
+    "### al_scrap: MJP/Midwest/유럽 프리미엄 각각 실제 수준·차이 원인, ISRI 등급별 단가·등락. 최소 4문장\n\n" +
 
-    "### carburizer (가탄제)\n" +
-    "- 러시아 석탄 수출 물동량: 유럽향 감소 → 아시아(한국/인도/중국) 전환 현황\n" +
-    "- 러시아-한국 석탄 수입 현황 및 제재 리스크\n" +
-    "- 중국 내륙 석탄가·수출 관세·전력 규제 현황\n" +
-    "- 국내 가탄제 조달 영향 (러시아산 vs 중국산 비중)\n\n" +
-
-    "### ferro_silicon (페로실리콘)\n" +
-    "- 국내 제강사 탈중국화 현황 — 중국산 비중 감소 추세와 이유\n" +
-    "- 대안 공급국: 노르웨이(Elkem), 카자흐스탄(ENRC), 말레이시아 공급 가격 및 동향\n" +
-    "- 중국 윈난성 수력발전 시즌 영향, 수출 관세/제한 현황\n" +
-    "- 비중국산 프리미엄: 중국산 대비 톤당 얼마나 비싼지\n\n" +
-
-    "### al_scrap (알루미늄 스크랩)\n" +
-    "- MJP (일본): 현재 분기 수준 ($/mt), Midwest 프리미엄, 유럽 duty paid 프리미엄 비교\n" +
-    "- 지역별 프리미엄 차이 원인\n" +
-    "- ISRI 등급별 단가: Taint/Tabor, Twitch, Zorba, Tensor 현재 가격·등락·이유\n" +
-    "- 미국/유럽 스크랩 수출이 아시아 수급에 미치는 영향\n\n" +
-
-    "## 물류 분석 필수 항목\n\n" +
-
-    "### container (컨테이너)\n" +
-    "index: SCFI 또는 WCI 현재 수준과 전주 대비 등락\n" +
-    "outlook: 향후 1~2주 운임 방향성 예측과 근거\n" +
-    "routes: 아래 6개 항로 40피트 컨테이너 기준 FOB 부산 운임\n" +
-    "  1) 부산 → 상해 / 2) 부산 → 칭다오 / 3) 부산 → 미국 서부\n" +
-    "  4) 부산 → 유럽 / 5) 부산 → 동남아 / 6) 부산 → 아프리카/중동\n" +
-    "  각 항로: 현재 운임(추정 포함), 전월 대비 변동, 변동 원인\n\n" +
-
-    "### bulk (벌크선)\n" +
-    "index: BDI 현재 수준과 등락\n" +
-    "outlook: 향후 벌크 운임 방향성\n" +
-    "routes: 아래 5개 항로 (5만톤급 Supramax/Panamax 기준)\n" +
-    "  1) 러시아(보스토치니) → 부산 / 2) 러시아(보스토치니) → 중국\n" +
-    "  3) 호주 → 한국 / 4) 인도네시아 → 한국 / 5) 러시아 → 인도\n" +
-    "  각 항로: 현재 운임(추정 포함), 변동 추이, 변동 원인\n\n" +
-
-    "### customs (관세 · 무역정책) — 반드시 아래 항목 포함\n" +
-    "1. 미국 철강 관세 현황 및 전망\n" +
-    "   - 현재 한국산 철강 대미 수출 관세율 (Section 232 기준)\n" +
-    "   - 트럼프 행정부 관세 정책 변화 가능성 및 한국 철강업계 영향\n" +
-    "   - 미국 수출 쿼터 현황 (한국 연간 쿼터 소진율)\n" +
-    "2. 중국산 철강 한국 유입 및 대응\n" +
-    "   - 중국의 저가 철강(열연·선재·형강) 한국 수출 동향\n" +
-    "   - 한국의 반덤핑 관세 현황 및 추가 제소 가능성\n" +
-    "3. 중국/한국 철강의 수출 우회 동향\n" +
-    "   - 미국 수출이 막힌 중국산 철강의 동남아·중동·아프리카 우회 현황\n" +
-    "   - 한국 철강사들의 미국 대체 시장 (동남아, 인도, 중동) 개척 현황\n" +
-    "4. 국내 제강사(동국제강·포스코·현대제철) 관세 영향 종합\n\n" +
+    "## 물류 분석\n" +
+    "### 컨테이너: SCFI 실제 수치, 부산→상해/칭다오/미국서부/유럽/동남아/아프리카 6개 항로 운임\n" +
+    "### 벌크선: BDI 실제 수치, 러시아→부산/중국, 호주→한국, 인도네시아→한국, 러시아→인도 5개 항로\n" +
+    "### 관세: 미국 Section232 한국산 관세율·쿼터, 중국산 철강 한국 유입·반덤핑, 우회 수출 현황. 최소 5문장\n\n" +
 
     "## 출력 형식\n" +
     "반드시 순수 JSON만 출력. { 로 시작 } 로 끝. 모든 텍스트 한국어.\n" +
@@ -188,25 +154,23 @@ async function generateAndSave(today) {
 
     "{\n" +
     '  "lme_summary": {\n' +
-    '    "aluminum": { "price": "...(추정)", "change": "...", "change_reason": "수치 포함 원인", "source": "..." },\n' +
+    '    "aluminum": { "price": "실제가격 또는 추정", "change": "등락%", "change_reason": "원인 수치포함", "source": "출처" },\n' +
     '    "copper": { "price": "...", "change": "...", "change_reason": "...", "source": "..." },\n' +
     '    "zinc": { "price": "...", "change": "...", "change_reason": "...", "source": "..." }\n' +
     "  },\n" +
-    '  "key_news": [\n' +
-    '    { "id": 0, "title": "한국어 제목", "summary": "요약", "relevance": "국내 납품 영향 — 수치 포함", "source": "출처" }\n' +
-    "  ],\n" +
+    '  "key_news": [ { "id": 0, "title": "한국어제목", "summary": "요약", "relevance": "국내영향-수치포함", "source": "출처" } ],\n' +
     '  "supply_chain_risk": { "level": "원활/주의/경고", "reason": "수치와 인과관계 2~3문장" },\n' +
     '  "sub_materials": {\n' +
-    '    "carburizer": "러시아 물동량 유럽→아시아 전환, 중국 석탄가/관세, 국내 조달 영향. 최소 4문장",\n' +
-    '    "ferro_silicon": "탈중국화, 노르웨이/카자흐스탄/말레이시아 대안 공급 가격, 비중국산 프리미엄. 최소 4문장",\n' +
-    '    "al_scrap": "MJP/Midwest/유럽 프리미엄 각각 수준·차이 원인, ISRI 등급별 단가·등락·이유. 최소 4문장"\n' +
+    '    "carburizer": "러시아 물동량, 중국 석탄가/관세, 국내 영향. 최소 4문장",\n' +
+    '    "ferro_silicon": "탈중국화, 대안공급가, 비중국산 프리미엄. 최소 4문장",\n' +
+    '    "al_scrap": "MJP/Midwest/유럽 실제수준·차이원인, ISRI 등급별 단가. 최소 4문장"\n' +
     "  },\n" +
     '  "logistics": {\n' +
     '    "container": {\n' +
-    '      "index": "SCFI XXX pt (전주 대비 ±X%)",\n' +
-    '      "outlook": "향후 운임 방향성 및 근거",\n' +
+    '      "index": "SCFI 실제수치 (전주대비 ±X%)",\n' +
+    '      "outlook": "향후 운임 방향성",\n' +
     '      "routes": [\n' +
-    '        { "route": "부산 → 상해", "rate": "$XXX/FEU (추정)", "change": "전월 대비 ±X%", "reason": "변동 원인" },\n' +
+    '        { "route": "부산 → 상해", "rate": "실제 또는 추정$/FEU", "change": "±X%", "reason": "원인" },\n' +
     '        { "route": "부산 → 칭다오", "rate": "...", "change": "...", "reason": "..." },\n' +
     '        { "route": "부산 → 미국 서부", "rate": "...", "change": "...", "reason": "..." },\n' +
     '        { "route": "부산 → 유럽", "rate": "...", "change": "...", "reason": "..." },\n' +
@@ -215,71 +179,89 @@ async function generateAndSave(today) {
     "      ]\n" +
     "    },\n" +
     '    "bulk": {\n' +
-    '      "index": "BDI XXX pt (전주 대비 ±X%)",\n' +
-    '      "outlook": "향후 벌크 운임 방향성",\n' +
+    '      "index": "BDI 실제수치 (전주대비 ±X%)",\n' +
+    '      "outlook": "향후 방향성",\n' +
     '      "routes": [\n' +
-    '        { "route": "러시아(보스토치니) → 부산", "vessel": "Supramax 5만톤", "rate": "$XX/mt (추정)", "change": "...", "reason": "..." },\n' +
+    '        { "route": "러시아(보스토치니) → 부산", "vessel": "Supramax 5만톤", "rate": "실제$/mt", "change": "...", "reason": "..." },\n' +
     '        { "route": "러시아(보스토치니) → 중국", "vessel": "Supramax 5만톤", "rate": "...", "change": "...", "reason": "..." },\n' +
     '        { "route": "호주 → 한국", "vessel": "Panamax", "rate": "...", "change": "...", "reason": "..." },\n' +
     '        { "route": "인도네시아 → 한국", "vessel": "Supramax", "rate": "...", "change": "...", "reason": "..." },\n' +
     '        { "route": "러시아 → 인도", "vessel": "Supramax 5만톤", "rate": "...", "change": "...", "reason": "..." }\n' +
     "      ]\n" +
     "    },\n" +
-    '    "customs": "미국 Section232 한국산 관세율·쿼터 현황, 중국산 철강 한국 유입 및 반덤핑 대응, 미국수출막힌 중국/한국 철강의 동남아·중동 우회 현황, 국내 제강사 영향 종합. 최소 5문장"\n' +
+    '    "customs": "미국 Section232 한국산 관세율·쿼터, 중국산 철강 한국유입·반덤핑, 우회수출 현황, 국내 제강사 영향. 최소 5문장"\n' +
     "  },\n" +
-    '  "expert_comment": "오늘 수집된 뉴스와 시장 데이터 전체를 종합하여, 비철금속·부원료·물류 실무자에게 가장 중요한 핵심을 단 한 문장으로 요약. 예: \'중동 공급 차질로 LME 알루미늄 4년 최고치 근접, 단기 재고 확보 검토 필요\'",\n' +
-    '  "disclaimer": "이 브리핑은 공개된 뉴스와 시장 데이터를 AI가 분석한 것입니다. 가격은 추정치를 포함하며 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
+    '  "expert_comment": "오늘 전체 시장을 종합한 핵심 한 문장 요약",\n' +
+    '  "disclaimer": "이 브리핑은 공개된 뉴스와 실시간 웹 검색 데이터를 AI가 분석한 것입니다. 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
     "}\n\n" +
-
     "오늘 날짜: " + today + "\n" +
-    "[분석할 뉴스 " + newsForAI.length + "건]\n" +
+    "[수집된 뉴스 " + newsForAI.length + "건]\n" +
     JSON.stringify(newsForAI, null, 2);
 
   let briefingData = null;
 
   try {
-    console.log("Gemini 호출 시작...");
+    console.log("Perplexity API 호출 시작...");
 
-    const geminiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b?key=" + GEMINI_API_KEY,
+    const pplxRes = await fetch(
+      "https://api.perplexity.ai/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + PERPLEXITY_API_KEY,
+        },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 8192,
-            responseMimeType: "application/json",
-          },
+          model: "sonar",
+          messages: [
+            {
+              role: "system",
+              content: "당신은 비철금속·제강 부원료·해운 전문 애널리스트입니다. 반드시 웹 검색으로 최신 실제 데이터를 조회하고 순수 JSON만 출력하세요."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          max_tokens: 8000,
+          temperature: 0.2,
+          return_citations: true,
         }),
       }
     );
 
-    console.log("Gemini 응답 상태: " + geminiRes.status);
+    console.log("Perplexity 응답 상태: " + pplxRes.status);
 
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.text();
-      throw new Error("Gemini HTTP " + geminiRes.status + ": " + errBody);
+    if (!pplxRes.ok) {
+      const errBody = await pplxRes.text();
+      throw new Error("Perplexity HTTP " + pplxRes.status + ": " + errBody);
     }
 
-    const geminiData = await geminiRes.json();
-    const rawText =
-      geminiData &&
-      geminiData.candidates &&
-      geminiData.candidates[0] &&
-      geminiData.candidates[0].content &&
-      geminiData.candidates[0].content.parts &&
-      geminiData.candidates[0].content.parts[0]
-        ? geminiData.candidates[0].content.parts[0].text
-        : "";
+    const pplxData = await pplxRes.json();
+    const rawText = pplxData?.choices?.[0]?.message?.content || "";
 
-    console.log("Gemini 응답 길이: " + rawText.length + "자");
-    if (!rawText) throw new Error("Gemini 응답 비어있음");
+    console.log("Perplexity 응답 길이: " + rawText.length + "자");
+    if (!rawText) throw new Error("Perplexity 응답 비어있음");
 
-    briefingData = JSON.parse(rawText);
+    // JSON 추출
+    const fenceMatch = rawText.match(/```json\s*([\s\S]*?)```/);
+    const fenceMatch2 = rawText.match(/```\s*([\s\S]*?)```/);
+    const start = rawText.indexOf("{");
+    const end = rawText.lastIndexOf("}");
+
+    if (fenceMatch) {
+      briefingData = JSON.parse(fenceMatch[1].trim());
+    } else if (fenceMatch2) {
+      briefingData = JSON.parse(fenceMatch2[1].trim());
+    } else if (start !== -1 && end !== -1) {
+      briefingData = JSON.parse(rawText.slice(start, end + 1));
+    } else {
+      throw new Error("JSON 추출 실패");
+    }
+
     console.log("JSON 파싱 성공");
 
+    // id 기반 url 복원
     const urlById = new Map(newsForAnalysis.map((n) => [n.id, n.url]));
     if (briefingData.key_news && Array.isArray(briefingData.key_news)) {
       briefingData.key_news = briefingData.key_news.map((item) => {
@@ -287,8 +269,16 @@ async function generateAndSave(today) {
       });
     }
 
+    // expert_comment 문자열 → 객체 변환
+    if (briefingData.expert_comment && typeof briefingData.expert_comment === "string") {
+      briefingData.expert_comment = {
+        text: briefingData.expert_comment,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
   } catch (e) {
-    console.error("Gemini 처리 오류:", e.message);
+    console.error("Perplexity 처리 오류:", e.message);
     briefingData = {
       lme_summary: {
         aluminum: { price: null, change: null, change_reason: null, source: null },
@@ -308,11 +298,6 @@ async function generateAndSave(today) {
       expert_comment: null,
       disclaimer: "AI 분석 일시 오류. 잠시 후 다시 시도해 주세요.",
     };
-  }
-
-  // expert_comment 변환
-  if (briefingData.expert_comment && typeof briefingData.expert_comment === "string") {
-    briefingData.expert_comment = { text: briefingData.expert_comment, updatedAt: new Date().toISOString() };
   }
 
   const docData = Object.assign({}, briefingData, {
