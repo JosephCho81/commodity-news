@@ -24,10 +24,14 @@ export interface AluminumData extends ApiMeta {
   };
   scrap: {
     weekly_summary: string;
+    us_premium: string | null;
+    eu_premium: string | null;
+    japan_premium: string | null;
     regions: Array<{
       region: string;
-      grades: string;
+      key_grades: string;
       price_range: string | null;
+      price_driver: string;
       flow: string;
     }>;
   };
