@@ -130,7 +130,9 @@ async function callPerplexity(prompt) {
           content: `당신은 비철금속 원자재 시장 전문 애널리스트입니다.
 응답은 반드시 유효한 JSON만 출력하세요. 마크다운 코드블록 없이 순수 JSON만.
 숫자 데이터는 출처가 확인된 경우에만 포함하고, 확인 불가 시 null로 표시.
-(추정), (예상) 등 불확실한 단가는 절대 포함하지 마세요.`,
+(추정), (예상) 등 불확실한 단가는 절대 포함하지 마세요.
+텍스트 안에 [1], [2] 같은 각주 번호를 절대 포함하지 마세요.
+확인되지 않은 인과관계나 근거 없는 시황 설명을 만들어내지 마세요. 모르면 null을 반환하세요.`,
         },
         { role: 'user', content: prompt },
       ],
@@ -165,35 +167,37 @@ function parseJSON(raw) {
 // ─── 탭별 프롬프트 ────────────────────────────────────────────────────────────
 const PROMPTS = {
 
-  aluminum: `오늘 날짜 기준으로 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
+  aluminum: `오늘 날짜 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
+
+중요 지침:
+- LME 가격은 반드시 lme.com 공식 사이트(https://www.lme.com/en/metals/non-ferrous/lme-aluminium) 또는 westmetall.com의 가장 최근 공식 데이터를 사용하세요. 오늘 또는 가장 최근 거래일 기준입니다.
+- 텍스트에 [1][2] 같은 각주 번호를 절대 포함하지 마세요.
+- 드로스와 탈산제는 확인된 뉴스 기반 정보만 작성하고, 없으면 null을 반환하세요. 추측 금지.
+- 알루미늄 스크랩 가격대는 최근 업계 뉴스(AMM, Metal Bulletin, Fastmarkets 등)에서 확인된 범위를 작성하세요.
 
 {
   "lme": {
-    "price": "LME 알루미늄 3개월물 현재가 (USD/톤, westmetall.com 또는 LME 공식 기준, 확인된 값만)",
-    "change": "전일 대비 변동 (예: +12.5 또는 -8.0, USD/톤)",
+    "price": "LME 알루미늄 3개월물 공식가 (USD/톤) — lme.com 또는 westmetall.com 최신값, 확인 불가 시 null",
+    "change": "전일 대비 변동액 (숫자만, 예: 12.5 또는 -8.0)",
     "change_pct": "전일 대비 변동률 (예: +0.52%)",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "move_reason": "가격 변동 이유 — 수급, 재고, 거시경제, 달러, 에너지 비용 등 복합 요인을 2~3문장으로",
-    "market_status": "현재 시장 상황 — 글로벌 수요, 주요 생산국 동향, 재고 수준을 2~3문장으로",
-    "outlook": "단기 가격 예측 — 상승/하락 압력 요인과 방향성을 2~3문장으로"
+    "move_reason": "가격 변동 이유 — 확인된 뉴스 기반으로 2~3문장. 각주 번호 없이.",
+    "market_status": "현재 시장 상황 — 확인된 수급/재고/수요 동향 2~3문장. 각주 번호 없이.",
+    "outlook": "단기 전망 — 실제 시장 요인 기반 2~3문장. 각주 번호 없이."
   },
   "scrap": {
-    "weekly_summary": "이번 주 알루미늄 스크랩 시장 전반 요약 (2문장)",
+    "weekly_summary": "이번 주 알루미늄 스크랩 시장 전반 요약 (확인된 뉴스 기반 2문장)",
     "regions": [
       {
         "region": "미국",
-        "grades": "주요 거래 등급 (예: Taint/Tabor, Twitch 등)",
-        "price_range": "이번 주 가격대 (USD/톤, 확인된 경우만, 없으면 null)",
-        "flow": "주요 물동량 방향 및 특이사항"
+        "grades": "주요 거래 등급 (예: Taint/Tabor, Twitch, 356 등)",
+        "price_range": "최근 거래 가격대 (USD/톤, AMM 또는 업계 뉴스 기반, 없으면 null)",
+        "flow": "이번 주 물동량 방향 및 주요 동향"
       },
-      { "region": "유럽", "grades": "주요 등급", "price_range": null, "flow": "물동량 동향" },
-      { "region": "일본", "grades": "주요 등급", "price_range": null, "flow": "물동량 동향" },
-      { "region": "중동", "grades": "주요 등급", "price_range": null, "flow": "물동량 동향" }
+      { "region": "유럽", "grades": "주요 등급", "price_range": "가격대 또는 null", "flow": "물동량 동향" },
+      { "region": "일본", "grades": "주요 등급", "price_range": "가격대 또는 null", "flow": "물동량 동향" },
+      { "region": "중동", "grades": "주요 등급", "price_range": "가격대 또는 null", "flow": "물동량 동향" }
     ]
-  },
-  "dross_deox": {
-    "dross_status": "알루미늄 드로스 세계 시황 — 주요 생산국 동향, 수급 흐름, 환경 규제 영향 (3~4문장, 단가 제외)",
-    "deox_status": "탈산제 세계 시황 — 철강사 수요, 공급 상황, 주요 교역 흐름 (3~4문장, 단가 제외)"
   },
   "updated_at": "응답 생성 시각 (ISO 8601)"
 }`,
