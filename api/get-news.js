@@ -3,45 +3,81 @@
 
 export const config = { maxDuration: 60 };
 
+// ─── 환경변수 ─────────────────────────────────────────────────────────────────
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
-const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+// Vercel 환경변수에서 \n이 리터럴 문자열로 저장되는 경우 처리
+const RAW_KEY = process.env.FIREBASE_PRIVATE_KEY || '';
+const FIREBASE_PRIVATE_KEY = RAW_KEY.replace(/\\n/g, '\n');
 
-// ─── Firestore JWT ───────────────────────────────────────────────────────────
+// Firestore 활성화 여부: 3개 환경변수 모두 필요
+const FIREBASE_ENABLED = !!(
+  FIREBASE_PROJECT_ID &&
+  FIREBASE_CLIENT_EMAIL &&
+  (FIREBASE_PRIVATE_KEY.includes('BEGIN RSA PRIVATE KEY') ||
+   FIREBASE_PRIVATE_KEY.includes('BEGIN PRIVATE KEY'))
+);
+
+// ─── JWT / Firestore 헬퍼 ────────────────────────────────────────────────────
+function pemToBinary(pem) {
+  const b64 = pem
+    .replace(/-----BEGIN[^-]*-----/g, '')
+    .replace(/-----END[^-]*-----/g, '')
+    .replace(/\s/g, '');
+  const bin = atob(b64);
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0)).buffer;
+}
+
+function toBase64Url(str) {
+  return btoa(unescape(encodeURIComponent(str)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function bufToBase64Url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 async function getFirestoreToken() {
-  const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const header = toBase64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
-  const payload = btoa(JSON.stringify({
-    iss: FIREBASE_CLIENT_EMAIL,
-    sub: FIREBASE_CLIENT_EMAIL,
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
-    scope: 'https://www.googleapis.com/auth/datastore',
-  }));
+  const payload = toBase64Url(
+    JSON.stringify({
+      iss: FIREBASE_CLIENT_EMAIL,
+      sub: FIREBASE_CLIENT_EMAIL,
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+      scope: 'https://www.googleapis.com/auth/datastore',
+    })
+  );
   const signingInput = `${header}.${payload}`;
   const key = await crypto.subtle.importKey(
     'pkcs8',
     pemToBinary(FIREBASE_PRIVATE_KEY),
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false, ['sign']
+    false,
+    ['sign']
   );
-  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(signingInput));
-  const jwt = `${signingInput}.${btoa(String.fromCharCode(...new Uint8Array(sig)))}`;
+  const sig = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    new TextEncoder().encode(signingInput)
+  );
+  const jwt = `${signingInput}.${bufToBase64Url(sig)}`;
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
   });
   const data = await res.json();
+  if (!data.access_token) throw new Error(`Firebase token error: ${JSON.stringify(data)}`);
   return data.access_token;
-}
-
-function pemToBinary(pem) {
-  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
-  const bin = atob(b64);
-  return Uint8Array.from(bin, c => c.charCodeAt(0)).buffer;
 }
 
 async function saveToFirestore(token, collection, docId, data) {
@@ -49,20 +85,25 @@ async function saveToFirestore(token, collection, docId, data) {
   const fields = {};
   for (const [k, v] of Object.entries(data)) {
     if (typeof v === 'string') fields[k] = { stringValue: v };
-    else if (typeof v === 'number') fields[k] = { integerValue: v };
+    else if (typeof v === 'number') fields[k] = { integerValue: String(v) };
     else if (typeof v === 'boolean') fields[k] = { booleanValue: v };
     else fields[k] = { stringValue: JSON.stringify(v) };
   }
   await fetch(url, {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ fields }),
   });
 }
 
 async function getFromFirestore(token, collection, docId) {
   const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (!res.ok) return null;
   const doc = await res.json();
   if (!doc.fields) return null;
@@ -87,8 +128,8 @@ async function callPerplexity(prompt) {
         {
           role: 'system',
           content: `당신은 비철금속 원자재 시장 전문 애널리스트입니다.
-응답은 반드시 유효한 JSON만 출력하세요. 마크다운 코드블록('''json) 없이 순수 JSON만.
-숫자 데이터는 출처가 확인된 경우에만 포함하고, 확인 불가 시 해당 필드를 생략하거나 null로 표시.
+응답은 반드시 유효한 JSON만 출력하세요. 마크다운 코드블록 없이 순수 JSON만.
+숫자 데이터는 출처가 확인된 경우에만 포함하고, 확인 불가 시 null로 표시.
 (추정), (예상) 등 불확실한 단가는 절대 포함하지 마세요.`,
         },
         { role: 'user', content: prompt },
@@ -97,12 +138,31 @@ async function callPerplexity(prompt) {
       max_tokens: 2000,
     }),
   });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Perplexity HTTP ${res.status}: ${text.slice(0, 200)}`);
+  }
   const data = await res.json();
   return data.choices?.[0]?.message?.content ?? '';
 }
 
-// ─── 탭별 프롬프트 ────────────────────────────────────────────────────────────
+// ─── JSON 파싱 (코드펜스 제거 포함) ─────────────────────────────────────────
+function parseJSON(raw) {
+  let clean = raw.trim();
+  // ```json ... ``` 또는 ``` ... ``` 제거
+  const fenceMatch = clean.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch) {
+    clean = fenceMatch[1].trim();
+  } else {
+    // 첫 { 부터 마지막 } 까지만 추출
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+    if (start !== -1 && end !== -1) clean = clean.slice(start, end + 1);
+  }
+  return JSON.parse(clean);
+}
 
+// ─── 탭별 프롬프트 ────────────────────────────────────────────────────────────
 const PROMPTS = {
 
   aluminum: `오늘 날짜 기준으로 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
@@ -123,12 +183,12 @@ const PROMPTS = {
       {
         "region": "미국",
         "grades": "주요 거래 등급 (예: Taint/Tabor, Twitch 등)",
-        "price_range": "이번 주 가격대 (USD/톤, 확인된 경우만)",
+        "price_range": "이번 주 가격대 (USD/톤, 확인된 경우만, 없으면 null)",
         "flow": "주요 물동량 방향 및 특이사항"
       },
-      { "region": "유럽", "grades": "...", "price_range": "...", "flow": "..." },
-      { "region": "일본", "grades": "...", "price_range": "...", "flow": "..." },
-      { "region": "중동", "grades": "...", "price_range": "...", "flow": "..." }
+      { "region": "유럽", "grades": "주요 등급", "price_range": null, "flow": "물동량 동향" },
+      { "region": "일본", "grades": "주요 등급", "price_range": null, "flow": "물동량 동향" },
+      { "region": "중동", "grades": "주요 등급", "price_range": null, "flow": "물동량 동향" }
     ]
   },
   "dross_deox": {
@@ -142,21 +202,21 @@ const PROMPTS = {
 
 {
   "china_price": {
-    "fesi75_ningxia": "닝샤 FeSi75 현물가 (CNY/톤, sunsirs.com 기준, 확인된 값만)",
-    "fesi75_neimenggu": "내몽골 FeSi75 현물가 (CNY/톤, 확인된 경우만)",
+    "fesi75_ningxia": "닝샤 FeSi75 현물가 (CNY/톤, sunsirs.com 기준, 확인된 값만, 없으면 null)",
+    "fesi75_neimenggu": "내몽골 FeSi75 현물가 (CNY/톤, 확인된 경우만, 없으면 null)",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "change": "전주 대비 변동 방향 및 폭 (예: -50 CNY/톤)",
+    "change": "전주 대비 변동 방향 및 폭 (예: -50 CNY/톤, 없으면 null)",
     "price_context": "현재 가격 수준의 맥락 — 연중 고저점 대비, 추세 방향 (2문장)"
   },
   "china_production": {
     "ningxia": {
       "power_situation": "닝샤 전력 공급 현황 — 수력/화력 비율, 제한 여부",
-      "utilization_rate": "가동률 (확인된 경우만, 예: 72%)",
+      "utilization_rate": "가동률 (확인된 경우만, 예: 72%, 없으면 null)",
       "weather_impact": "날씨 영향 (강수, 기온이 수력발전/전력비에 미치는 영향)"
     },
     "yunnan": {
       "power_situation": "윈난 전력 공급 현황",
-      "utilization_rate": "가동률 (확인된 경우만)",
+      "utilization_rate": "가동률 (확인된 경우만, 없으면 null)",
       "weather_impact": "날씨 영향"
     },
     "overall": "중국 전체 FeSi 생산 현황 요약 (2~3문장)"
@@ -168,9 +228,9 @@ const PROMPTS = {
       "status": "생산 현황 및 최근 동향",
       "export_direction": "주요 수출국 및 물동량 방향"
     },
-    { "country": "카자흐스탄", "producer": "...", "status": "...", "export_direction": "..." },
-    { "country": "말레이시아", "producer": "...", "status": "...", "export_direction": "..." },
-    { "country": "러시아", "producer": "...", "status": "...", "export_direction": "..." }
+    { "country": "카자흐스탄", "producer": "주요 생산기업", "status": "현황", "export_direction": "수출 방향" },
+    { "country": "말레이시아", "producer": "주요 생산기업", "status": "현황", "export_direction": "수출 방향" },
+    { "country": "러시아", "producer": "주요 생산기업", "status": "현황", "export_direction": "수출 방향" }
   ],
   "export_flows": {
     "korea": "한국向 수입 현황 — 주요 공급국, 물량 추이, 가격 동향",
@@ -186,11 +246,11 @@ const PROMPTS = {
 
 {
   "china_price": {
-    "anthracite_shanxi": "산시성 무연탄 현물가 (CNY/톤, sunsirs.com 기준, 확인된 값만)",
-    "anthracite_guizhou": "귀저우 무연탄 현물가 (CNY/톤, 확인된 경우만)",
-    "calcined_anthracite": "하소 안트라사이트(가탄제용) 가격 (CNY/톤, 확인된 경우만)",
+    "anthracite_shanxi": "산시성 무연탄 현물가 (CNY/톤, sunsirs.com 기준, 확인된 값만, 없으면 null)",
+    "anthracite_guizhou": "귀저우 무연탄 현물가 (CNY/톤, 확인된 경우만, 없으면 null)",
+    "calcined_anthracite": "하소 안트라사이트(가탄제용) 가격 (CNY/톤, 확인된 경우만, 없으면 null)",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "change": "전주 대비 변동 방향 및 폭",
+    "change": "전주 대비 변동 방향 및 폭 (없으면 null)",
     "price_context": "현재 가격 수준의 맥락 (2문장)"
   },
   "china_production": {
@@ -210,9 +270,9 @@ const PROMPTS = {
       "volume_trend": "물량 추이 (전년 대비)",
       "price_trend": "수입 단가 동향"
     },
-    { "importer": "일본", "main_sources": "...", "volume_trend": "...", "price_trend": "..." },
-    { "importer": "인도", "main_sources": "...", "volume_trend": "...", "price_trend": "..." },
-    { "importer": "베트남/동남아", "main_sources": "...", "volume_trend": "...", "price_trend": "..." }
+    { "importer": "일본", "main_sources": "공급국", "volume_trend": "추이", "price_trend": "단가 동향" },
+    { "importer": "인도", "main_sources": "공급국", "volume_trend": "추이", "price_trend": "단가 동향" },
+    { "importer": "베트남/동남아", "main_sources": "공급국", "volume_trend": "추이", "price_trend": "단가 동향" }
   ],
   "market_summary": "가탄제 시장 종합 요약 및 단기 전망 (3~4문장)",
   "updated_at": "응답 생성 시각 (ISO 8601)"
@@ -223,37 +283,37 @@ const PROMPTS = {
 
 {
   "date": "기준일 (YYYY-MM-DD)",
-  "one_liner": "오늘 시장을 한 문장으로 — 가장 중요한 시그널 하나 (예: '닝샤 전력 제한 심화로 FeSi 공급 타이트, LME 알루미늄은 달러 약세에 반등')",
+  "one_liner": "오늘 시장을 한 문장으로 — 가장 중요한 시그널 하나",
   "key_signals": [
     {
       "commodity": "LME 알루미늄",
       "signal": "핵심 시그널 (1문장)",
-      "direction": "UP / DOWN / NEUTRAL",
-      "urgency": "HIGH / MEDIUM / LOW"
+      "direction": "UP",
+      "urgency": "MEDIUM"
     },
-    { "commodity": "페로실리콘", "signal": "...", "direction": "...", "urgency": "..." },
-    { "commodity": "가탄제", "signal": "...", "direction": "...", "urgency": "..." },
-    { "commodity": "알루미늄 스크랩", "signal": "...", "direction": "...", "urgency": "..." }
+    { "commodity": "페로실리콘", "signal": "핵심 시그널", "direction": "DOWN", "urgency": "HIGH" },
+    { "commodity": "가탄제", "signal": "핵심 시그널", "direction": "NEUTRAL", "urgency": "LOW" },
+    { "commodity": "알루미늄 스크랩", "signal": "핵심 시그널", "direction": "UP", "urgency": "MEDIUM" }
   ],
   "risk_signals": [
     {
       "risk": "리스크 명칭 (예: 중국 전력 제한 심화)",
       "affected": "영향 받는 품목",
-      "probability": "HIGH / MEDIUM / LOW",
+      "probability": "HIGH",
       "impact": "리스크 실현 시 예상 영향 (1~2문장)"
     }
   ],
-  "week_ahead": "이번 주 주목해야 할 이벤트 또는 변수 3가지 (간결하게)",
+  "week_ahead": "이번 주 주목해야 할 이벤트 또는 변수 3가지 (간결하게, 줄바꿈 사용 가능)",
   "updated_at": "응답 생성 시각 (ISO 8601)"
 }`,
 };
 
 // ─── 캐시 TTL (분) ───────────────────────────────────────────────────────────
 const CACHE_TTL = {
-  aluminum: 120,      // 2시간
-  ferrosilicon: 180,  // 3시간
+  aluminum: 120,
+  ferrosilicon: 180,
   recarburizer: 180,
-  summary: 60,        // 1시간
+  summary: 60,
 };
 
 // ─── 메인 핸들러 ─────────────────────────────────────────────────────────────
@@ -262,47 +322,79 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const tab = req.query.tab || 'summary';
+  // Perplexity 키 필수
+  if (!PERPLEXITY_API_KEY) {
+    return res.status(500).json({ error: 'PERPLEXITY_API_KEY not set' });
+  }
+
+  const tab = (req.query.tab || 'summary').toLowerCase();
   const force = req.query.force === 'true';
 
   if (!PROMPTS[tab]) {
-    return res.status(400).json({ error: `Unknown tab: ${tab}` });
+    return res.status(400).json({ error: `Unknown tab: ${tab}. Use: aluminum, ferrosilicon, recarburizer, summary` });
   }
 
   try {
-    const token = await getFirestoreToken();
-    const cacheDoc = await getFromFirestore(token, 'commodity_cache', tab);
-
-    // 캐시 유효성 확인
-    if (!force && cacheDoc?.data && cacheDoc?.cached_at) {
-      const age = (Date.now() - Number(cacheDoc.cached_at)) / 1000 / 60;
-      if (age < CACHE_TTL[tab]) {
-        const parsed = JSON.parse(cacheDoc.data);
-        return res.status(200).json({ ...parsed, _cached: true, _age_min: Math.round(age) });
+    // ── 1. Firestore 캐시 읽기 시도 ─────────────────────────────────────────
+    let token = null;
+    if (FIREBASE_ENABLED) {
+      try {
+        token = await getFirestoreToken();
+      } catch (e) {
+        console.warn('[Firebase] 토큰 발급 실패 (캐시 비활성화):', e.message);
       }
     }
 
-    // Perplexity 호출
+    if (token && !force) {
+      try {
+        const cached = await getFromFirestore(token, 'commodity_cache', tab);
+        if (cached?.data && cached?.cached_at) {
+          const ageMin = (Date.now() - Number(cached.cached_at)) / 60000;
+          if (ageMin < CACHE_TTL[tab]) {
+            const parsed = JSON.parse(cached.data);
+            return res.status(200).json({
+              ...parsed,
+              _cached: true,
+              _age_min: Math.round(ageMin),
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[Firestore] 캐시 읽기 실패:', e.message);
+      }
+    }
+
+    // ── 2. Perplexity 호출 ───────────────────────────────────────────────────
     const raw = await callPerplexity(PROMPTS[tab]);
 
     let parsed;
     try {
-      const clean = raw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-      parsed = JSON.parse(clean);
-    } catch {
-      return res.status(500).json({ error: 'JSON parse failed', raw });
+      parsed = parseJSON(raw);
+    } catch (e) {
+      console.error('[JSON] 파싱 실패:', e.message, '| raw:', raw.slice(0, 300));
+      return res.status(500).json({
+        error: 'JSON parse failed',
+        detail: e.message,
+        raw_preview: raw.slice(0, 300),
+      });
     }
 
-    // Firestore 저장
-    await saveToFirestore(token, 'commodity_cache', tab, {
-      data: JSON.stringify(parsed),
-      cached_at: String(Date.now()),
-      tab,
-    });
+    // ── 3. Firestore 캐시 저장 시도 ─────────────────────────────────────────
+    if (token) {
+      try {
+        await saveToFirestore(token, 'commodity_cache', tab, {
+          data: JSON.stringify(parsed),
+          cached_at: String(Date.now()),
+          tab,
+        });
+      } catch (e) {
+        console.warn('[Firestore] 캐시 저장 실패:', e.message);
+      }
+    }
 
     return res.status(200).json({ ...parsed, _cached: false, _age_min: 0 });
   } catch (err) {
-    console.error(err);
+    console.error('[Handler] 예외:', err.message);
     return res.status(500).json({ error: err.message });
   }
 }
