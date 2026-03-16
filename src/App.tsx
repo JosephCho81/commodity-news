@@ -125,7 +125,7 @@ function AluminumTab({ data }: { data: AluminumData }) {
         <TextBlock text={lme.market_status} />
       </SectionCard>
 
-      <SectionCard title="단기 전망" accent="NEXT">
+      <SectionCard title="가격 전망" accent="NEXT">
         <TextBlock text={lme.outlook} />
       </SectionCard>
 
@@ -146,11 +146,13 @@ function AluminumTab({ data }: { data: AluminumData }) {
             <div key={r.region} className="region-item">
               <div className="region-item-header">
                 <span className="region-name">{r.region}</span>
-                {r.price_range && <span className="region-price">{r.price_range}</span>}
+                {r.price_range && r.price_range !== 'null' && (
+                  <span className="region-price">{r.price_range}</span>
+                )}
               </div>
-              <div className="region-grades-line">{r.key_grades}</div>
-              <p className="region-driver">{r.price_driver}</p>
-              <p className="region-flow-text">{r.flow}</p>
+              {r.key_grades && <div className="region-grades-line">{r.key_grades}</div>}
+              {r.price_driver && <p className="region-driver">{r.price_driver}</p>}
+              {r.flow && <p className="region-flow-text">📦 {r.flow}</p>}
             </div>
           ))}
         </div>
