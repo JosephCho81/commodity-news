@@ -14,15 +14,18 @@ function formatAge(min: number) {
   return `${Math.floor(min / 60)}시간 전`;
 }
 
-function directionColor(d: string) {
+function directionColor(d: string | null | undefined) {
   if (d === 'UP') return 'var(--up)';
   if (d === 'DOWN') return 'var(--down)';
   return 'var(--neutral)';
 }
 
-function urgencyBadge(u: string) {
+function urgencyBadge(u: string | null | undefined) {
+  if (!u) return '참고';
+  u = u.toUpperCase();
   const map: Record<string, string> = { HIGH: '고위험', MEDIUM: '주의', LOW: '참고' };
   return map[u] ?? u;
+
 }
 
 // ─── 서브 컴포넌트들 ──────────────────────────────────────────────────────────
@@ -308,7 +311,7 @@ function SummaryTab({ data }: { data: SummaryData }) {
               <span className="signal-dir" style={{ color: directionColor(s.direction) }}>
                 {s.direction === 'UP' ? '▲' : s.direction === 'DOWN' ? '▼' : '—'}
               </span>
-              <span className={`signal-urgency urgency-${s.urgency.toLowerCase()}`}>
+              <span className={`signal-urgency urgency-${(s.urgency ?? "low").toLowerCase()}`}>
                 {urgencyBadge(s.urgency)}
               </span>
             </div>
@@ -322,7 +325,7 @@ function SummaryTab({ data }: { data: SummaryData }) {
           <div key={i} className="risk-row">
             <div className="risk-header">
               <span className="risk-name">{r.risk}</span>
-              <span className={`risk-prob prob-${r.probability.toLowerCase()}`}>
+              <span className={`risk-prob prob-${(r.probability ?? "low").toLowerCase()}`}>
                 {r.probability === 'HIGH' ? '고' : r.probability === 'MEDIUM' ? '중' : '저'}위험
               </span>
             </div>
