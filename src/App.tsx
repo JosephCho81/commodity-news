@@ -8,6 +8,14 @@ import { TABS } from './types';
 // ─── 유틸 ─────────────────────────────────────────────────────────────────────
 const API_BASE = '/api/get-news';
 
+function formatNum(val: string | null | undefined) {
+  if (!val) return null;
+  // 숫자면 콤마 포맷, 문자열이면 그대로
+  const n = parseFloat(String(val).replace(/,/g, ''));
+  if (isNaN(n)) return String(val);
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function formatAge(min: number) {
   if (min < 1) return '방금';
   if (min < 60) return `${min}분 전`;
@@ -95,14 +103,14 @@ function AluminumTab({ data }: { data: AluminumData }) {
       {/* LME 가격 헤더 */}
       <div className="price-hero">
         <div className="price-hero-main">
-          <span className="price-hero-label">LME 알루미늄 3개월</span>
+          <span className="price-hero-label">LME 알루미늄 공식가</span>
           {lme.price
-            ? <span className="price-hero-value">{lme.price} <small>USD/톤</small></span>
+            ? <span className="price-hero-value">{formatNum(lme.price)} <small>USD/톤</small></span>
             : <span className="price-hero-na">가격 확인 중</span>
           }
           {lme.change && (
             <span className="price-hero-change" style={{ color: isUp ? 'var(--up)' : 'var(--down)' }}>
-              {lme.change} ({lme.change_pct})
+              전일 대비 {isUp ? '+' : ''}{formatNum(lme.change)} USD/톤 ({lme.change_pct})
             </span>
           )}
         </div>
@@ -123,13 +131,26 @@ function AluminumTab({ data }: { data: AluminumData }) {
 
       <SectionCard title="알루미늄 스크랩 주간 시황" accent="SCRAP">
         <TextBlock text={scrap.weekly_summary} />
-        <div className="region-grid">
+        {(scrap.us_premium || scrap.eu_premium || scrap.japan_premium) && (
+          <div className="premium-row">
+            <span className="premium-label">P1020A 프리미엄</span>
+            <div className="premium-values">
+              {scrap.us_premium && <span><em>미국</em> {scrap.us_premium}</span>}
+              {scrap.eu_premium && <span><em>유럽</em> {scrap.eu_premium}</span>}
+              {scrap.japan_premium && <span><em>일본</em> {scrap.japan_premium}</span>}
+            </div>
+          </div>
+        )}
+        <div className="region-list">
           {scrap.regions.map((r) => (
-            <div key={r.region} className="region-card">
-              <div className="region-name">{r.region}</div>
-              <div className="region-grades">{r.grades}</div>
-              {r.price_range && <div className="region-price">{r.price_range}</div>}
-              <div className="region-flow">{r.flow}</div>
+            <div key={r.region} className="region-item">
+              <div className="region-item-header">
+                <span className="region-name">{r.region}</span>
+                {r.price_range && <span className="region-price">{r.price_range}</span>}
+              </div>
+              <div className="region-grades-line">{r.key_grades}</div>
+              <p className="region-driver">{r.price_driver}</p>
+              <p className="region-flow-text">{r.flow}</p>
             </div>
           ))}
         </div>
@@ -1001,6 +1022,84 @@ const CSS = `
     font-size: 11px;
     padding: 6px 16px;
     cursor: pointer;
+  }
+
+  /* ── P1020A 프리미엄 행 ── */
+  .premium-row {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .premium-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .premium-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .premium-values span {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .premium-values em {
+    font-style: normal;
+    color: var(--text3);
+    font-size: 10px;
+    margin-right: 4px;
+  }
+
+  /* ── 스크랩 지역 리스트 ── */
+  .region-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .region-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .region-item:last-child { border-bottom: none; }
+
+  .region-item-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .region-grades-line {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  .region-driver {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  .region-flow-text {
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.6;
   }
 
   /* ── 스크롤바 ── */
