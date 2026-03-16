@@ -22,7 +22,7 @@ function getDB() {
   return db;
 }
 
-// ── KST 기준 오늘 날짜 (YYYY-MM-DD) ──────────────────────────────────────
+// ── KST 기준 오늘 날짜 ───────────────────────────────────────────────────
 function getKSTDate() {
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -65,12 +65,13 @@ async function generateAndSave(today) {
 
   // 1. RSS 수집 — 비철/부원료 특화 피드
   const feeds = [
-    "https://news.google.com/rss/search?q=aluminum+LME+market&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=aluminium+scrap+market&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=ferro+silicon+market&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=petroleum+coke+carburizer+market&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=LME+copper+zinc+nickel&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=shipping+freight+commodity&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=LME+aluminum+aluminium+price&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=aluminium+scrap+secondary+market&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=ferro+silicon+ferrosilicon+market&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=petroleum+coke+calcined+market&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=LME+copper+zinc+nickel+price&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=shipping+freight+rate+commodity&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=China+aluminium+export+import&hl=en&gl=US&ceid=US:en",
   ];
 
   let rawNews = [];
@@ -94,13 +95,13 @@ async function generateAndSave(today) {
 
   if (allNews.length === 0) throw new Error("RSS 수집 실패 — 뉴스 없음");
 
-  // 분석용 5개 / 표시용 전체
-  const newsForAnalysis = allNews.slice(0, 5);
+  // 분석용 15개 / 표시용 전체 25개
+  const newsForAnalysis = allNews.slice(0, 15);
   const allNewsForDisplay = allNews.slice(0, 25);
 
   console.log("RSS 수집 완료: 분석용 " + newsForAnalysis.length + "건 / 표시용 " + allNewsForDisplay.length + "건");
 
-  // 2. Gemini 호출 — 메타프롬프트 적용
+  // 2. Gemini 호출
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY 환경변수 없음");
 
@@ -110,65 +111,88 @@ async function generateAndSave(today) {
     source: n.source,
   }));
 
-  // ── 메타프롬프트 (할루시네이션 방지 설계) ──────────────────────────────
+  // ── 시스템 프롬프트 ───────────────────────────────────────────────────
   const systemPrompt =
-    "너는 비철금속 및 제강 부원료 시장 전문 브리핑 작성 보조 AI야.\n" +
-    "주요 독자는 알루미늄 탈산제, 알루미늄 드로스, 가탄제, 페로실리콘, 알루미늄 스크랩을 취급하는 국내 업계 실무자 및 제강사 구매팀이야.\n\n" +
-    "## 절대 규칙\n\n" +
-    "### [규칙 1] 모르면 null로 처리해\n" +
-    "- 입력된 뉴스 데이터에 없는 내용은 절대 만들어내지 마.\n" +
-    "- 확인되지 않은 가격, 수치, 업체명, 사건은 절대 언급하지 마.\n" +
-    "- 정보가 부족한 필드는 null로 두고 절대 임의로 채우지 마.\n\n" +
-    "### [규칙 2] 숫자와 가격은 출처가 있을 때만 써\n" +
-    "- 가격 수치는 반드시 입력 데이터에서 나온 것만 사용해.\n" +
-    "- 입력 데이터에 가격이 없으면 절대 추정하거나 예시로 넣지 마.\n" +
-    "- lme_summary의 price/change 필드: 입력 뉴스에 LME 가격이 없으면 반드시 null.\n\n" +
-    "### [규칙 3] 예측은 범위로, 단정하지 마\n" +
-    "- '~할 것이다' 대신 '~가능성이 있다', '~우려가 있다'로 표현해.\n" +
-    "- 납품 단가나 입찰가는 절대 예측하지 마.\n" +
-    "- 시장 방향성은 '상방 압력', '하방 압력' 수준까지만 표현해.\n\n" +
-    "### [규칙 4] 관련 없는 내용은 포함하지 마\n" +
-    "- 알루미늄, 구리, 아연, 니켈, 가탄제, 페로실리콘, 해상운임과 무관한 뉴스는 제외해.\n" +
-    "- 철근, 열연 등 철강 완제품 가격은 다루지 마.\n" +
-    "- 주식, 부동산, 일반 경제 뉴스는 절대 포함하지 마.\n\n" +
-    "### [규칙 5] supply_chain_risk.level 판단 기준\n" +
-    "- '원활': 특별한 공급망 이슈 없음\n" +
-    "- '주의': 잠재적 리스크 뉴스 있음\n" +
-    "- '경고': 실제 공급 차질 뉴스 있음\n" +
-    "- 근거 뉴스가 없으면 null\n\n" +
-    "## 출력 규칙\n" +
-    "- 반드시 순수 JSON만 출력해. { 로 시작해서 } 로 끝나야 해.\n" +
-    "- 모든 텍스트는 한국어로 작성해.\n" +
-    "- 전문 용어는 업계 용어 그대로 사용해 (탈산제, 드로스, 소괴탄, 분탄 등).\n" +
-    "- news 배열의 각 항목에는 반드시 입력 데이터의 id 값을 그대로 포함해.\n" +
-    "- url 필드는 포함하지 마. id만 포함하면 돼.\n\n" +
+    "당신은 20년 경력의 비철금속 및 제강 부원료 시장 전문 애널리스트입니다.\n" +
+    "알루미늄 탈산제(Al 30~90%), 알루미늄 드로스(Al 20~65%), 가탄제(소괴탄/분탄 FC80~84%),\n" +
+    "페로실리콘(FeSi60/75), 알루미늄 스크랩(12종), 알루미늄 재생 인곳을 직접 취급하는\n" +
+    "국내 제강사(동국제강, 포스코, 현대제철) 납품 실무자들을 위한 브리핑을 작성합니다.\n\n" +
+
+    "## 분석 원칙\n\n" +
+
+    "### 가격 데이터 처리\n" +
+    "- 뉴스에 구체적인 가격이 언급된 경우: 해당 가격을 그대로 사용하고 source에 출처 명시\n" +
+    "- 뉴스에 가격이 없는 경우: 최신 시장 지식 기반 추정값을 기입하고 반드시 '(추정)' 표시\n" +
+    "- 절대 가격을 null로 두지 마. 추정값이라도 반드시 채워라.\n" +
+    "- 예시: '$2,485 (추정)', '$9,842 (추정)'\n\n" +
+
+    "### 분석 깊이 요구사항\n" +
+    "- 단순 뉴스 요약 금지. 반드시 인과관계 분석을 포함할 것\n" +
+    "- 예시 나쁜 분석: '중동 분쟁으로 알루미늄 공급 차질 우려'\n" +
+    "- 예시 좋은 분석: '중동 물류 차질로 UAE Qatalum, 바레인 Alba 등 중동 제련소 물량이\n" +
+    "  아시아 도착 지연 → LME 재고 감소 → 현물 프리미엄 상승 압력. 국내 수입 알루미늄\n" +
+    "  원가 톤당 $30~50 추가 상승 가능성'\n" +
+    "- 수치가 있으면 반드시 포함 (등락률 %, 재고 변화, 프리미엄 수준 등)\n" +
+    "- 국내 납품 환경(동국제강/포스코/현대제철)과의 연관성을 최대한 연결해서 분석\n\n" +
+
+    "### 부원료 분석 특이사항\n" +
+    "- 가탄제: 중국 내륙 석탄 가격, 수출 관세, 내몽골 전력 규제가 핵심 변수\n" +
+    "- 페로실리콘: 중국 윈난성 수력발전 시즌, 노르웨이/카자흐스탄 생산량이 핵심 변수\n" +
+    "- 알루미늄 스크랩: 일본 프리미엄(MJP), 미국 UBC 수출량, 국내 회수율이 핵심 변수\n" +
+    "- 관련 뉴스가 없어도 현재 시장 상황 기반으로 각 품목 동향을 반드시 작성\n\n" +
+
+    "### 공급망 리스크 판단\n" +
+    "'원활' / '주의' / '경고' 중 하나. 반드시 구체적 근거 수치와 함께 판단.\n\n" +
+
+    "### 출력 규칙\n" +
+    "- 반드시 순수 JSON만 출력. { 로 시작 } 로 끝\n" +
+    "- 모든 텍스트 한국어\n" +
+    "- 전문 용어 그대로 사용 (탈산제, 드로스, 소괴탄, 분탄, 인곳, MJP 등)\n" +
+    "- news 배열 각 항목에 입력 데이터의 id 값 포함\n" +
+    "- url 필드 포함하지 말 것\n\n" +
+
     "## 출력 JSON 구조\n" +
     "{\n" +
     '  "lme_summary": {\n' +
-    '    "aluminum": { "price": null, "change": null, "source": null },\n' +
-    '    "copper": { "price": null, "change": null, "source": null },\n' +
-    '    "zinc": { "price": null, "change": null, "source": null }\n' +
+    '    "aluminum": {\n' +
+    '      "price": "가격 (추정) 또는 실제값",\n' +
+    '      "change": "전일 대비 등락 예: +1.2% 또는 -0.8%",\n' +
+    '      "source": "뉴스 출처 또는 시장 추정"\n' +
+    "    },\n" +
+    '    "copper": { "price": "...", "change": "...", "source": "..." },\n' +
+    '    "zinc": { "price": "...", "change": "...", "source": "..." }\n' +
     "  },\n" +
     '  "key_news": [\n' +
-    '    { "id": 0, "title": "한국어 번역 제목", "summary": "핵심 내용 1~2문장. 입력 뉴스 내용만.", "relevance": "왜 비철/부원료 취급자에게 중요한지 한 문장. 없으면 null", "source": "출처" }\n' +
+    '    {\n' +
+    '      "id": 0,\n' +
+    '      "title": "한국어 번역 제목",\n' +
+    '      "summary": "핵심 내용 요약 (뉴스 내용 기반)",\n' +
+    '      "relevance": "국내 비철/부원료 취급자에게 미치는 영향 — 구체적 수치 포함",\n' +
+    '      "source": "출처"\n' +
+    "    }\n" +
     "  ],\n" +
-    '  "supply_chain_risk": { "level": "원활 또는 주의 또는 경고 또는 null", "reason": "판단 근거. 없으면 null" },\n' +
+    '  "supply_chain_risk": {\n' +
+    '    "level": "원활 또는 주의 또는 경고",\n' +
+    '    "reason": "구체적 수치와 인과관계 포함한 판단 근거 (2~3문장)"\n' +
+    "  },\n" +
     '  "sub_materials": {\n' +
-    '    "carburizer": "가탄제 관련 뉴스 요약. 없으면 null",\n' +
-    '    "ferro_silicon": "페로실리콘 관련 뉴스 요약. 없으면 null",\n' +
-    '    "al_scrap": "알루미늄 스크랩 관련 뉴스 요약. 없으면 null"\n' +
+    '    "carburizer": "가탄제 동향 — 중국 석탄 가격/수출 관세/전력 규제 현황 포함. 최소 2문장",\n' +
+    '    "ferro_silicon": "페로실리콘 동향 — 중국 생산 현황/윈난성 전력 상황 포함. 최소 2문장",\n' +
+    '    "al_scrap": "알루미늄 스크랩 동향 — MJP/UBC 수출/국내 수급 포함. 최소 2문장"\n' +
     "  },\n" +
     '  "logistics": {\n' +
-    '    "freight": "해상운임 관련 뉴스. 없으면 null",\n' +
-    '    "customs": "관세/통관 관련 뉴스. 없으면 null"\n' +
+    '    "freight": "해상운임 동향 — SCFI/BDI 지수나 주요 항로 운임 수준 포함",\n' +
+    '    "customs": "관세/통관 동향 — 있으면 구체적으로, 없으면 최근 동향 요약"\n' +
     "  },\n" +
-    '  "disclaimer": "이 브리핑은 공개된 뉴스 데이터를 AI가 요약한 것입니다. 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
+    '  "disclaimer": "이 브리핑은 공개된 뉴스와 시장 데이터를 AI가 분석한 것입니다. 가격은 추정치를 포함하며, 실제 거래 의사결정은 반드시 현장 전문가의 판단을 따르십시오."\n' +
     "}";
 
   const userPrompt =
     "오늘 날짜: " + today + "\n\n" +
-    "아래 뉴스 헤드라인을 분석해서 비철금속 및 부원료 업계 실무자를 위한 브리핑을 작성해줘.\n" +
-    "입력 데이터에 없는 내용은 절대 만들어내지 마. 없으면 null.\n\n" +
+    "아래 뉴스 헤드라인 " + newsForAI.length + "건을 분석해서 비철금속 및 부원료 업계 실무자를 위한\n" +
+    "전문적인 시황 브리핑을 작성해줘.\n\n" +
+    "중요: 가격 데이터는 반드시 채울 것. 뉴스에 없으면 최신 시장 지식 기반 추정값 + '(추정)' 표시.\n" +
+    "분석은 단순 요약이 아니라 인과관계와 국내 납품 환경에 미치는 영향까지 포함할 것.\n\n" +
     "[뉴스 데이터]\n" +
     JSON.stringify(newsForAI, null, 2);
 
@@ -186,7 +210,7 @@ async function generateAndSave(today) {
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: "user", parts: [{ text: userPrompt }] }],
           generationConfig: {
-            temperature: 0.1,
+            temperature: 0.2,
             maxOutputTokens: 8192,
             responseMimeType: "application/json",
           },
@@ -235,7 +259,7 @@ async function generateAndSave(today) {
         copper: { price: null, change: null, source: null },
         zinc: { price: null, change: null, source: null },
       },
-      key_news: newsForAnalysis.map((n) => ({
+      key_news: newsForAnalysis.slice(0, 5).map((n) => ({
         id: n.id,
         title: n.title,
         summary: "",
@@ -246,7 +270,7 @@ async function generateAndSave(today) {
       supply_chain_risk: { level: null, reason: null },
       sub_materials: { carburizer: null, ferro_silicon: null, al_scrap: null },
       logistics: { freight: null, customs: null },
-      disclaimer: "AI 분석 일시 오류. 원본 뉴스를 확인하세요.",
+      disclaimer: "AI 분석 일시 오류. 잠시 후 다시 시도해 주세요.",
     };
   }
 
