@@ -148,7 +148,7 @@ export default function App() {
               <span className="text-green-400 font-black text-xs">A1</span>
             )}
           </div>
-          <span className="font-bold text-sm text-gray-900">오늘의 원자재 시황</span>
+          <span className="font-bold text-sm text-gray-900">(주)한국에이원</span>
         </div>
         <div className="text-xs text-gray-400">
           {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'short', day: 'numeric' })}
@@ -210,7 +210,7 @@ export default function App() {
                         <div className="flex items-start gap-3">
                           <div className="text-blue-300 text-2xl font-serif leading-none mt-1">"</div>
                           <div>
-                            <p className="text-xs text-blue-200 mb-1">(주)한국에이원 의견</p>
+                            <p className="text-xs text-blue-200 mb-1">오늘의 원자재 한 줄 요약</p>
                             <p className="text-sm text-white font-medium leading-relaxed">{expert.text}</p>
                           </div>
                         </div>
@@ -221,7 +221,7 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="relative z-10 bg-white/10 rounded-2xl p-4 border border-white/10">
-                        <p className="text-xs text-blue-300 mb-1">(주)한국에이원 의견</p>
+                        <p className="text-xs text-blue-300 mb-1">오늘의 원자재 한 줄 요약</p>
                         <p className="text-sm text-blue-200 italic">오늘의 현장 의견이 준비 중입니다.</p>
                       </div>
                     )}
@@ -269,7 +269,7 @@ export default function App() {
                   <h2 className="font-bold text-base text-gray-900">제강사 부원료 레이더</h2>
                   {expert && (
                     <div className="bg-[#0A1628] rounded-2xl p-5">
-                      <p className="text-xs text-blue-300 font-medium mb-2">(주)한국에이원 의견</p>
+                      <p className="text-xs text-blue-300 font-medium mb-2">오늘의 원자재 한 줄 요약</p>
                       <div className="text-blue-100 text-2xl font-serif mb-2">"</div>
                       <p className="text-sm text-white leading-relaxed font-medium">{expert.text}</p>
                       <p className="text-[10px] text-blue-400 mt-3">
