@@ -391,7 +391,7 @@ export default function App() {
             </motion.div>
           </AnimatePresence>
         )}
-      </main>
+      </main> 
 
       {/* 바텀 탭 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex z-50"
