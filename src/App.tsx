@@ -1,4 +1,4 @@
-// src/App.tsx — 비철금속 원자재 인텔리전스 앱
+// src/App.tsx — 비철금속 원자재 인텔리전스 앱 (한국에이원 CI 적용)
 import { useState, useEffect, useCallback } from 'react';
 import type {
   TabId, AluminumData, FerrosiliconData, RecarburizerData, SummaryData
@@ -33,15 +33,12 @@ function urgencyBadge(u: string | null | undefined) {
   return map[u.toUpperCase()] ?? u;
 }
 
-/**
- * LME 알루미늄 가격 유효성 검사
- * 현실적인 범위: $1,500 ~ $4,000/톤
- */
+// LME 알루미늄 현실 범위: $1,500 ~ $4,500/톤
 function isValidLmePrice(val: string | null | undefined): boolean {
   if (!val) return false;
   const n = parseFloat(String(val).replace(/,/g, ''));
   if (isNaN(n)) return false;
-  return n >= 1500 && n <= 4000;
+  return n >= 1500 && n <= 4500;
 }
 
 // ─── 서브 컴포넌트들 ──────────────────────────────────────────────────────────
@@ -49,8 +46,7 @@ function isValidLmePrice(val: string | null | undefined): boolean {
 function Logo() {
   const [failed, setFailed] = useState(false);
   if (failed) {
-    // 로고 파일 없을 때 텍스트 폴백
-    return <div className="brand-logo-text">A1</div>;
+    return <div className="brand-logo-fallback"><span>A1</span></div>;
   }
   return (
     <img
@@ -116,7 +112,6 @@ function AluminumTab({ data }: { data: AluminumData }) {
 
   return (
     <div className="tab-content">
-      {/* LME 가격 헤더 */}
       <div className="price-hero">
         <div className="price-hero-main">
           <span className="price-hero-label">LME 알루미늄 공식가</span>
@@ -137,11 +132,9 @@ function AluminumTab({ data }: { data: AluminumData }) {
       <SectionCard title="가격 변동 이유" accent="WHY">
         <TextBlock text={lme.move_reason} />
       </SectionCard>
-
       <SectionCard title="시장 현황" accent="NOW">
         <TextBlock text={lme.market_status} />
       </SectionCard>
-
       <SectionCard title="가격 전망" accent="NEXT">
         <TextBlock text={lme.outlook} />
       </SectionCard>
@@ -198,30 +191,25 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           )}
         </div>
         <div className="price-hero-sub">
-          {china_price.fesi75_neimenggu &&
-            <span>내몽골: {china_price.fesi75_neimenggu} CNY/톤</span>}
+          {china_price.fesi75_neimenggu && <span>내몽골: {china_price.fesi75_neimenggu} CNY/톤</span>}
           {china_price.date && <span>기준: {china_price.date}</span>}
         </div>
       </div>
 
-      <SectionCard title="가격 맥락" accent="CTX">
-        <TextBlock text={china_price.price_context} />
-      </SectionCard>
+      <SectionCard title="가격 맥락" accent="CTX"><TextBlock text={china_price.price_context} /></SectionCard>
 
       <SectionCard title="중국 생산 현황" accent="PROD">
         <div className="production-grid">
           <div className="prod-region">
             <div className="prod-region-name">닝샤 寧夏</div>
             <InfoRow label="전력" value={china_production.ningxia.power_situation} />
-            {china_production.ningxia.utilization_rate &&
-              <InfoRow label="가동률" value={china_production.ningxia.utilization_rate} />}
+            {china_production.ningxia.utilization_rate && <InfoRow label="가동률" value={china_production.ningxia.utilization_rate} />}
             <InfoRow label="날씨" value={china_production.ningxia.weather_impact} />
           </div>
           <div className="prod-region">
             <div className="prod-region-name">윈난 雲南</div>
             <InfoRow label="전력" value={china_production.yunnan.power_situation} />
-            {china_production.yunnan.utilization_rate &&
-              <InfoRow label="가동률" value={china_production.yunnan.utilization_rate} />}
+            {china_production.yunnan.utilization_rate && <InfoRow label="가동률" value={china_production.yunnan.utilization_rate} />}
             <InfoRow label="날씨" value={china_production.yunnan.weather_impact} />
           </div>
         </div>
@@ -248,9 +236,7 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
         <InfoRow label="인도" value={export_flows.india} />
       </SectionCard>
 
-      <SectionCard title="시장 종합 및 전망" accent="SUM">
-        <TextBlock text={market_summary} />
-      </SectionCard>
+      <SectionCard title="시장 종합 및 전망" accent="SUM"><TextBlock text={market_summary} /></SectionCard>
     </div>
   );
 }
@@ -275,17 +261,13 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           )}
         </div>
         <div className="price-hero-sub">
-          {china_price.anthracite_guizhou &&
-            <span>귀저우: {china_price.anthracite_guizhou} CNY/톤</span>}
-          {china_price.calcined_anthracite &&
-            <span>하소: {china_price.calcined_anthracite} CNY/톤</span>}
+          {china_price.anthracite_guizhou && <span>귀저우: {china_price.anthracite_guizhou} CNY/톤</span>}
+          {china_price.calcined_anthracite && <span>하소: {china_price.calcined_anthracite} CNY/톤</span>}
           {china_price.date && <span>기준: {china_price.date}</span>}
         </div>
       </div>
 
-      <SectionCard title="가격 맥락" accent="CTX">
-        <TextBlock text={china_price.price_context} />
-      </SectionCard>
+      <SectionCard title="가격 맥락" accent="CTX"><TextBlock text={china_price.price_context} /></SectionCard>
 
       <SectionCard title="중국 생산 현황" accent="PROD">
         <InfoRow label="채굴 현황" value={china_production.mining_status} />
@@ -302,10 +284,7 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
       <SectionCard title="아시아 물동량 흐름" accent="FLOW">
         <div className="flow-table">
           <div className="flow-table-header">
-            <span>수입국</span>
-            <span>주요 공급국</span>
-            <span>물량 추이</span>
-            <span>단가 동향</span>
+            <span>수입국</span><span>주요 공급국</span><span>물량 추이</span><span>단가 동향</span>
           </div>
           {asia_flows.map((f) => (
             <div key={f.importer} className="flow-table-row">
@@ -318,9 +297,7 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
         </div>
       </SectionCard>
 
-      <SectionCard title="시장 종합 및 전망" accent="SUM">
-        <TextBlock text={market_summary} />
-      </SectionCard>
+      <SectionCard title="시장 종합 및 전망" accent="SUM"><TextBlock text={market_summary} /></SectionCard>
     </div>
   );
 }
@@ -430,13 +407,12 @@ export default function App() {
     <>
       <style>{CSS}</style>
       <div className="app">
-        {/* 헤더 */}
         <header className="app-header">
           <div className="header-brand">
             <Logo />
             <div className="brand-text">
               <div className="brand-name">오늘의 원자재 뉴스</div>
-              <div className="brand-sub">비철금속 원자재 인텔리전스</div>
+              <div className="brand-sub">(주)한국에이원</div>
             </div>
           </div>
           <div className="header-actions">
@@ -448,7 +424,10 @@ export default function App() {
           </div>
         </header>
 
-        {/* 바텀탭 */}
+        <main className="app-main">
+          {renderContent()}
+        </main>
+
         <nav className="bottom-nav">
           {TABS.map((tab) => (
             <button
@@ -461,38 +440,45 @@ export default function App() {
             </button>
           ))}
         </nav>
-
-        {/* 콘텐츠 영역 */}
-        <main className="app-main">
-          {renderContent()}
-        </main>
       </div>
     </>
   );
 }
 
-// ─── CSS ──────────────────────────────────────────────────────────────────────
+// ─── CSS — 한국에이원 CI 기반 라이트 테마 ────────────────────────────────────
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg:       #0d0f13;
-    --surface:  #141720;
-    --surface2: #1a1e28;
-    --border:   #262c3a;
-    --accent:   #e8b84b;
-    --accent2:  #c98f2a;
-    --text:     #d4dae8;
-    --text2:    #8492a6;
-    --text3:    #4f5a6e;
-    --up:       #4ade80;
-    --down:     #f87171;
-    --neutral:  #94a3b8;
-    --high:     #ef4444;
-    --medium:   #f59e0b;
-    --low:      #6b7280;
+    --green-primary:  #1fa83c;
+    --green-dark:     #177a2c;
+    --green-light:    #e8f7ec;
+    --green-mid:      #c2eacc;
+    --green-subtle:   #f2fbf4;
+
+    --bg:       #f5f8f6;
+    --surface:  #ffffff;
+    --surface2: #f0f6f2;
+    --border:   #d4e8da;
+    --border2:  #eaf3ec;
+
+    --text:     #1a2e1f;
+    --text2:    #4a6652;
+    --text3:    #8aab94;
+
+    --up:       #1fa83c;
+    --down:     #d93b3b;
+    --neutral:  #7a9485;
+
+    --high:     #c0392b;
+    --medium:   #e67e22;
+    --low:      #7a9485;
+
     --mono:     'IBM Plex Mono', monospace;
-    --sans:     'IBM Plex Sans KR', sans-serif;
+    --sans:     'Noto Sans KR', sans-serif;
+
+    --shadow-sm: 0 1px 4px rgba(31,168,60,0.07);
+    --shadow:    0 2px 12px rgba(31,168,60,0.10);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -512,7 +498,7 @@ const CSS = `
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    position: relative;
+    background: var(--bg);
   }
 
   /* ── 헤더 ── */
@@ -520,537 +506,269 @@ const CSS = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 3px solid var(--green-primary);
     position: sticky;
     top: 0;
     z-index: 10;
+    box-shadow: var(--shadow-sm);
   }
 
   .header-brand { display: flex; align-items: center; gap: 10px; }
 
-  .brand-logo {
-    height: 36px;
-    width: auto;
-    object-fit: contain;
-  }
+  .brand-logo { height: 38px; width: auto; object-fit: contain; }
 
-  /* 로고 로드 실패 시 텍스트 폴백 */
-  .brand-logo-text {
-    height: 36px;
-    width: 36px;
-    background: var(--accent);
-    color: #0d0f13;
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .brand-name {
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
+  .brand-logo-fallback {
+    height: 38px; width: 38px;
+    background: var(--green-primary);
     color: #fff;
-  }
-
-  .brand-sub {
-    font-size: 10px;
-    color: var(--text3);
     font-family: var(--mono);
-    letter-spacing: 0.5px;
+    font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; flex-shrink: 0;
   }
 
-  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .brand-name { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .brand-sub  { font-size: 11px; color: var(--green-primary); font-weight: 500; }
+
+  .header-actions { display: flex; align-items: center; }
 
   .cache-badge {
     font-family: var(--mono);
     font-size: 10px;
     color: var(--text3);
-    padding: 2px 6px;
+    background: var(--green-subtle);
     border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 20px;
   }
 
-  /* ── 바텀 네비 ── */
-  .bottom-nav {
-    display: flex;
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 480px;
-    z-index: 10;
-  }
-
-  .nav-tab {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 4px 12px;
-    background: none;
-    border: none;
-    color: var(--text3);
-    cursor: pointer;
-    transition: color 0.15s;
-    gap: 3px;
-    position: relative;
-  }
-
-  .nav-tab::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 20%; right: 20%; height: 2px;
-    background: var(--accent);
-    transform: scaleX(0);
-    transition: transform 0.2s;
-  }
-
-  .nav-tab.active { color: var(--accent); }
-  .nav-tab.active::before { transform: scaleX(1); }
-
-  .nav-icon { font-size: 16px; line-height: 1; }
-  .nav-label { font-size: 10px; font-family: var(--mono); }
-
-  /* ── 메인 콘텐츠 ── */
-  .app-main {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px 16px 90px;
-  }
-
-  .tab-content { display: flex; flex-direction: column; gap: 12px; }
+  /* ── 메인 ── */
+  .app-main { flex: 1; overflow-y: auto; padding: 14px 14px 84px; }
+  .tab-content { display: flex; flex-direction: column; gap: 10px; }
 
   /* ── 가격 히어로 ── */
   .price-hero {
-    background: linear-gradient(135deg, var(--surface2) 0%, #1f2535 100%);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
+    border-left: 4px solid var(--green-primary);
     padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    border-radius: 0 6px 6px 0;
+    box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column; gap: 6px;
   }
 
-  .price-hero-main { display: flex; flex-direction: column; gap: 4px; }
+  .price-hero-main { display: flex; flex-direction: column; gap: 3px; }
 
   .price-hero-label {
-    font-size: 10px;
-    font-family: var(--mono);
-    color: var(--text3);
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    font-size: 10px; font-family: var(--mono);
+    color: var(--text3); letter-spacing: 1px; text-transform: uppercase;
   }
 
   .price-hero-value {
-    font-size: 28px;
-    font-family: var(--mono);
-    font-weight: 500;
-    color: var(--accent);
-    letter-spacing: -1px;
+    font-size: 30px; font-family: var(--mono);
+    font-weight: 500; color: var(--green-dark); letter-spacing: -1px; line-height: 1.1;
   }
+  .price-hero-value small { font-size: 13px; color: var(--text3); font-weight: 400; margin-left: 4px; }
 
-  .price-hero-value small {
-    font-size: 13px;
-    color: var(--text3);
-    font-weight: 400;
-  }
+  .price-hero-na { font-size: 18px; font-family: var(--mono); color: var(--text3); }
 
-  .price-hero-na {
-    font-size: 18px;
-    font-family: var(--mono);
-    color: var(--text3);
-  }
-
-  .price-hero-change {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .price-hero-date {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text3);
-  }
+  .price-hero-change { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text3); }
 
   .price-hero-sub {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text2);
+    display: flex; flex-wrap: wrap; gap: 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--text2);
+    padding-top: 6px; border-top: 1px solid var(--border2); margin-top: 2px;
   }
 
   /* ── 섹션 카드 ── */
   .section-card {
     background: var(--surface);
     border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden;
+    box-shadow: var(--shadow-sm);
   }
 
   .section-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface2);
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border2);
+    background: var(--green-subtle);
   }
 
   .section-accent {
-    font-family: var(--mono);
-    font-size: 9px;
-    font-weight: 500;
-    color: var(--accent2);
-    letter-spacing: 1.5px;
-    padding: 1px 5px;
-    border: 1px solid var(--accent2);
+    font-family: var(--mono); font-size: 9px; font-weight: 500;
+    color: var(--green-primary); letter-spacing: 1.5px;
+    padding: 1px 5px; border: 1px solid var(--green-mid); border-radius: 2px; background: #fff;
   }
 
-  .section-title {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text);
-  }
+  .section-title { font-size: 12px; font-weight: 600; color: var(--text); }
+  .section-body  { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 
-  .section-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  /* ── 텍스트 / 인포 ── */
+  .text-block { font-size: 13px; color: var(--text); line-height: 1.8; }
 
-  /* ── 텍스트 블록 ── */
-  .text-block {
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.75;
-  }
-
-  /* ── 인포 로우 ── */
-  .info-row {
-    display: flex;
-    gap: 10px;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-  }
+  .info-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border2); }
   .info-row:last-child { border-bottom: none; }
-
-  .info-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text3);
-    min-width: 64px;
-    padding-top: 2px;
-    flex-shrink: 0;
-  }
-
-  .info-value {
-    font-size: 12px;
-    color: var(--text);
-    line-height: 1.6;
-  }
+  .info-label { font-family: var(--mono); font-size: 10px; color: var(--text3); min-width: 64px; padding-top: 2px; flex-shrink: 0; }
+  .info-value { font-size: 12px; color: var(--text); line-height: 1.6; }
 
   /* ── 생산 그리드 ── */
-  .production-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
+  .production-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
 
   .prod-region {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    background: var(--green-subtle); border: 1px solid var(--border);
+    padding: 10px; border-radius: 4px;
+    display: flex; flex-direction: column; gap: 6px;
   }
 
   .prod-region-name {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--accent);
-    margin-bottom: 2px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--green-primary);
+    padding-bottom: 4px; border-bottom: 1px solid var(--green-mid); margin-bottom: 2px;
   }
 
   /* ── 국가 로우 ── */
-  .country-row {
-    border-bottom: 1px solid var(--border);
-    padding: 10px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
+  .country-row { border-bottom: 1px solid var(--border2); padding: 10px 0; display: flex; flex-direction: column; gap: 4px; }
   .country-row:last-child { border-bottom: none; }
-
   .country-header { display: flex; align-items: baseline; gap: 8px; }
-
-  .country-name {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--accent);
-  }
-
+  .country-name     { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--green-dark); }
   .country-producer { font-size: 10px; color: var(--text3); }
-
-  .country-status { font-size: 12px; color: var(--text); line-height: 1.6; }
-
+  .country-status   { font-size: 12px; color: var(--text); line-height: 1.6; }
   .country-flow-tag {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text2);
-    border: 1px solid var(--border);
-    padding: 2px 6px;
-    display: inline-block;
-    margin-top: 2px;
+    font-family: var(--mono); font-size: 10px; color: var(--green-primary);
+    border: 1px solid var(--green-mid); background: var(--green-subtle);
+    padding: 2px 7px; display: inline-block; margin-top: 2px; border-radius: 2px;
   }
 
   /* ── 물동량 테이블 ── */
-  .flow-table { display: flex; flex-direction: column; gap: 0; }
+  .flow-table { display: flex; flex-direction: column; }
 
   .flow-table-header {
-    display: grid;
-    grid-template-columns: 80px 1fr 80px 80px;
-    gap: 8px;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--text3);
-    letter-spacing: 0.5px;
+    display: grid; grid-template-columns: 72px 1fr 72px 72px; gap: 6px;
+    padding: 6px 0; border-bottom: 2px solid var(--border);
+    font-family: var(--mono); font-size: 9px; color: var(--text3);
+    letter-spacing: 0.5px; text-transform: uppercase;
   }
 
   .flow-table-row {
-    display: grid;
-    grid-template-columns: 80px 1fr 80px 80px;
-    gap: 8px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--text);
-    align-items: start;
+    display: grid; grid-template-columns: 72px 1fr 72px 72px; gap: 6px;
+    padding: 8px 0; border-bottom: 1px solid var(--border2);
+    font-size: 11px; color: var(--text); align-items: start;
   }
   .flow-table-row:last-child { border-bottom: none; }
+  .flow-importer { font-family: var(--mono); font-size: 11px; color: var(--green-primary); font-weight: 600; }
 
-  .flow-importer {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--accent);
-    font-weight: 500;
-  }
-
-  /* ── ONE-LINER 카드 ── */
+  /* ── ONE-LINER ── */
   .one-liner-card {
-    background: linear-gradient(135deg, #1a1f2e 0%, #0f1420 100%);
-    border: 1px solid var(--accent2);
-    padding: 20px 18px;
+    background: var(--green-primary);
+    padding: 20px 18px; border-radius: 6px; box-shadow: var(--shadow);
   }
+  .one-liner-label { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.6); letter-spacing: 3px; margin-bottom: 8px; }
+  .one-liner-text  { font-size: 15px; font-weight: 600; color: #ffffff; line-height: 1.7; }
 
-  .one-liner-label {
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--accent2);
-    letter-spacing: 3px;
-    margin-bottom: 8px;
-  }
-
-  .one-liner-text {
-    font-size: 15px;
-    font-weight: 500;
-    color: #fff;
-    line-height: 1.7;
-    font-style: italic;
-  }
-
-  /* ── 시그널 로우 ── */
-  .signal-row {
-    border-bottom: 1px solid var(--border);
-    padding: 10px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
+  /* ── 시그널 ── */
+  .signal-row { border-bottom: 1px solid var(--border2); padding: 10px 0; display: flex; flex-direction: column; gap: 4px; }
   .signal-row:last-child { border-bottom: none; }
-
   .signal-meta { display: flex; align-items: center; gap: 8px; }
+  .signal-commodity { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--green-dark); }
+  .signal-dir  { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+  .signal-text { font-size: 12px; color: var(--text); line-height: 1.65; }
 
-  .signal-commodity {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--accent);
-  }
+  .signal-urgency { font-family: var(--mono); font-size: 9px; padding: 1px 6px; margin-left: auto; border-radius: 2px; }
+  .urgency-high   { color: var(--high);   border: 1px solid var(--high);   background: #fdf2f2; }
+  .urgency-medium { color: var(--medium); border: 1px solid var(--medium); background: #fef9f0; }
+  .urgency-low    { color: var(--low);    border: 1px solid var(--border); background: var(--green-subtle); }
 
-  .signal-dir { font-family: var(--mono); font-size: 12px; font-weight: 500; }
-
-  .signal-urgency {
-    font-family: var(--mono);
-    font-size: 9px;
-    padding: 1px 5px;
-    margin-left: auto;
-  }
-  .urgency-high   { color: var(--high);   border: 1px solid var(--high); }
-  .urgency-medium { color: var(--medium); border: 1px solid var(--medium); }
-  .urgency-low    { color: var(--low);    border: 1px solid var(--low); }
-
-  .signal-text { font-size: 12px; color: var(--text); line-height: 1.6; }
-
-  /* ── 리스크 로우 ── */
-  .risk-row {
-    border-bottom: 1px solid var(--border);
-    padding: 10px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
+  /* ── 리스크 ── */
+  .risk-row { border-bottom: 1px solid var(--border2); padding: 10px 0; display: flex; flex-direction: column; gap: 4px; }
   .risk-row:last-child { border-bottom: none; }
-
-  .risk-header { display: flex; align-items: center; justify-content: space-between; }
-
-  .risk-name { font-size: 12px; font-weight: 500; color: var(--text); }
-
-  .risk-prob { font-family: var(--mono); font-size: 9px; padding: 1px 6px; }
-  .prob-high   { color: var(--high);   border: 1px solid var(--high); }
-  .prob-medium { color: var(--medium); border: 1px solid var(--medium); }
-  .prob-low    { color: var(--low);    border: 1px solid var(--low); }
-
+  .risk-header   { display: flex; align-items: center; justify-content: space-between; }
+  .risk-name     { font-size: 12px; font-weight: 600; color: var(--text); }
   .risk-affected { font-size: 10px; color: var(--text3); font-family: var(--mono); }
   .risk-impact   { font-size: 12px; color: var(--text2); line-height: 1.6; }
 
+  .risk-prob { font-family: var(--mono); font-size: 9px; padding: 1px 6px; border-radius: 2px; }
+  .prob-high   { color: var(--high);   border: 1px solid var(--high);   background: #fdf2f2; }
+  .prob-medium { color: var(--medium); border: 1px solid var(--medium); background: #fef9f0; }
+  .prob-low    { color: var(--low);    border: 1px solid var(--border); background: var(--green-subtle); }
+
   /* ── 주목 변수 ── */
-  .watch-text {
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.8;
-    white-space: pre-line;
-  }
+  .watch-text { font-size: 13px; color: var(--text); line-height: 1.9; white-space: pre-line; }
 
   /* ── 로딩 / 에러 ── */
   .loading-state, .error-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 60px 20px;
-    color: var(--text3);
-    font-family: var(--mono);
-    font-size: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 60px 20px; color: var(--text3); font-family: var(--mono); font-size: 12px;
   }
-
   .loading-spinner {
-    width: 24px; height: 24px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    width: 26px; height: 26px;
+    border: 2px solid var(--green-mid); border-top-color: var(--green-primary);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
   }
-
   @keyframes spin { to { transform: rotate(360deg); } }
-
   .retry-btn {
-    background: none;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 6px 16px;
-    cursor: pointer;
+    background: var(--green-primary); border: none; color: #fff;
+    font-family: var(--mono); font-size: 11px; padding: 7px 18px; cursor: pointer; border-radius: 4px;
   }
 
-  /* ── P1020A 프리미엄 행 ── */
+  /* ── 프리미엄 ── */
   .premium-row {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    background: var(--green-subtle); border: 1px solid var(--border);
+    padding: 10px 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 6px;
   }
-
-  .premium-label {
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--text3);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
+  .premium-label { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
   .premium-values { display: flex; flex-wrap: wrap; gap: 16px; }
+  .premium-values span { font-family: var(--mono); font-size: 12px; color: var(--green-dark); font-weight: 500; }
+  .premium-values em  { font-style: normal; color: var(--text3); font-size: 10px; margin-right: 4px; }
 
-  .premium-values span {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--accent);
-  }
-
-  .premium-values em {
-    font-style: normal;
-    color: var(--text3);
-    font-size: 10px;
-    margin-right: 4px;
-  }
-
-  /* ── 스크랩 지역 리스트 ── */
-  .region-list { display: flex; flex-direction: column; gap: 0; }
-
-  .region-item {
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
+  /* ── 지역 리스트 ── */
+  .region-list { display: flex; flex-direction: column; }
+  .region-item { padding: 12px 0; border-bottom: 1px solid var(--border2); display: flex; flex-direction: column; gap: 5px; }
   .region-item:last-child { border-bottom: none; }
+  .region-item-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .region-name        { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green-primary); }
+  .region-price       { font-family: var(--mono); font-size: 11px; color: var(--green-dark); font-weight: 500; }
+  .region-grades-line { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .region-driver      { font-size: 12px; color: var(--text); line-height: 1.7; }
+  .region-flow-text   { font-size: 11px; color: var(--text2); line-height: 1.6; }
 
-  .region-item-header {
+  /* ── 바텀 네비 ── */
+  .bottom-nav {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
+    background: var(--surface);
+    border-top: 2px solid var(--green-primary);
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px; z-index: 10;
+    box-shadow: 0 -2px 12px rgba(31,168,60,0.08);
   }
 
-  .region-name {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--accent);
+  .nav-tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 10px 4px 12px; background: none; border: none;
+    color: var(--text3); cursor: pointer; transition: color 0.15s, background 0.15s;
+    gap: 3px; position: relative;
   }
-
-  .region-price {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--up);
-    font-weight: 500;
+  .nav-tab::after {
+    content: ''; position: absolute; bottom: 0; left: 15%; right: 15%; height: 2px;
+    background: var(--green-primary); transform: scaleX(0); transition: transform 0.2s; border-radius: 2px 2px 0 0;
   }
+  .nav-tab.active { color: var(--green-primary); background: var(--green-subtle); }
+  .nav-tab.active::after { transform: scaleX(1); }
 
-  .region-grades-line {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text3);
-  }
-
-  .region-driver { font-size: 12px; color: var(--text); line-height: 1.65; }
-  .region-flow-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
+  .nav-icon  { font-size: 17px; line-height: 1; }
+  .nav-label { font-size: 10px; font-family: var(--mono); font-weight: 500; }
 
   /* ── 스크롤바 ── */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); }
+  ::-webkit-scrollbar-thumb { background: var(--green-mid); border-radius: 2px; }
 
   /* ── 반응형 ── */
   @media (max-width: 360px) {
     .production-grid { grid-template-columns: 1fr; }
-    .flow-table-header,
-    .flow-table-row { grid-template-columns: 60px 1fr 60px 60px; }
+    .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
   }
 `;
 
