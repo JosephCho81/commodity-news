@@ -176,39 +176,33 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
   const { china_price, china_production, non_china, market_summary, non_china_context, korea_import } = data as any;
   return (
     <div className="tab-content">
-      {/* FOB 천진항 월별 가격 카드 */}
       <div className="price-hero">
-        {(() => {
-          const m = china_price.fob_tianjin_monthly as any;
-          const isValid = (v: any) => v && !String(v).includes('미확인') && !String(v).includes('검색');
-          // 가장 최신 유효한 키 찾기
-          const validEntries = Object.entries(m || {})
-            .filter(([, v]) => isValid(v))
-            .sort(([a], [b]) => b.localeCompare(a));
-          const latestKey = validEntries[0]?.[0] ?? '';
-          const latestVal = validEntries[0]?.[1] ?? null;
-          const latestParts = latestKey ? latestKey.split('_') : [];
-          const latestLabel = latestParts.length === 2
-            ? `${latestParts[0].slice(2)}년 ${parseInt(latestParts[1], 10)}월`
-            : '';
-          // 가격에서 "FOB 천진항" 등 중복 텍스트 제거, 숫자 범위만 추출
-          const cleanPrice = latestVal
-            ? latestVal.replace(/\(.*?\)/g, '').replace(/FOB.*기준/g, '').replace(/USD\/톤/g, '').trim()
-            : null;
-          return (
-            <div className="price-hero-main">
-              <span className="price-hero-label">
-                페로실리콘 75 — FOB 천진항 기준 ({latestLabel})
-              </span>
-              {cleanPrice
-                ? <span className="price-hero-value" style={{fontSize:'22px'}}>{cleanPrice}<small style={{fontSize:'11px', marginLeft:'6px', color:'var(--text3)'}}>USD/톤</small></span>
-                : <span className="price-hero-na">가격 확인 중</span>
-              }
-            </div>
-          );
-        })()}
-
-
+        <div className="price-hero-main">
+          {(() => {
+            const m = china_price.fob_tianjin_monthly as any;
+            const isValid = (v: any) => v && !String(v).includes('미확인') && !String(v).includes('검색');
+            const validEntries = Object.entries(m || {})
+              .filter(([, v]) => isValid(v))
+              .sort(([a], [b]) => b.localeCompare(a));
+            const latestKey = validEntries[0]?.[0] ?? '';
+            const latestVal = validEntries[0]?.[1] as string ?? null;
+            const latestParts = latestKey ? latestKey.split('_') : [];
+            const yr = latestParts[0] ?? '';
+            const mo = latestParts[1] ? parseInt(latestParts[1], 10) : 0;
+            const numMatch = latestVal ? latestVal.match(/([\d,]+~[\d,]+)/) : null;
+            const priceRange = numMatch ? numMatch[1] : null;
+            return (
+              <>
+                <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
+                {priceRange
+                  ? <span className="price-hero-value">{priceRange} <small>USD/톤</small></span>
+                  : <span className="price-hero-na">가격 확인 중</span>
+                }
+                {yr && mo && <span className="price-hero-date">기준: {yr.slice(2)}년 {mo}월</span>}
+              </>
+            );
+          })()}
+        </div>
       </div>
 
       {/* 중국 시장 맥락 & 전망 */}
