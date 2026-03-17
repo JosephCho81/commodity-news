@@ -33,9 +33,9 @@ export interface AluminumData extends ApiMeta {
       price_range: string | null;
       price_driver: string;
       flow: string;
+      outlook?: string | null;
     }>;
   };
-
 }
 
 // ─── 페로실리콘 탭 ────────────────────────────────────────────────────────────
@@ -45,7 +45,11 @@ export interface FerrosiliconData extends ApiMeta {
     fesi75_neimenggu: string | null;
     date: string | null;
     change: string | null;
-    price_context: string;
+    // 구 필드 (하위 호환)
+    price_context?: string;
+    // 신 필드
+    china_context?: string;
+    china_outlook?: string;
   };
   china_production: {
     ningxia: {
@@ -53,7 +57,14 @@ export interface FerrosiliconData extends ApiMeta {
       utilization_rate: string | null;
       weather_impact: string;
     };
-    yunnan: {
+    // 신 필드: 내몽골
+    neimenggu?: {
+      power_situation: string;
+      utilization_rate: string | null;
+      weather_impact: string;
+    };
+    // 구 필드: 윈난 (하위 호환)
+    yunnan?: {
       power_situation: string;
       utilization_rate: string | null;
       weather_impact: string;
@@ -64,14 +75,11 @@ export interface FerrosiliconData extends ApiMeta {
     country: string;
     producer: string;
     status: string;
+    price_context?: string;
     export_direction: string;
   }>;
-  export_flows: {
-    korea: string;
-    japan: string;
-    eu: string;
-    india: string;
-  };
+  non_china_context?: string;
+  korea_import?: string;
   market_summary: string;
 }
 
