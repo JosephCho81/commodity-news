@@ -543,28 +543,32 @@ const PROMPTS = {
   ferrosilicon: `오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준 페로실리콘(페로실리콘 75) 시장 인텔리전스를 JSON으로 반환하세요.
 
 【지침】
-- 가격 흐름과 시장 맥락이 핵심. sunsirs.com, mysteel.net, ferroalloynet.com, Asian Metal 최신 뉴스 기반.
-- fob_tianjin_price: FOB 천진항 기준 수출가(USD/톤). 레인지로 표기. 확인된 월도 명시.
+- 가격 흐름과 시장 맥락이 핵심입니다. sunsirs.com, mysteel.net, ferroalloynet.com, Asian Metal 최신 뉴스 기반으로 작성하세요.
+- fob_tianjin_monthly: 최근 확인된 월별 FOB 천진항 수출 기준가. 1월/2월/3월 각각 레인지로. 확인된 달만 작성, 없으면 null.
 - [1][2] 각주 번호 절대 금지. 한국어로 작성.
+- 모든 섹션 반드시 실제 내용으로 채울 것. 빈 문자열 금지.
 
 {
   "china_price": {
+    "fob_tianjin_monthly": {
+      "2026_01": "2026년 1월 FOB 천진항 기준가 레인지 (예: USD 1,090~1,120/톤). 확인된 경우만",
+      "2026_02": "2026년 2월 FOB 천진항 기준가 레인지. mysteel, Asian Metal 등 최신 뉴스에서 확인. 없으면 null",
+      "2026_03": "2026년 3월 FOB 천진항 기준가 레인지. 없으면 null"
+    },
     "fesi75_ningxia": "닝샤 페로실리콘 75 내수 현물가 (CNY/톤, 확인된 값만, 없으면 null)",
-    "fesi75_neimenggu": "내몽골 페로실리콘 75 현물가 (CNY/톤, 확인된 경우만, 없으면 null)",
-    "fob_tianjin_price": "FOB 천진항 수출 기준가 레인지 (예: USD 1,090~1,120/톤, YYYY년 MM월 기준). 확인된 경우만, 없으면 null",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "change": "전주 대비 변동 방향 및 폭 (없으면 null)",
-    "china_context": "중국 현재 시장 상황 — 현재 가격 수준 맥락, 최근 방향성(상승/하락/횡보), 주요 원인(원자재·전력비·철강사 입찰가·재고) 3~4문장"
+    "change": "전월 대비 변동 방향 및 폭 (없으면 null)",
+    "china_context": "중국 현재 시장 상황 — 현재 FOB 가격 수준이 전월 대비 어떻게 변했는지, 최근 방향성(상승/하락/횡보), 주요 원인(전력비·반코크 원가·철강사 입찰가·수출 수요) 3~4문장 구체적으로"
   },
   "china_production": {
-    "overall": "중국 전체 생산 현황 — 현재 가동률과 그 이유, 생산량 증감 추이, 앞으로의 생산 전망과 근거를 4~5문장으로 구체적으로"
+    "overall": "중국 전체 생산 현황 — 현재 가동률과 주요 생산지역(닝샤·내몽골) 상황, 가동 증감 이유, 2026년 생산 전망과 근거(전력비 구조, 이중탄소 정책, 신규설비 제한) 4~5문장 구체적으로"
   },
   "non_china": [
     {
       "country": "노르웨이",
       "producer": "Elkem, Ferroglobe",
-      "status": "현재 생산 상황, 진행 중인 프로젝트, 주요 이슈, 향후 전망 — 가능한 한 구체적으로",
-      "price_context": "노르웨이산 현재 가격 수준 또는 방향성 (USD/톤 FOB, 없으면 null)",
+      "status": "현재 생산 상황, 진행 중인 프로젝트 또는 이슈, 향후 전망 — 최신 뉴스 기반으로 구체적으로",
+      "price_context": "노르웨이산 현재 수출 가격 수준 또는 방향성 (USD/톤 FOB, 없으면 null)",
       "export_direction": "주요 수출국 및 최근 물동량 변화"
     },
     {
@@ -576,21 +580,22 @@ const PROMPTS = {
     },
     {
       "country": "말레이시아",
-      "producer": "주요 생산업체",
+      "producer": "OM Holdings, Alliance Steel",
       "status": "현재 생산 상황, 이슈, 향후 전망",
       "price_context": "가격 수준 또는 방향성",
       "export_direction": "수출 방향"
     },
     {
       "country": "러시아",
-      "producer": "Chelyabinsk Electrometallurgical Plant",
-      "status": "제재 이후 생산·수출 현황, 이슈, 향후 전망",
-      "price_context": "제재 영향에 따른 가격 경쟁력",
+      "producer": "Chelyabinsk Electrometallurgical Plant (CHEMK)",
+      "status": "제재 이후 생산·수출 현황, 우회 수출 구조, 향후 전망",
+      "price_context": "제재 영향에 따른 가격 경쟁력 변화",
       "export_direction": "우회 수출 루트 및 주요 목적지"
     }
   ],
-  "non_china_context": "비중국 생산국 전반 시황 요약 — 글로벌 공급 타이트 여부, 중국산 대비 경쟁력, 주요 이슈 2~3문장",
-  "market_summary": "페로실리콘 75 시장 종합 요약 — 중국 공급 구조, 비중국 공급 현황, 글로벌 수요(철강 생산), 단기 가격 전망 방향성 3~4문장",
+  "non_china_context": "비중국 생산국 전반 시황 — 유럽 에너지비용, EU CBAM 영향, 글로벌 공급 타이트 여부, 중국산 대비 경쟁력 2~3문장",
+  "market_summary": "페로실리콘 75 시장 종합 요약 — 중국 공급 과잉 구조 및 수출 전망, 비중국 공급 현황, 글로벌 수요(철강 생산), 단기 가격 방향성 3~4문장",
+  "updated_at": "응답 생성 시각 (ISO 8601)"
 }`,
 
   recarburizer: `오늘 날짜 기준으로 가탄제(무연탄·안트라사이트) 시장 인텔리전스를 JSON으로 반환하세요.
