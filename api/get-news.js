@@ -282,7 +282,12 @@ async function fetchAluminumOutlook() {
   }
 }
 
-// ─── ScrapMonster 스크랩 가격 fetch ────────────────────────────────────────────
+// ─── ScrapMonster 스크랩 가격 fetch (전부 USD/톤으로 통일) ─────────────────────
+// 미국: USD/lb × 2204.62 = USD/톤
+// 유럽: USD/톤 (그대로)
+// 중국: CNY/톤 (그대로)
+const LB_TO_TON = 2204.62;
+
 async function fetchScrapPrices() {
   try {
     const res = await fetch('https://www.scrapmonster.com/scrap-prices/category/Aluminum-Scrap/116/1/1', {
@@ -294,44 +299,76 @@ async function fetchScrapPrices() {
     if (!res.ok) throw new Error(`ScrapMonster HTTP ${res.status}`);
     const html = await res.text();
 
-    // 미국 주요 품목 파싱 (USD/lb)
-    const usMatches = {};
-    const usItems = ['Zorba 90% NF', '6063 Extrusions', 'UBC', 'Old Sheet', '5052 Scrap'];
-    for (const item of usItems) {
-      const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const re = new RegExp(escaped + '[\s\S]{0,200}?([\d]+\.[\d]+)\s*\(', 'i');
-      const m = html.match(re);
-      if (m) usMatches[item] = parseFloat(m[1]);
+    // ── 미국 가격 (USD/lb → USD/톤 환산) ──────────────────────────────────
+    const usResult = {};
+    const usTargets = [
+      ['Zorba 90% NF',      'Zorba 90% NF'],
+      ['6063 Extrusions/Fe','6063 Extrusions/Fe'],
+      ['6063 Extrusions',   '6063 Extrusions'],
+      ['UBC',               'UBC'],
+      ['Old Sheet',         'Old Sheet'],
+      ['5052 Scrap',        '5052 Scrap'],
+      ['Old Cast',          'Old Cast'],
+    ];
+    for (const [key, label] of usTargets) {
+      const idx = html.indexOf('>' + key + '<');
+      if (idx === -1) continue;
+      const segment = html.slice(idx, idx + 300);
+      const numMatch = segment.match(/>\s*([\d]+\.[\d]+)\s*\(/);
+      if (numMatch) {
+        const pricePerLb = parseFloat(numMatch[1]);
+        // USD/lb → USD/톤 환산 후 반올림
+        usResult[label] = Math.round(pricePerLb * LB_TO_TON);
+      }
     }
 
-    // 유럽 주요 품목 파싱 (USD/Tonne)
-    const euMatches = {};
-    const euItems = ['Aluminum Cuttings', 'UBC', 'Old Cast', 'Mixed Aluminum Turnings'];
-    for (const item of euItems) {
-      const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const re = new RegExp(escaped + '[\s\S]{0,300}?([\d,]+\.\d+)\s*\|\s*\$US\/Tonne', 'i');
-      const m = html.match(re);
-      if (m) euMatches[item] = parseFloat(m[1].replace(/,/g, ''));
+    // ── 유럽 가격 (USD/톤, 그대로) ────────────────────────────────────────
+    const euResult = {};
+    const euTargets = [
+      ['Aluminum Cuttings',     'Aluminum Cuttings'],
+      ['Mixed Aluminum Turnings','Mixed Turnings'],
+      ['Old Cast',              'Old Cast'],
+      ['UBC',                   'UBC'],
+    ];
+    const euSectionStart = html.indexOf('Europe Aluminum Scrap');
+    const euSection = euSectionStart !== -1 ? html.slice(euSectionStart, euSectionStart + 3000) : '';
+    for (const [key, label] of euTargets) {
+      const idx = euSection.indexOf('>' + key + '<');
+      if (idx === -1) continue;
+      const segment = euSection.slice(idx, idx + 300);
+      const numMatch = segment.match(/>\s*([\d,]+\.[\d]+)\s*</);
+      if (numMatch) euResult[label] = parseFloat(numMatch[1].replace(/,/g, ''));
     }
 
-    // 중국 주요 품목 파싱 (CNY/MT)
-    const cnMatches = {};
-    const cnItems = ['6063 Extrusions', 'Old Cast', 'Old Sheet', 'UBC'];
-    for (const item of cnItems) {
-      const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const re = new RegExp(escaped + '[\s\S]{0,300}?([\d,]+\.\d+)\s*\|\s*-?[\d,]+\s*\|\s*-?[\d.]+%\s*\|\s*CNY\/MT', 'i');
-      const m = html.match(re);
-      if (m) cnMatches[item] = parseFloat(m[1].replace(/,/g, ''));
+    // ── 중국 가격 (CNY/톤, 그대로) ────────────────────────────────────────
+    const cnResult = {};
+    const cnTargets = [
+      ['6063 Extrusions', '6063 Extrusions'],
+      ['Old Cast',        'Old Cast'],
+      ['Old Sheet',       'Old Sheet'],
+      ['UBC',             'UBC'],
+      ['Aluminum ingots', 'Aluminum ingots'],
+    ];
+    const cnSectionStart = html.indexOf('China Aluminum Scrap');
+    const cnSection = cnSectionStart !== -1 ? html.slice(cnSectionStart, cnSectionStart + 3000) : '';
+    for (const [key, label] of cnTargets) {
+      const idx = cnSection.indexOf('>' + key + '<');
+      if (idx === -1) continue;
+      const segment = cnSection.slice(idx, idx + 300);
+      const numMatch = segment.match(/>\s*([\d,]+\.[\d]+)\s*</);
+      if (numMatch) cnResult[label] = parseFloat(numMatch[1].replace(/,/g, ''));
     }
 
-    const result = { us: usMatches, eu: euMatches, cn: cnMatches };
-    console.log('[ScrapMonster] fetch 성공:', JSON.stringify(result).slice(0, 100));
+    const result = { us: usResult, eu: euResult, cn: cnResult };
+    const total = Object.keys(usResult).length + Object.keys(euResult).length + Object.keys(cnResult).length;
+    console.log(`[ScrapMonster] fetch 성공: 총 ${total}개 가격 수집 (전부 톤당)`);
     return result;
   } catch (e) {
     console.warn('[ScrapMonster] fetch 실패:', e.message);
     return null;
   }
 }
+
 
 // ─── Perplexity 호출 ───────────────────────────────────────────────────────
 async function callPerplexity(prompt) {
@@ -406,7 +443,7 @@ const PROMPTS = {
       {
         "region": "미국",
         "key_grades": "Zorba, 6063 Extrusions, UBC, Old Sheet, 5052",
-        "price_range": "scrapmonster.com 기준 주요 품목 가격 (USD/lb). 예: Zorba $0.79/lb, 6063 $0.99/lb, UBC $0.86/lb",
+        "price_range": "scrapmonster.com 기준 주요 품목 가격 (USD/톤). 예: Zorba $1,740/톤, 6063 $2,182/톤, UBC $1,896/톤",
         "price_driver": "미국 스크랩 가격 변동 이유: 관세 영향, 중국 수입 수요, 달러 강세/약세, 국내 공급량 변화 2~3문장",
         "flow": "주요 수출 방향 및 물동량 특이사항",
         "outlook": "미국 스크랩 단기 가격 전망 1~2문장"
@@ -631,9 +668,9 @@ export default async function handler(req, res) {
       let context = '\n\n【실시간 수집 데이터 — 반드시 아래 수치를 본문에 반영하세요】\n';
       if (outlookText) context += `\n[가격 전망 참고 텍스트]\n${outlookText}\n`;
       if (scrapPrices?.us && Object.keys(scrapPrices.us).length > 0) {
-        context += `\n[미국 알루미늄 스크랩 실제 가격 (USD/lb, scrapmonster.com 기준)]\n`;
+        context += `\n[미국 알루미늄 스크랩 실제 가격 (USD/톤, scrapmonster.com 기준, USD/lb에서 환산)]\n`;
         for (const [k, v] of Object.entries(scrapPrices.us)) {
-          context += `${k}: $${v}/lb\n`;
+          context += `${k}: $${v}/톤\n`;
         }
       }
       if (scrapPrices?.eu && Object.keys(scrapPrices.eu).length > 0) {
