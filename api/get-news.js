@@ -685,33 +685,62 @@ const PROMPTS = {
   "updated_at": "${new Date().toISOString()}"
 }`,
 
-  summary: `오늘 날짜 기준으로 비철금속 원자재 시장 종합 인텔리전스를 JSON으로 반환하세요.
+  summary: `당신은 원자재 시장 애널리스트입니다. 오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준으로 비철금속 원자재 시장 종합 인텔리전스를 JSON으로 반환하세요.
 대상 품목: LME 알루미늄, 페로실리콘(FeSi75), 가탄제(안트라사이트), 알루미늄 스크랩
 
+【절대 규칙】
+- 모든 필드 반드시 작성. null 또는 빈 문자열 금지.
+- one_liner: 따옴표(\") 절대 포함 금지. 순수 텍스트만.
+- key_signals: 4개 품목 모두 반드시 작성. signal 필드는 최근 시황 기반 1문장.
+- direction: 반드시 UP, DOWN, NEUTRAL 중 하나.
+- urgency: 반드시 HIGH, MEDIUM, LOW 중 하나.
+- week_ahead: 이번 주 주목 변수 3가지를 줄바꿈(\\n)으로 구분해서 작성.
+
 {
-  "date": "기준일 (YYYY-MM-DD)",
-  "one_liner": "오늘 시장을 한 문장으로 — 가장 중요한 시그널 하나",
+  "date": "${new Date().toISOString().slice(0,10)}",
+  "one_liner": "오늘 비철금속 시장 핵심 한 문장 — 따옴표 없이 순수 텍스트로 반드시 작성",
   "key_signals": [
     {
       "commodity": "LME 알루미늄",
-      "signal": "핵심 시그널 (1문장)",
-      "direction": "UP",
-      "urgency": "MEDIUM"
+      "signal": "LME 알루미늄 최근 가격 동향과 핵심 시그널을 1문장으로 — 반드시 작성",
+      "direction": "UP 또는 DOWN 또는 NEUTRAL",
+      "urgency": "HIGH 또는 MEDIUM 또는 LOW"
     },
-    { "commodity": "페로실리콘", "signal": "핵심 시그널", "direction": "DOWN", "urgency": "HIGH" },
-    { "commodity": "가탄제", "signal": "핵심 시그널", "direction": "NEUTRAL", "urgency": "LOW" },
-    { "commodity": "알루미늄 스크랩", "signal": "핵심 시그널", "direction": "UP", "urgency": "MEDIUM" }
+    {
+      "commodity": "페로실리콘(FeSi75)",
+      "signal": "페로실리콘 75 FOB 천진항 가격 동향과 핵심 시그널을 1문장으로 — 반드시 작성",
+      "direction": "UP 또는 DOWN 또는 NEUTRAL",
+      "urgency": "HIGH 또는 MEDIUM 또는 LOW"
+    },
+    {
+      "commodity": "가탄제(안트라사이트)",
+      "signal": "무연탄·안트라사이트 시장 핵심 시그널을 1문장으로 — 반드시 작성",
+      "direction": "UP 또는 DOWN 또는 NEUTRAL",
+      "urgency": "HIGH 또는 MEDIUM 또는 LOW"
+    },
+    {
+      "commodity": "알루미늄 스크랩",
+      "signal": "글로벌 알루미늄 스크랩 시장 핵심 시그널을 1문장으로 — 반드시 작성",
+      "direction": "UP 또는 DOWN 또는 NEUTRAL",
+      "urgency": "HIGH 또는 MEDIUM 또는 LOW"
+    }
   ],
   "risk_signals": [
     {
-      "risk": "리스크 명칭 (예: 중국 전력 제한 심화)",
+      "risk": "리스크 명칭 — 반드시 작성 (예: 중동 공급 차질 심화)",
+      "affected": "영향 받는 품목 — 반드시 작성",
+      "probability": "HIGH 또는 MEDIUM 또는 LOW",
+      "impact": "리스크 실현 시 예상 영향 1~2문장 — 반드시 작성"
+    },
+    {
+      "risk": "두 번째 리스크 — 반드시 작성",
       "affected": "영향 받는 품목",
-      "probability": "HIGH",
-      "impact": "리스크 실현 시 예상 영향 (1~2문장)"
+      "probability": "HIGH 또는 MEDIUM 또는 LOW",
+      "impact": "예상 영향 1~2문장"
     }
   ],
-  "week_ahead": "이번 주 주목해야 할 이벤트 또는 변수 3가지 (간결하게, 줄바꿈 사용 가능)",
-  "updated_at": "응답 생성 시각 (ISO 8601)"
+  "week_ahead": "① 첫 번째 주목 변수\\n② 두 번째 주목 변수\\n③ 세 번째 주목 변수 — 반드시 3가지 작성",
+  "updated_at": "${new Date().toISOString()}"
 }`,
 };
 
