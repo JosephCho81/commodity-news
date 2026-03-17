@@ -207,7 +207,7 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
             return ['2026_01','2026_02','2026_03'].map(k => {
               const label = k === '2026_01' ? '1월' : k === '2026_02' ? '2월' : '3월';
               const val = m?.[k];
-              if (!val || val === '미확인') return null;
+              if (!val) return null;
               // 숫자 범위만 추출
               const numMatch = val.match(/([\d,]+~[\d,]+)/);
               const displayVal = numMatch ? numMatch[1] : val.replace(/\(.*?\)/g,'').replace(/FOB.*기준/g,'').replace(/USD\/톤/g,'').trim();
@@ -223,7 +223,7 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
         <div className="fob-unit-row">
           <span className="fob-unit-label">USD/톤</span>
         </div>
-        {china_price.fesi75_ningxia && (
+        {china_price.fesi75_ningxia && !String(china_price.fesi75_ningxia).includes('USD') && (
           <div className="price-hero-sub">
             <span>닝샤 내수가: {china_price.fesi75_ningxia} CNY/톤</span>
           </div>
@@ -882,5 +882,5 @@ const CSS = `
     .production-grid { grid-template-columns: 1fr; }
     .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
   }
-`; 
+`;
 
