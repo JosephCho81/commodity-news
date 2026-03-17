@@ -631,14 +631,18 @@ const PROMPTS = {
     "cif_korea": "숫자만. 예: 148 (못 찾으면 null)",
     "domestic_shanxi": "숫자만 CNY/톤. 예: 850 (못 찾으면 null)",
     "calcined_cac_fob": "숫자만 USD/톤. 못 찾으면 null",
-    "price_range_text": "fob_qinhuangdao를 못 찾은 경우 반드시 작성. 시장 보도·업계 추정 기준 가격 범위를 한 줄로. 예: '시장 보도 기준 약 130~150 USD/MT (FOB 친황다오)'. fob_qinhuangdao가 있으면 null",
+    "price_range_text": "fob_qinhuangdao를 못 찾은 경우 반드시 작성. 형식 엄수: '숫자~숫자 USD/MT' 만 작성. 예: '130~150 USD/MT'. 단위·설명·약·기준 등 추가 텍스트 금지. fob_qinhuangdao가 있으면 null",
+    "price_range_source": "가격 기준 출처 한 줄. 예: 'FOB 친황다오 기준' (못 찾으면 'FOB 친황다오 기준' 으로 기재)",
+    "price_range_note": "최근 무연탄 시장 특이사항 한 줄. 예: '최근 열탄 동향 참조' (반드시 작성)",
     "date": "가격 기준일 (YYYY-MM-DD)",
     "change": "예: -2 USD/톤 또는 -1.5% (못 찾으면 null)"
   },
   "russia_price": {
     "fob_murmansk": "숫자만. 예: 110 (못 찾으면 null)",
     "cif_korea": "숫자만. 예: 125 (못 찾으면 null)",
-    "price_range_text": "fob_murmansk를 못 찾은 경우 반드시 작성. 시장 보도·업계 추정 기준 가격 범위를 한 줄로. 예: '시장 보도 기준 약 100~120 USD/MT (FOB 무르만스크)'. fob_murmansk가 있으면 null",
+    "price_range_text": "fob_murmansk를 못 찾은 경우 반드시 작성. 형식 엄수: '숫자~숫자 USD/MT' 만 작성. 예: '100~120 USD/MT'. 단위·설명·약·기준 등 추가 텍스트 금지. fob_murmansk가 있으면 null",
+    "price_range_source": "가격 기준 출처 한 줄. 예: 'FOB 무르만스크 기준' (못 찾으면 'FOB 무르만스크 기준' 으로 기재)",
+    "price_range_note": "러시아 무연탄 시장 특이사항 한 줄. 반드시 '공급 제약 지속' 포함하여 작성",
     "date": "가격 기준일 (YYYY-MM-DD)",
     "change": "전주/전월 대비 변동 (못 찾으면 null)",
     "vs_china": "러시아산 vs 중국산 가격 격차 한 줄 요약 — 반드시 작성"
