@@ -176,28 +176,39 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
   const { china_price, china_production, non_china, market_summary, non_china_context, korea_import } = data as any;
   return (
     <div className="tab-content">
-      {/* 가격 히어로 */}
+      {/* FOB 천진항 월별 가격 카드 */}
       <div className="price-hero">
         <div className="price-hero-main">
-          <span className="price-hero-label">페로실리콘 75 닝샤 현물가</span>
-          {china_price.fesi75_ningxia
-            ? <span className="price-hero-value">{china_price.fesi75_ningxia} <small>CNY/톤</small></span>
-            : <span className="price-hero-na">가격 확인 중</span>
-          }
-          {china_price.change && (
-            <span className="price-hero-change"
-              style={{ color: String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
-              {china_price.change}
-            </span>
-          )}
+          <span className="price-hero-label">페로실리콘 75 — FOB 천진항 기준</span>
+          {(() => {
+            const m = china_price.fob_tianjin_monthly as any;
+            const latest = m?.['2026_03'] || m?.['2026_02'] || m?.['2026_01'];
+            const latestLabel = m?.['2026_03'] ? '2026년 3월' : m?.['2026_02'] ? '2026년 2월' : '2026년 1월';
+            return latest
+              ? <span className="price-hero-value" style={{fontSize:'22px'}}>{latest} <small>USD/톤</small></span>
+              : <span className="price-hero-na">가격 확인 중</span>;
+          })()}
         </div>
-        <div className="price-hero-sub">
-          {china_price.fob_tianjin_price && (
-            <span className="fob-price-tag">FOB 천진 {china_price.fob_tianjin_price}</span>
-          )}
-          {china_price.fesi75_neimenggu && <span>내몽골: {china_price.fesi75_neimenggu} CNY/톤</span>}
-          {china_price.date && <span>기준: {china_price.date}</span>}
+        <div className="fob-monthly-row">
+          {(() => {
+            const m = china_price.fob_tianjin_monthly as any;
+            return ['2026_01','2026_02','2026_03'].map(k => {
+              const label = k === '2026_01' ? '1월' : k === '2026_02' ? '2월' : '3월';
+              return m?.[k] ? (
+                <div key={k} className="fob-month-chip">
+                  <span className="fob-month-label">2026년 {label}</span>
+                  <span className="fob-month-price">{m[k]}</span>
+                </div>
+              ) : null;
+            });
+          })()}
         </div>
+        {china_price.fesi75_ningxia && (
+          <div className="price-hero-sub">
+            <span>닝샤 내수가: {china_price.fesi75_ningxia} CNY/톤</span>
+            {china_price.date && <span>기준: {china_price.date}</span>}
+          </div>
+        )}
       </div>
 
       {/* 중국 시장 맥락 & 전망 */}
@@ -576,6 +587,23 @@ const CSS = `
   .price-hero-change { font-family: var(--mono); font-size: 12px; font-weight: 500; }
   .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text2); }
 
+  .fob-monthly-row {
+    display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px;
+    border-top: 1px solid var(--border2); margin-top: 4px;
+  }
+  .fob-month-chip {
+    display: flex; flex-direction: column; gap: 2px;
+    background: var(--green-subtle); border: 1px solid var(--green-mid);
+    padding: 6px 10px; border-radius: 4px; flex: 1; min-width: 0;
+  }
+  .fob-month-label {
+    font-family: var(--mono); font-size: 9px; color: var(--text3);
+    letter-spacing: 0.5px;
+  }
+  .fob-month-price {
+    font-family: var(--mono); font-size: 12px; font-weight: 600; color: #1a2e1f;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .fob-price-tag {
     font-family: var(--mono); font-size: 11px; font-weight: 600;
     color: #1a2e1f;
@@ -795,34 +823,34 @@ const CSS = `
   /* ── 바텀 네비 ── */
   .bottom-nav {
     display: flex;
-    background: #1a2e1f;
+    background: #2d4a35;
     border-top: none;
     position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
     width: 100%; max-width: 480px; z-index: 10;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+    box-shadow: 0 -3px 16px rgba(0,0,0,0.18);
   }
 
   .nav-tab {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 10px 4px 13px; background: none; border: none;
-    color: rgba(255,255,255,0.45); cursor: pointer;
+    color: rgba(255,255,255,0.5); cursor: pointer;
     transition: color 0.15s, background 0.15s;
     gap: 4px; position: relative;
   }
   .nav-tab::before {
     content: ''; position: absolute;
     top: 0; left: 20%; right: 20%; height: 2px;
-    background: var(--green-primary); transform: scaleX(0);
+    background: #7ecf95; transform: scaleX(0);
     transition: transform 0.2s; border-radius: 0 0 2px 2px;
   }
   .nav-tab.active {
     color: #ffffff;
-    background: rgba(31,168,60,0.18);
+    background: rgba(126,207,149,0.15);
   }
   .nav-tab.active::before { transform: scaleX(1); }
 
-  .nav-icon  { font-size: 20px; line-height: 1; }
-  .nav-label { font-size: 9px; font-family: var(--mono); font-weight: 500; letter-spacing: 0.3px; color: inherit; }
+  .nav-icon  { font-size: 22px; line-height: 1; }
+  .nav-label { font-size: 11px; font-family: var(--sans); font-weight: 500; color: inherit; }
 
   /* ── 스크롤바 ── */
   ::-webkit-scrollbar { width: 4px; }
