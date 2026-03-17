@@ -1,14 +1,67 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>(주)한국에이원 | 오늘의 원자재 뉴스</title>
     <meta name="description" content="비철금속·부원료·해운 전문 시황 브리핑">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1fa83c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="에이원 원자재" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+
+    <!-- 보안: 캐시 금지 -->
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+
+    <style>
+      /* 텍스트 선택 금지 */
+      * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+      }
+      /* 인쇄 방지 */
+      @media print {
+        body { display: none !important; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // 우클릭 금지
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      });
+      // 키보드 단축키 방지 (Ctrl+S, Ctrl+P, Ctrl+U, F12)
+      document.addEventListener('keydown', function(e) {
+        if (
+          (e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u' || e.key === 'a')) ||
+          e.key === 'F12' ||
+          (e.ctrlKey && e.shiftKey && e.key === 'I')
+        ) {
+          e.preventDefault();
+          return false;
+        }
+      });
+      // Service Worker 등록
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(function(reg) { console.log('[SW] 등록 성공:', reg.scope); })
+            .catch(function(err) { console.warn('[SW] 등록 실패:', err); });
+        });
+      }
+    </script>
   </body>
 </html>
-
