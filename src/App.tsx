@@ -294,16 +294,23 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
               ? <><span className="recab-price-val">USD {cp.fob_qinhuangdao}/MT</span></>
               : cp.domestic_shanxi
                 ? <><span className="recab-price-val">{cp.domestic_shanxi}</span><span className="recab-price-unit"> CNY/MT</span></>
-                : chinaHint
-                  ? <><span className="recab-price-val">USD {chinaHint}/MT</span></>
-                  : <span className="recab-price-na">시황 참고</span>
+                : hasText(cp.price_range_text)
+                  ? <span className="recab-price-val">{cp.price_range_text}</span>
+                  : <span className="recab-price-na">—</span>
             }
           </div>
-          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && chinaHint && (
-            <div className="recab-price-ref">※ 시장 보도 참고가</div>
+          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && (
+            <>
+              {hasText(cp.price_range_source) && (
+                <div className="recab-price-ref">({cp.price_range_source})</div>
+              )}
+              {hasText(cp.price_range_note) && (
+                <div className="recab-price-note">※ {cp.price_range_note}</div>
+              )}
+            </>
           )}
-          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && !chinaHint && hasText(cp.price_range_text) && (
-            <div className="recab-price-range-text">{cp.price_range_text}</div>
+          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && !hasText(cp.price_range_text) && chinaHint && (
+            <div className="recab-price-ref">※ 시장 보도 참고가</div>
           )}
           {cp.change && (
             <div className="recab-price-change" style={{ color: chinaDown ? 'var(--down)' : 'var(--up)' }}>
@@ -325,11 +332,20 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <div className="recab-price-box-main">
             {rp.fob_murmansk
               ? <><span className="recab-price-val">USD {rp.fob_murmansk}/MT</span></>
-              : <span className="recab-price-na">시황 참고</span>
+              : hasText(rp.price_range_text)
+                ? <span className="recab-price-val">{rp.price_range_text}</span>
+                : <span className="recab-price-na">—</span>
             }
           </div>
-          {!rp.fob_murmansk && hasText(rp.price_range_text) && (
-            <div className="recab-price-range-text">{rp.price_range_text}</div>
+          {!rp.fob_murmansk && (
+            <>
+              {hasText(rp.price_range_source) && (
+                <div className="recab-price-ref recab-price-ref--russia">({rp.price_range_source})</div>
+              )}
+              {hasText(rp.price_range_note) && (
+                <div className="recab-price-note recab-price-note--russia">※ {rp.price_range_note}</div>
+              )}
+            </>
           )}
           {!rp.fob_murmansk && !hasText(rp.price_range_text) && russiaHint && (
             <div className="recab-price-ref recab-price-ref--russia">{russiaHint}</div>
@@ -957,6 +973,12 @@ const CSS = `
   .recab-empty-icon { font-size: 32px; opacity: 0.4; }
   .recab-empty-text { font-size: 14px; font-weight: 600; color: var(--text2); }
   .recab-empty-sub  { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+  .recab-price-note {
+    font-size: 10px; color: var(--text3); line-height: 1.5;
+    font-family: var(--sans); margin-top: 2px;
+  }
+  .recab-price-note--russia { color: #7a78a8; }
 
   .recab-price-range-text {
     font-size: 11px; color: var(--text2); line-height: 1.5;
