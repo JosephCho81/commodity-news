@@ -110,8 +110,6 @@ function AluminumTab({ data }: { data: AluminumData }) {
   const d = data as any;
   const isUp = lme.change != null && !String(lme.change).startsWith('-');
   const priceValid = isValidLmePrice(lme.price);
-  const verified = d.lme?.lme_verified === 'true' || d.lme?.lme_verified === true;
-  const verifySource = d.lme?.lme_verify_source ?? null;
 
   return (
     <div className="tab-content">
@@ -127,14 +125,6 @@ function AluminumTab({ data }: { data: AluminumData }) {
               전일 대비 {isUp ? '+' : ''}{formatNum(lme.change)} USD/톤
               {lme.change_pct ? ` (${lme.change_pct})` : ''}
             </span>
-          )}
-          {priceValid && (
-            <div className="lme-verify-row">
-              {verified
-                ? <span className="lme-verify-badge lme-verify-ok">✓ 교차검증 완료{verifySource ? ` · ${verifySource}` : ''}</span>
-                : <span className="lme-verify-badge lme-verify-warn">※ westmetall 단독 소스</span>
-              }
-            </div>
           )}
         </div>
         {lme.date && <span className="price-hero-date">기준: {lme.date}</span>}
