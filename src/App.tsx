@@ -178,35 +178,54 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
     <div className="tab-content">
       {/* FOB 천진항 월별 가격 카드 */}
       <div className="price-hero">
-        <div className="price-hero-main">
-          <span className="price-hero-label">페로실리콘 75 — FOB 천진항 기준</span>
-          {(() => {
-            const m = china_price.fob_tianjin_monthly as any;
-            const latest = m?.['2026_03'] || m?.['2026_02'] || m?.['2026_01'];
-            const latestLabel = m?.['2026_03'] ? '2026년 3월' : m?.['2026_02'] ? '2026년 2월' : '2026년 1월';
-            return latest
-              ? <span className="price-hero-value" style={{fontSize:'22px'}}>{latest} <small>USD/톤</small></span>
-              : <span className="price-hero-na">가격 확인 중</span>;
-          })()}
-        </div>
+        {(() => {
+          const m = china_price.fob_tianjin_monthly as any;
+          const latestKey = m?.['2026_03'] && m['2026_03'] !== '미확인' ? '2026_03'
+            : m?.['2026_02'] && m['2026_02'] !== '미확인' ? '2026_02' : '2026_01';
+          const latestVal = m?.[latestKey];
+          const latestLabel = latestKey === '2026_03' ? '26년 3월' : latestKey === '2026_02' ? '26년 2월' : '26년 1월';
+          // 가격에서 "FOB 천진항" 등 중복 텍스트 제거, 숫자 범위만 추출
+          const cleanPrice = latestVal
+            ? latestVal.replace(/\(.*?\)/g, '').replace(/FOB.*기준/g, '').replace(/USD\/톤/g, '').trim()
+            : null;
+          return (
+            <div className="price-hero-main">
+              <span className="price-hero-label">
+                페로실리콘 75 — FOB 천진항 기준 ({latestLabel})
+              </span>
+              {cleanPrice
+                ? <span className="price-hero-value" style={{fontSize:'22px'}}>{cleanPrice}<small style={{fontSize:'11px', marginLeft:'6px', color:'var(--text3)'}}>USD/톤</small></span>
+                : <span className="price-hero-na">가격 확인 중</span>
+              }
+            </div>
+          );
+        })()}
+        {/* 월별 칩 */}
         <div className="fob-monthly-row">
           {(() => {
             const m = china_price.fob_tianjin_monthly as any;
             return ['2026_01','2026_02','2026_03'].map(k => {
               const label = k === '2026_01' ? '1월' : k === '2026_02' ? '2월' : '3월';
-              return m?.[k] ? (
+              const val = m?.[k];
+              if (!val || val === '미확인') return null;
+              // 숫자 범위만 추출
+              const numMatch = val.match(/([\d,]+~[\d,]+)/);
+              const displayVal = numMatch ? numMatch[1] : val.replace(/\(.*?\)/g,'').replace(/FOB.*기준/g,'').replace(/USD\/톤/g,'').trim();
+              return (
                 <div key={k} className="fob-month-chip">
                   <span className="fob-month-label">2026년 {label}</span>
-                  <span className="fob-month-price">{m[k]}</span>
+                  <span className="fob-month-price">{displayVal}</span>
                 </div>
-              ) : null;
+              );
             });
           })()}
+        </div>
+        <div className="fob-unit-row">
+          <span className="fob-unit-label">USD/톤</span>
         </div>
         {china_price.fesi75_ningxia && (
           <div className="price-hero-sub">
             <span>닝샤 내수가: {china_price.fesi75_ningxia} CNY/톤</span>
-            {china_price.date && <span>기준: {china_price.date}</span>}
           </div>
         )}
       </div>
@@ -576,8 +595,8 @@ const CSS = `
   }
 
   .price-hero-value {
-    font-size: 30px; font-family: var(--mono);
-    font-weight: 500; color: #1a2e1f; letter-spacing: -1px; line-height: 1.1;
+    font-size: 24px; font-family: var(--mono);
+    font-weight: 500; color: #1a2e1f; letter-spacing: -0.5px; line-height: 1.2;
   }
   .price-hero-value small { font-size: 13px; color: var(--text2); font-weight: 400; margin-left: 4px; }
 
@@ -586,6 +605,12 @@ const CSS = `
   .price-hero-change { font-family: var(--mono); font-size: 12px; font-weight: 500; }
   .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text2); }
 
+  .fob-unit-row {
+    padding-top: 4px;
+  }
+  .fob-unit-label {
+    font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.5px;
+  }
   .fob-monthly-row {
     display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px;
     border-top: 1px solid var(--border2); margin-top: 4px;
