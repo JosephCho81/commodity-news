@@ -1,10 +1,8 @@
 {
-  "functions": {
-    "api/get-news.js": {
-      "maxDuration": 60
-    },
-    "api/generate-news.js": {
-      "maxDuration": 60
+  "crons": [
+    {
+      "path": "/api/cron-refresh",
+      "schedule": "0 19 * * *"
     }
-  }
+  ]
 }
