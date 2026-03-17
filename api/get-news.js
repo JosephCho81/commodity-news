@@ -483,6 +483,7 @@ const PROMPTS = {
 
 【지침】
 - LME 가격은 별도로 주입되므로 price/change/date 필드는 null로 두세요.
+- 단, lme_verified 필드: LME 공식 사이트(lme.com) 또는 주요 금융 뉴스(Reuters, Bloomberg, Metal Bulletin)에서 오늘 또는 최근 LME 알루미늄 Cash Settlement 가격을 검색해서, 주입된 가격(아래 컨텍스트)과 ±10 USD/톤 이내로 일치하면 true, 불일치 또는 확인 불가면 false로 기재.
 - 스크랩 가격은 scrapmonster.com 기준으로 작성하세요.
 - [1][2] 각주 번호 절대 금지.
 - 텍스트는 한국어로 작성하세요.
@@ -493,6 +494,8 @@ const PROMPTS = {
     "change": null,
     "change_pct": null,
     "date": null,
+    "lme_verified": "true 또는 false — LME 공식/주요 뉴스 교차 검증 결과",
+    "lme_verify_source": "검증에 사용한 소스 (예: Reuters, Bloomberg, lme.com) 또는 '확인 불가'",
     "move_reason": "오늘 LME 알루미늄 가격 변동 이유 — 달러 인덱스, LME 재고 증감, 중국 수요, 중동 공급 차질, 미국 관세 등 실제 요인 2~3문장",
     "market_status": "현재 시장 상황 — LME 재고 톤수, 글로벌 수요 동향, 중국 생산/수출 현황 2~3문장",
     "outlook": "가격 전망 — 단기 상승/하락 압력 요인과 방향성 2~3문장. tradingeconomics.com 등 시장 전문가 전망 포함"
@@ -819,6 +822,48 @@ export default async function handler(req, res) {
       ]);
     }
 
+    // ── 2-1. summary 탭 전용: 각 탭 캐시 데이터 주입 ────────────────────
+    let summaryContext = '';
+    if (tab === 'summary' && token) {
+      try {
+        const [alData, fsiData, recData] = await Promise.all([
+          getFromFirestore(token, 'commodity_cache', 'aluminum'),
+          getFromFirestore(token, 'commodity_cache', 'ferrosilicon'),
+          getFromFirestore(token, 'commodity_cache', 'recarburizer'),
+        ]);
+        summaryContext = '\n\n【오늘 수집된 각 탭 실제 데이터 — 반드시 아래 내용을 기반으로 시그널 작성】\n';
+        if (alData?.data) {
+          const al = JSON.parse(alData.data);
+          summaryContext += `\n[알루미늄]\n`;
+          summaryContext += `LME Cash Settlement: ${al.lme?.price ?? 'N/A'} USD/톤 (${al.lme?.date ?? ''})\n`;
+          summaryContext += `변동: ${al.lme?.change ?? 'N/A'} USD/톤 (${al.lme?.change_pct ?? ''})\n`;
+          summaryContext += `시장현황: ${al.lme?.market_status ?? ''}\n`;
+          summaryContext += `전망: ${al.lme?.outlook ?? ''}\n`;
+          summaryContext += `스크랩: ${al.scrap?.weekly_summary ?? ''}\n`;
+        }
+        if (fsiData?.data) {
+          const fsi = JSON.parse(fsiData.data);
+          summaryContext += `\n[페로실리콘]\n`;
+          const fobM = fsi.china_price?.fob_tianjin_monthly;
+          if (fobM) summaryContext += `FOB 천진항: ${JSON.stringify(fobM)}\n`;
+          summaryContext += `시장현황: ${fsi.china_price?.china_context ?? ''}\n`;
+          summaryContext += `전망: ${fsi.china_price?.china_outlook ?? ''}\n`;
+          summaryContext += `종합: ${fsi.market_summary ?? ''}\n`;
+        }
+        if (recData?.data) {
+          const rec = JSON.parse(recData.data);
+          summaryContext += `\n[가탄제]\n`;
+          summaryContext += `중국 무연탄: ${rec.china_price?.fob_qinhuangdao ?? rec.china_price?.price_range_text ?? 'N/A'} USD/MT\n`;
+          summaryContext += `러시아: ${rec.russia_price?.fob_murmansk ?? rec.russia_price?.price_range_text ?? 'N/A'} USD/MT\n`;
+          summaryContext += `시장현황: ${rec.global_market?.headline ?? ''} ${rec.global_market?.key_drivers ?? ''}\n`;
+          summaryContext += `종합: ${rec.market_summary ?? ''}\n`;
+        }
+        console.log('[Summary] 탭 데이터 주입 완료');
+      } catch (e) {
+        console.warn('[Summary] 탭 데이터 주입 실패:', e.message);
+      }
+    }
+
     // ── 3. Perplexity 호출 — 스크랩/전망 데이터 컨텍스트 주입 ────────────
     let prompt = PROMPTS[tab];
     if (tab === 'aluminum') {
@@ -849,6 +894,10 @@ export default async function handler(req, res) {
         }
       }
       prompt = PROMPTS[tab] + context;
+    }
+
+    if (tab === 'summary' && summaryContext) {
+      prompt = PROMPTS[tab] + summaryContext;
     }
 
     console.log(`[Perplexity] 호출 시작: ${tab}`);
