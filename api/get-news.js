@@ -540,47 +540,68 @@ const PROMPTS = {
   "updated_at": "응답 생성 시각 (ISO 8601)"
 }`,
 
-  ferrosilicon: `오늘 날짜 기준으로 페로실리콘(FeSi) 시장 인텔리전스를 JSON으로 반환하세요.
+  ferrosilicon: `오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준 페로실리콘(FeSi75) 시장 인텔리전스를 JSON으로 반환하세요.
+
+【지침】
+- 가격 흐름과 시장 맥락이 핵심입니다. 단순 숫자보다 "왜 이 방향으로 움직이고 있는가"를 중심으로 작성하세요.
+- sunsirs.com, mysteel.net, ferroalloynet.com 최신 뉴스 기반으로 작성하세요.
+- fesi75_ningxia 가격은 최근 확인된 값만. 없으면 null.
+- [1][2] 각주 번호 절대 금지. 한국어로 작성.
 
 {
   "china_price": {
-    "fesi75_ningxia": "닝샤 FeSi75 현물가 (CNY/톤, sunsirs.com 기준, 확인된 값만, 없으면 null)",
-    "fesi75_neimenggu": "내몽골 FeSi75 현물가 (CNY/톤, 확인된 경우만, 없으면 null)",
+    "fesi75_ningxia": "닝샤 페로실리콘 75 현물가 (CNY/톤, 확인된 값만, 없으면 null)",
+    "fesi75_neimenggu": "내몽골 페로실리콘 75 현물가 (CNY/톤, 확인된 경우만, 없으면 null)",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "change": "전주 대비 변동 방향 및 폭 (예: -50 CNY/톤, 없으면 null)",
-    "price_context": "현재 가격 수준의 맥락 — 연중 고저점 대비, 추세 방향 (2문장)"
+    "china_context": "중국 현재 시장 상황 — 현재 가격 수준이 연중 고점/저점 대비 어디에 있는지, 최근 몇 주간 방향성(상승/하락/횡보), 주요 가격 변동 원인(원자재 비용, 전력비, 철강사 입찰가, 재고 수준) 3~4문장 구체적으로",
+    "china_outlook": "중국 단기 전망 — 앞으로 2~4주 방향성 예측, 근거(철강사 입찰 일정, 반코크 원가, 생산가동률, 수출 동향) 2~3문장"
   },
   "china_production": {
     "ningxia": {
-      "power_situation": "닝샤 전력 공급 현황 — 수력/화력 비율, 제한 여부",
-      "utilization_rate": "가동률 (확인된 경우만, 예: 72%, 없으면 null)",
-      "weather_impact": "날씨 영향 (강수, 기온이 수력발전/전력비에 미치는 영향)"
+      "power_situation": "닝샤 전력 공급 현황 — 화력 의존도, 전력 제한 여부, 전력 단가 동향",
+      "utilization_rate": "가동률 (확인된 경우만, 예: 29%, 없으면 null)",
+      "weather_impact": "날씨·계절 영향 (난방 수요 증가로 전력비 상승 등)"
     },
-    "yunnan": {
-      "power_situation": "윈난 전력 공급 현황",
+    "neimenggu": {
+      "power_situation": "내몽골 전력 공급 현황",
       "utilization_rate": "가동률 (확인된 경우만, 없으면 null)",
       "weather_impact": "날씨 영향"
     },
-    "overall": "중국 전체 FeSi 생산 현황 요약 (2~3문장)"
+    "overall": "중국 전체 생산 현황 요약 — 전국 가동률, 일평균 생산량, 최근 가동 증감 추이, 과잉생산 구조 설명 2~3문장"
   },
   "non_china": [
     {
       "country": "노르웨이",
-      "producer": "주요 생산기업 (예: Elkem, Ferroglobe)",
-      "status": "생산 현황 및 최근 동향",
-      "export_direction": "주요 수출국 및 물동량 방향"
+      "producer": "Elkem, Ferroglobe",
+      "status": "현재 생산 현황 및 최근 동향 — 가동률, 에너지비용 영향, 감산·증산 여부",
+      "price_context": "노르웨이산 FeSi75 현재 가격 수준 또는 방향성 (USD/톤 FOB)",
+      "export_direction": "주요 수출국 및 최근 물동량 변화"
     },
-    { "country": "카자흐스탄", "producer": "주요 생산기업", "status": "현황", "export_direction": "수출 방향" },
-    { "country": "말레이시아", "producer": "주요 생산기업", "status": "현황", "export_direction": "수출 방향" },
-    { "country": "러시아", "producer": "주요 생산기업", "status": "현황", "export_direction": "수출 방향" }
+    {
+      "country": "카자흐스탄",
+      "producer": "Kazsilicon, ENRC",
+      "status": "현재 생산 현황",
+      "price_context": "가격 수준 또는 방향성",
+      "export_direction": "수출 방향"
+    },
+    {
+      "country": "말레이시아",
+      "producer": "주요 생산업체",
+      "status": "현재 생산 현황",
+      "price_context": "가격 수준 또는 방향성",
+      "export_direction": "수출 방향"
+    },
+    {
+      "country": "러시아",
+      "producer": "Chelyabinsk Electrometallurgical Plant",
+      "status": "제재 이후 생산·수출 현황",
+      "price_context": "제재로 인한 가격 경쟁력 변화",
+      "export_direction": "우회 수출 루트 및 주요 목적지"
+    }
   ],
-  "export_flows": {
-    "korea": "한국向 수입 현황 — 주요 공급국, 물량 추이, 가격 동향",
-    "japan": "일본向 수입 현황",
-    "eu": "EU向 수입 현황",
-    "india": "인도向 수입 현황"
-  },
-  "market_summary": "FeSi 시장 종합 요약 및 단기 전망 (3~4문장)",
+  "non_china_context": "비중국 생산국 전반 시황 — 유럽 에너지비용, 글로벌 FeSi 공급 타이트 여부, 중국산 대비 경쟁력 2~3문장",
+  "korea_import": "한국 수입 현황 — 주요 공급국 비중(중국/노르웨이/카자흐스탄 등), 최근 수입단가 동향, 국내 철강사(POSCO, 현대제철 등) 구매 동향 2~3문장",
+  "market_summary": "FeSi75 시장 종합 요약 — 중국 공급 과잉 구조, 비중국 공급 현황, 글로벌 수요(철강 생산), 단기 가격 전망 방향성 3~4문장",
   "updated_at": "응답 생성 시각 (ISO 8601)"
 }`,
 
