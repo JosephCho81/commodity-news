@@ -478,16 +478,19 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
 // ─── 탭 콘텐츠: 시황 종합 ─────────────────────────────────────────────────────
 function SummaryTab({ data }: { data: SummaryData }) {
   const { one_liner, key_signals, risk_signals, week_ahead } = data;
+  // one_liner에서 따옴표 제거
+  const cleanOneLiner = (one_liner ?? '').replace(/^["'"']+|["'"']+$/g, '').trim();
+
   return (
     <div className="tab-content">
       <div className="one-liner-card">
         <div className="one-liner-label">TODAY</div>
-        <div className="one-liner-text">"{one_liner}"</div>
+        <div className="one-liner-text">{cleanOneLiner || '시장 데이터 수집 중'}</div>
       </div>
 
       <SectionCard title="품목별 핵심 시그널" accent="SIGNAL">
-        {key_signals.map((s) => (
-          <div key={s.commodity} className="signal-row">
+        {(key_signals ?? []).map((s, i) => (
+          <div key={s.commodity ?? i} className="signal-row">
             <div className="signal-meta">
               <span className="signal-commodity">{s.commodity}</span>
               <span className="signal-dir" style={{ color: directionColor(s.direction) }}>
@@ -497,13 +500,13 @@ function SummaryTab({ data }: { data: SummaryData }) {
                 {urgencyBadge(s.urgency)}
               </span>
             </div>
-            <p className="signal-text">{s.signal}</p>
+            {s.signal && <p className="signal-text">{s.signal}</p>}
           </div>
         ))}
       </SectionCard>
 
       <SectionCard title="주요 리스크 신호" accent="RISK">
-        {risk_signals.map((r, i) => (
+        {(risk_signals ?? []).map((r, i) => (
           <div key={i} className="risk-row">
             <div className="risk-header">
               <span className="risk-name">{r.risk}</span>
@@ -511,15 +514,17 @@ function SummaryTab({ data }: { data: SummaryData }) {
                 {r.probability === 'HIGH' ? '고' : r.probability === 'MEDIUM' ? '중' : '저'}위험
               </span>
             </div>
-            <p className="risk-affected">영향: {r.affected}</p>
-            <p className="risk-impact">{r.impact}</p>
+            {r.affected && <p className="risk-affected">영향: {r.affected}</p>}
+            {r.impact && <p className="risk-impact">{r.impact}</p>}
           </div>
         ))}
       </SectionCard>
 
-      <SectionCard title="이번 주 주목 변수" accent="WATCH">
-        <div className="watch-text">{week_ahead}</div>
-      </SectionCard>
+      {week_ahead && (
+        <SectionCard title="이번 주 주목 변수" accent="WATCH">
+          <div className="watch-text">{week_ahead}</div>
+        </SectionCard>
+      )}
     </div>
   );
 }
