@@ -42,9 +42,14 @@ export interface AluminumData extends ApiMeta {
 export interface FerrosiliconData extends ApiMeta {
   china_price: {
     fesi75_ningxia: string | null;
-    fesi75_neimenggu: string | null;
+    fesi75_neimenggu?: string | null;
     date: string | null;
     change: string | null;
+    fob_tianjin_monthly?: {
+      '2026_01'?: string | null;
+      '2026_02'?: string | null;
+      '2026_03'?: string | null;
+    };
     // 구 필드 (하위 호환)
     price_context?: string;
     // 신 필드
@@ -142,8 +147,8 @@ export interface TabConfig {
 }
 
 export const TABS: TabConfig[] = [
-  { id: 'aluminum',     label: '알루미늄',   labelEn: 'Aluminum',     icon: '🔩' },
-  { id: 'ferrosilicon', label: '페로실리콘', labelEn: 'FerroSilicon', icon: '⚙️' },
-  { id: 'recarburizer', label: '가탄제',     labelEn: 'Recarburizer', icon: '🪨' },
-  { id: 'summary',      label: '시황 종합',  labelEn: 'Summary',      icon: '📊' },
+  { id: 'aluminum',     label: '알루미늄',   labelEn: 'Aluminum',     icon: '🪙' },
+  { id: 'ferrosilicon', label: '페로실리콘', labelEn: 'FerroSilicon', icon: '🔧' },
+  { id: 'recarburizer', label: '가탄제',     labelEn: 'Recarburizer', icon: '⛏️' },
+  { id: 'summary',      label: '시황 종합',  labelEn: 'Summary',      icon: '📈' },
 ];
