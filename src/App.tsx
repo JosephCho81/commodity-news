@@ -445,7 +445,6 @@ export default function App() {
               className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >
-              <span className="nav-icon">{tab.icon}</span>
               <span className="nav-label">{tab.label}</span>
             </button>
           ))}
@@ -832,7 +831,7 @@ const CSS = `
 
   .nav-tab {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 10px 4px 13px; background: none; border: none;
+    padding: 14px 4px; background: none; border: none;
     color: #8aab94; cursor: pointer;
     transition: color 0.15s, background 0.15s;
     gap: 3px; position: relative;
@@ -846,8 +845,7 @@ const CSS = `
   .nav-tab.active { color: var(--green-primary); background: #e4f2e8; }
   .nav-tab.active::after { transform: scaleX(1); }
 
-  .nav-icon  { font-size: 18px; line-height: 1; font-family: var(--mono); color: inherit; }
-  .nav-label { font-size: 11px; font-family: var(--sans); font-weight: 600; color: inherit; }
+  .nav-label { font-size: 13px; font-family: var(--sans); font-weight: 600; color: inherit; letter-spacing: -0.2px; }
 
   /* ── 스크롤바 ── */
   ::-webkit-scrollbar { width: 4px; }
