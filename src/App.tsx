@@ -114,7 +114,7 @@ function AluminumTab({ data }: { data: AluminumData }) {
     <div className="tab-content">
       <div className="price-hero">
         <div className="price-hero-main">
-          <span className="price-hero-label">LME 알루미늄 공식가</span>
+          <span className="price-hero-label">LME 알루미늄 Cash Settlement</span>
           {priceValid
             ? <span className="price-hero-value">{formatNum(lme.price)} <small>USD/톤</small></span>
             : <span className="price-hero-na">가격 확인 중</span>
