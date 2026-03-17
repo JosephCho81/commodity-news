@@ -279,11 +279,11 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
   // global_market 텍스트에서 USD/t 또는 USD/톤 앞의 숫자 추출 (참고가용)
   const extractPriceHint = (text: string): string | null => {
     if (!text) return null;
-    const m = text.match(/(\d{2,3}(?:\.\d+)?)\s*(?:USD\/[tT]|달러\/톤|USD\/톤)/);
+    const m = text.match(/(\d{2,3}(?:\.\d+)?)\s*(?:USD\/[tT]|달러\/톤|USD\/톤)/i);
     return m ? m[1] : null;
   };
   const chinaHint = extractPriceHint(gm.current_level) || extractPriceHint(gm.key_drivers);
-  const russiaHint = rp.vs_china || null;
+  const russiaHint = hasText(rp.vs_china) ? rp.vs_china : null;
 
   return (
     <div className="tab-content">
@@ -296,11 +296,11 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <div className="recab-price-box-country">🇨🇳 중국 무연탄</div>
           <div className="recab-price-box-main">
             {cp.fob_qinhuangdao
-              ? <><span className="recab-price-val">{cp.fob_qinhuangdao}</span><span className="recab-price-unit"> USD/톤</span></>
+              ? <><span className="recab-price-val">USD {cp.fob_qinhuangdao}/MT</span></>
               : cp.domestic_shanxi
-                ? <><span className="recab-price-val">{cp.domestic_shanxi}</span><span className="recab-price-unit"> CNY/톤</span></>
+                ? <><span className="recab-price-val">{cp.domestic_shanxi}</span><span className="recab-price-unit"> CNY/MT</span></>
                 : chinaHint
-                  ? <><span className="recab-price-val">{chinaHint}</span><span className="recab-price-unit"> USD/톤</span></>
+                  ? <><span className="recab-price-val">USD {chinaHint}/MT</span></>
                   : <span className="recab-price-na">시황 참고</span>
             }
           </div>
@@ -326,7 +326,7 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <div className="recab-price-box-country">🇷🇺 러시아 안트라사이트</div>
           <div className="recab-price-box-main">
             {rp.fob_murmansk
-              ? <><span className="recab-price-val">{rp.fob_murmansk}</span><span className="recab-price-unit"> USD/톤</span></>
+              ? <><span className="recab-price-val">USD {rp.fob_murmansk}/MT</span></>
               : <span className="recab-price-na">시황 참고</span>
             }
           </div>
@@ -341,7 +341,6 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <div className="recab-price-tags">
             {rp.fob_murmansk && <span className="recab-tag">FOB 무르만스크</span>}
             {rp.cif_korea    && <span className="recab-tag">CIF 한국 {rp.cif_korea}</span>}
-            {rp.vs_china     && <span className="recab-tag recab-tag--diff">{rp.vs_china}</span>}
             {rp.date         && <span className="recab-tag-date">{rp.date}</span>}
           </div>
         </div>
