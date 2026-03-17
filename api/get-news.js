@@ -741,17 +741,15 @@ export default async function handler(req, res) {
       try {
         const cached = await getFromFirestore(token, 'commodity_cache', tab);
         if (cached?.data && cached?.cached_at) {
-          const ageMin = (Date.now() - Number(cached.cached_at)) / 60000;
-          if (ageMin < CACHE_TTL[tab]) {
-            console.log(`[Cache] HIT: ${tab}, age: ${Math.round(ageMin)}분`);
+          const cachedDateKST = new Date(Number(cached.cached_at) + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          if (cachedDateKST === todayKST) {
+            const ageMin = Math.round((Date.now() - Number(cached.cached_at)) / 60000);
+            console.log(`[Cache] HIT: ${tab}, 저장일: ${cachedDateKST}, age: ${ageMin}분`);
             const parsed = JSON.parse(cached.data);
-            return res.status(200).json({
-              ...parsed,
-              _cached: true,
-              _age_min: Math.round(ageMin),
-            });
+            return res.status(200).json({ ...parsed, _cached: true, _age_min: ageMin });
           } else {
-            console.log(`[Cache] EXPIRED: ${tab}, age: ${Math.round(ageMin)}분`);
+            console.log(`[Cache] 날짜 변경 감지: 캐시=${cachedDateKST}, 오늘=${todayKST} → 갱신`);
           }
         }
       } catch (e) {
