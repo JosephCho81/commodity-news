@@ -555,7 +555,7 @@ const PROMPTS = {
     "fob_tianjin_monthly": {
       "2026_01": "USD 1,090~1,120/톤 (2026년 1월 FOB 천진항 기준, mysteel 확인)",
       "2026_02": "2026년 2월 FOB 천진항 기준가 레인지 검색 후 기재. 없으면 '미확인'",
-      "2026_03": "2026년 3월 FOB 천진항 기준가 레인지. mysteel, Asian Metal 최신 뉴스 검색. 1월 USD 1,090~1,120, 2월 USD 1,100~1,140 수준이었으며 3월 최신 확인값 기재. 없으면 '미확인(검색 결과 없음)'"
+      "2026_03": "USD 1,120~1,140/톤 (2026년 3월 4일 FOB 천진항 기준, mysteel 확인)"
     },
     "fesi75_ningxia": "닝샤 페로실리콘 75 내수 현물가 CNY/톤. 없으면 최근 확인된 범위 기재",
     "date": "가격 기준일 (YYYY-MM-DD)",
@@ -600,39 +600,82 @@ const PROMPTS = {
   "updated_at": "응답 생성 시각 (ISO 8601)"
 }`,
 
-  recarburizer: `오늘 날짜 기준으로 가탄제(무연탄·안트라사이트) 시장 인텔리전스를 JSON으로 반환하세요.
+  recarburizer: `오늘 날짜 기준으로 가탄제(무연탄·안트라사이트·하소탄) 시장 인텔리전스를 최대한 폭넓게 검색하여 JSON으로 반환하세요.
+
+【가격 검색 전략 — 단계별로 모두 시도하세요】
+중국 무연탄 가격:
+  1순위: sunsirs.com (三生财经), mysteel.com 현물 시세
+  2순위: 중국 석탄 업계 뉴스 (coalnews.com.cn, 中国煤炭网)
+  3순위: 글로벌 무역 미디어 (Argus Media, S&P Global Platts, Fastmarkets)
+  4순위: 지역 물가 보도, 업계 블로그·포럼·기업 고시가
+  → 위 모든 소스에서 못 찾으면 null (추측 금지)
+
+러시아 안트라사이트 가격:
+  1순위: Metal Bulletin, Argus Media Russia coal 섹션
+  2순위: 러시아 석탄 수출 보도 (Coal International, Mining.com, Reuters 러시아 에너지)
+  3순위: 우크라이나 전쟁 이후 제재 관련 석탄 보도, 인도·한국 수입 단가 보도
+  4순위: 러시아 탄광 기업(SUEK, Elgaуголь 등) 공시, 중소 트레이딩사 게시가
+  → 위 모두 실패 시 null
+
+【중요】확인되지 않은 수치는 null. 추측값 절대 금지. 가격 외 시황 텍스트는 반드시 최근 뉴스 기반으로 작성.
 
 {
   "china_price": {
-    "anthracite_shanxi": "산시성 무연탄 현물가 (CNY/톤, sunsirs.com 기준, 확인된 값만, 없으면 null)",
-    "anthracite_guizhou": "귀저우 무연탄 현물가 (CNY/톤, 확인된 경우만, 없으면 null)",
-    "calcined_anthracite": "하소 안트라사이트(가탄제용) 가격 (CNY/톤, 확인된 경우만, 없으면 null)",
+    "fob_qinhuangdao": "중국 무연탄 FOB 친황다오(Qinhuangdao) 수출가 (USD/톤, 확인된 값만, 없으면 null)",
+    "cif_korea": "한국향 무연탄 CIF 수입가 (USD/톤, 확인된 값만, 없으면 null)",
+    "domestic_shanxi": "중국 산시성 국내 현물가 (CNY/톤, 확인된 값만, 없으면 null)",
+    "calcined_cac_fob": "하소 안트라사이트(CAC) FOB 가격 (USD/톤, 없으면 null)",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "change": "전주 대비 변동 방향 및 폭 (없으면 null)",
-    "price_context": "현재 가격 수준의 맥락 (2문장)"
+    "change": "전주 대비 주요 가격 변동 방향 및 폭 (없으면 null)"
+  },
+  "russia_price": {
+    "fob_murmansk": "러시아 안트라사이트 FOB 무르만스크(Murmansk) 또는 주요 항구 수출가 (USD/톤, 없으면 null)",
+    "cif_korea": "한국향 러시아 안트라사이트 CIF 가격 (USD/톤, 없으면 null)",
+    "date": "가격 기준일 (YYYY-MM-DD)",
+    "change": "전주/전월 대비 변동 (없으면 null)",
+    "vs_china": "러시아산 vs 중국산 가격 격차 요약 (예: 중국산 대비 -15 USD/톤 저렴, 없으면 null)"
+  },
+  "global_market": {
+    "headline": "현재 전세계 무연탄·석탄 시장의 가장 중요한 이슈 1~2개 (1문장)",
+    "current_level": "현재 가격 수준 — 역사적 맥락(2022년 에너지 위기 피크 대비, 최근 1년 레인지 등)으로 설명 (2문장)",
+    "key_drivers": "현재 가격을 움직이는 주요 요인 — 러시아·우크라이나 전쟁 영향, 미·중 무역 분쟁, 유럽 에너지 전환, 중국 내수 수요, 계절성 등 (3~4문장)",
+    "outlook": "단기(1~3개월) 가격 방향성 및 근거 (2문장)"
   },
   "china_production": {
-    "mining_status": "중국 무연탄 채굴 현황 — 주요 산지 생산량, 안전 규제 영향",
-    "processing_status": "가탄제 가공 현황 — 하소 처리 능력, 가동률",
-    "policy_impact": "환경/안전 정책이 생산에 미치는 영향"
+    "annual_output": "최근 연간 중국 무연탄 생산량 (억 톤 또는 백만 톤, 확인된 값만)",
+    "annual_consumption": "최근 연간 중국 석탄 소비량 (확인된 값만)",
+    "export_volume": "최근 연간 또는 월별 중국 무연탄 수출량 및 주요 수출국 (확인된 값만)",
+    "import_volume": "중국 석탄 수입량 및 주요 수입국 (확인된 경우)",
+    "production_status": "현재 중국 무연탄 생산 현황 — 주요 산지(산시·내몽골·귀저우) 가동률, 안전규제, 계절 영향 (3문장)",
+    "cbam_carbon": "CBAM(탄소국경조정제도) 및 중국 탄소배출권 시장(CEA)이 석탄 수출·생산에 미치는 영향 (2~3문장)",
+    "policy": "최근 중국 석탄 관련 주요 정책(생산 상한, 환경 규제, 수출 제한 등) 및 영향 (2문장)",
+    "outlook": "향후 6~12개월 중국 생산량·소비량·수출량 전망 (2~3문장)"
   },
-  "russia": {
-    "export_volume": "러시아 안트라사이트 수출 현황 — 물량, 주요 목적지",
-    "sanctions_impact": "제재 영향 및 우회 루트 현황",
-    "price_competitiveness": "러시아산 가격 경쟁력 (중국산 대비)"
+  "russia_production": {
+    "annual_output": "최근 연간 러시아 무연탄 생산량 (백만 톤, 확인된 값만)",
+    "export_volume": "최근 연간 또는 월별 러시아 석탄 수출량 및 주요 수출국 (확인된 값만)",
+    "main_importers": "러시아 석탄 주요 수입국 (인도·중국·한국·터키 등 비중 포함)",
+    "production_status": "현재 러시아 무연탄 생산 현황 — 주요 산지(쿠즈바스·사하·시베리아) 가동 상황 (2~3문장)",
+    "sanctions_impact": "서방 제재 이후 수출 루트 변화(아시아 피벗), 결제 방식(루블·위안화), 물류 제약(항만·철도), 실질적 수출 영향 (3~4문장)",
+    "war_impact": "러시아-우크라이나 전쟁이 석탄 생산·수출에 미친 구체적 영향 및 최근 변화 (2~3문장)",
+    "outlook": "향후 6~12개월 러시아 생산·수출 전망 및 주요 리스크 (2문장)"
   },
-  "asia_flows": [
-    {
-      "importer": "한국",
-      "main_sources": "주요 공급국 (중국/러시아/기타 비중)",
-      "volume_trend": "물량 추이 (전년 대비)",
-      "price_trend": "수입 단가 동향"
-    },
-    { "importer": "일본", "main_sources": "공급국", "volume_trend": "추이", "price_trend": "단가 동향" },
-    { "importer": "인도", "main_sources": "공급국", "volume_trend": "추이", "price_trend": "단가 동향" },
-    { "importer": "베트남/동남아", "main_sources": "공급국", "volume_trend": "추이", "price_trend": "단가 동향" }
-  ],
-  "market_summary": "가탄제 시장 종합 요약 및 단기 전망 (3~4문장)",
+  "asia_flows": {
+    "available": true,
+    "note": "데이터 수집 가능 여부 판단 후, 불가능하면 available: false로 변경",
+    "flows": [
+      {
+        "importer": "한국",
+        "main_sources": "주요 공급국 비중 (중국/러시아/기타 %, 확인된 경우)",
+        "volume_trend": "물량 추이 (전년 대비 증감 및 원인)",
+        "price_trend": "수입 단가 동향"
+      },
+      { "importer": "인도", "main_sources": "주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" },
+      { "importer": "중국(수입)", "main_sources": "주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" },
+      { "importer": "일본/동남아", "main_sources": "주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" }
+    ]
+  },
+  "market_summary": "전세계 무연탄·가탄제 시장 종합 — 중국·러시아 공급 구도, 지정학적 리스크(전쟁·무역분쟁), 아시아 수요 전망, 단기 가격 방향성을 4~5문장으로 종합",
   "updated_at": "응답 생성 시각 (ISO 8601)"
 }`,
 
