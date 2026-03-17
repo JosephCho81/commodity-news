@@ -147,8 +147,8 @@ export interface TabConfig {
 }
 
 export const TABS: TabConfig[] = [
-  { id: 'aluminum',     label: '알루미늄',   labelEn: 'Aluminum',     icon: '🪙' },
-  { id: 'ferrosilicon', label: '페로실리콘', labelEn: 'FerroSilicon', icon: '🔧' },
-  { id: 'recarburizer', label: '가탄제',     labelEn: 'Recarburizer', icon: '⛏️' },
-  { id: 'summary',      label: '시황 종합',  labelEn: 'Summary',      icon: '📈' },
+  { id: 'aluminum',     label: '알루미늄',   labelEn: 'Aluminum',     icon: '◈' },
+  { id: 'ferrosilicon', label: '페로실리콘', labelEn: 'FerroSilicon', icon: '◉' },
+  { id: 'recarburizer', label: '가탄제',     labelEn: 'Recarburizer', icon: '◍' },
+  { id: 'summary',      label: '시황 종합',  labelEn: 'Summary',      icon: '▦' },
 ];
