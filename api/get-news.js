@@ -371,7 +371,7 @@ async function fetchScrapPrices() {
 
 
 // ─── 일본 알루미늄 스크랩 가격 fetch (dokindokin.com - 오사카 스크랩 업체) ──────
-// 단위: 円/톤 (JPY/톤)
+// 【440000円/㌧(税込)】 패턴으로 직접 톤당 가격 파싱
 async function fetchJapanScrapPrices() {
   try {
     const res = await fetch('https://www.dokindokin.com/scrap_type/aluminum/', {
@@ -385,34 +385,44 @@ async function fetchJapanScrapPrices() {
     const html = await res.text();
 
     // 날짜 추출: "2026年03月17日現在"
-    const dateMatch = html.match(/(\d{4})年(\d{2})月(\d{2})日現在/);
+    const dateMatch = html.match(/(\d{4})..(\d{2})..(\d{2})../);
     const date = dateMatch
       ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
       : new Date().toISOString().slice(0, 10);
 
-    // 가격 추출: "440円/kg" → 440 × 1000 = 440,000 JPY/톤
-    const items = [
-      { key: 'アルミ（上）',    label: '6063 Extrusion (Clean, no attachments)' },
-      { key: 'アルミ（下）',    label: '6063 Extrusion (with attachments)' },
-      { key: 'アルミガラA',     label: 'Cast Aluminum A (pots/pans)' },
-      { key: 'アルミガラB',     label: 'Cast Aluminum B (mixed IH)' },
-      { key: 'アルミ缶（プレス）', label: 'UBC Pressed (Baled)' },
-      { key: 'アルミ缶',        label: 'UBC Loose' },
-      { key: 'アルミラジエーター', label: 'Aluminum Radiator' },
+    // 섹션별로 【XXXXXX円/㌧】 패턴으로 파싱
+    // 각 섹션 헤딩(## 품목명) 다음에 나오는 톤당 가격
+    const sections = [
+      { key: 'aluminum_high',       label: '6063 Extrusion Clean' },
+      { key: 'aluminum_low',        label: '6063 Extrusion w/Attachments' },
+      { key: 'aluminum_can_pressed',label: 'UBC Pressed (Baled)' },
+      { key: 'aluminum_can',        label: 'UBC Loose' },
+    ];
+
+    // 일반 패턴: 【숫자円/㌧】 전체 HTML에서 순서대로 추출
+    const tonPattern = /【(\d+)円\/㌧/g;
+    const allTonPrices = [];
+    let m;
+    while ((m = tonPattern.exec(html)) !== null) {
+      allTonPrices.push(parseInt(m[1], 10));
+    }
+    // 순서: 上, 下, ガラA, ガラB, 缶プレス, 缶, ラジエーター
+    const labels = [
+      '6063 Extrusion Clean',
+      '6063 Extrusion w/Attachments',
+      'Cast Aluminum A (pots/pans)',
+      'Cast Aluminum B (mixed IH)',
+      'UBC Pressed (Baled)',
+      'UBC Loose',
+      'Aluminum Radiator',
     ];
 
     const result = {};
-    for (const { key, label } of items) {
-      const idx = html.indexOf(key);
-      if (idx === -1) continue;
-      const segment = html.slice(idx, idx + 200);
-      // "440円/kg" 패턴
-      const m = segment.match(/<strong[^>]*>\s*(\d+)\s*<\/strong>\s*円\/kg/);
-      if (m) {
-        const perKg = parseInt(m[1], 10);
-        result[label] = perKg * 1000; // JPY/톤
+    allTonPrices.forEach((price, i) => {
+      if (i < labels.length && price > 0) {
+        result[labels[i]] = price;
       }
-    }
+    });
 
     console.log(`[dokindokin] 일본 스크랩 fetch 성공: ${Object.keys(result).length}개 (${date})`);
     return { prices: result, date };
@@ -441,7 +451,7 @@ async function callPerplexity(prompt) {
         { role: 'user', content: prompt },
       ],
       temperature: 0.1,
-      max_tokens: 2000,
+      max_tokens: 3000,
     }),
   });
   if (!res.ok) {
