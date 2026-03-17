@@ -307,6 +307,9 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           {!cp.fob_qinhuangdao && !cp.domestic_shanxi && chinaHint && (
             <div className="recab-price-ref">※ 시장 보도 참고가</div>
           )}
+          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && !chinaHint && hasText(cp.price_range_text) && (
+            <div className="recab-price-range-text">{cp.price_range_text}</div>
+          )}
           {cp.change && (
             <div className="recab-price-change" style={{ color: chinaDown ? 'var(--down)' : 'var(--up)' }}>
               {cp.change}
@@ -330,7 +333,10 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
               : <span className="recab-price-na">시황 참고</span>
             }
           </div>
-          {!rp.fob_murmansk && russiaHint && (
+          {!rp.fob_murmansk && hasText(rp.price_range_text) && (
+            <div className="recab-price-range-text">{rp.price_range_text}</div>
+          )}
+          {!rp.fob_murmansk && !hasText(rp.price_range_text) && russiaHint && (
             <div className="recab-price-ref recab-price-ref--russia">{russiaHint}</div>
           )}
           {rp.change && (
@@ -956,6 +962,13 @@ const CSS = `
   .recab-empty-icon { font-size: 32px; opacity: 0.4; }
   .recab-empty-text { font-size: 14px; font-weight: 600; color: var(--text2); }
   .recab-empty-sub  { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+  .recab-price-range-text {
+    font-size: 11px; color: var(--text2); line-height: 1.5;
+    font-family: var(--sans); margin-top: 4px;
+    background: var(--green-subtle); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px;
+  }
 
   .recab-price-ref {
     font-size: 10px; color: var(--text3); line-height: 1.5;
