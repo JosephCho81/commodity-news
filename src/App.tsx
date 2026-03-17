@@ -192,6 +192,9 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           )}
         </div>
         <div className="price-hero-sub">
+          {china_price.fob_tianjin_price && (
+            <span className="fob-price-tag">FOB 천진 {china_price.fob_tianjin_price}</span>
+          )}
           {china_price.fesi75_neimenggu && <span>내몽골: {china_price.fesi75_neimenggu} CNY/톤</span>}
           {china_price.date && <span>기준: {china_price.date}</span>}
         </div>
@@ -210,34 +213,16 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
 
       {/* 중국 생산 현황 */}
       <SectionCard title="중국 생산 현황" accent="PROD">
-        <div className="production-grid">
-          <div className="prod-region">
-            <div className="prod-region-name">닝샤</div>
-            <InfoRow label="전력" value={china_production.ningxia.power_situation} />
-            {china_production.ningxia.utilization_rate && <InfoRow label="가동률" value={china_production.ningxia.utilization_rate} />}
-            <InfoRow label="날씨" value={china_production.ningxia.weather_impact} />
-          </div>
-          <div className="prod-region">
-            <div className="prod-region-name">내몽골</div>
-            <InfoRow label="전력" value={china_production.neimenggu?.power_situation ?? china_production.yunnan?.power_situation} />
-            {(china_production.neimenggu?.utilization_rate ?? china_production.yunnan?.utilization_rate) && (
-              <InfoRow label="가동률" value={china_production.neimenggu?.utilization_rate ?? china_production.yunnan?.utilization_rate} />
-            )}
-            <InfoRow label="날씨" value={china_production.neimenggu?.weather_impact ?? china_production.yunnan?.weather_impact} />
-          </div>
-        </div>
         <TextBlock text={china_production.overall} />
       </SectionCard>
 
       {/* 비중국 생산국 동향 */}
       <SectionCard title="비중국 생산국 동향" accent="INTL">
-        {non_china_context && <TextBlock text={non_china_context} />}
+        {non_china_context && <div className="non-china-summary"><TextBlock text={non_china_context} /></div>}
         {non_china.map((c) => (
           <div key={c.country} className="country-row">
-            <div className="country-header">
-              <span className="country-name">{c.country}</span>
-              <span className="country-producer">{c.producer}</span>
-            </div>
+            <span className="country-name">{c.country}</span>
+            {c.producer && <span className="country-producer">{c.producer}</span>}
             <p className="country-status">{c.status}</p>
             {(c as any).price_context && (
               <div className="country-price-tag">💲 {(c as any).price_context}</div>
@@ -246,13 +231,6 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           </div>
         ))}
       </SectionCard>
-
-      {/* 한국 수입 현황 */}
-      {korea_import && (
-        <SectionCard title="한국 수입 현황" accent="KR">
-          <TextBlock text={korea_import} />
-        </SectionCard>
-      )}
 
       {/* 시장 종합 및 전망 */}
       <SectionCard title="시장 종합 및 전망" accent="SUM">
@@ -598,6 +576,17 @@ const CSS = `
   .price-hero-change { font-family: var(--mono); font-size: 12px; font-weight: 500; }
   .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text2); }
 
+  .fob-price-tag {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    color: #1a2e1f;
+    background: var(--green-mid);
+    padding: 2px 8px; border-radius: 3px;
+  }
+  .non-china-summary {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border2);
+    margin-bottom: 4px;
+  }
   .price-hero-sub {
     display: flex; flex-wrap: wrap; gap: 12px;
     font-family: var(--mono); font-size: 11px; color: var(--text);
@@ -806,28 +795,34 @@ const CSS = `
   /* ── 바텀 네비 ── */
   .bottom-nav {
     display: flex;
-    background: var(--surface);
-    border-top: 2px solid var(--green-primary);
+    background: #1a2e1f;
+    border-top: none;
     position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
     width: 100%; max-width: 480px; z-index: 10;
-    box-shadow: 0 -2px 12px rgba(31,168,60,0.08);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
   }
 
   .nav-tab {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 10px 4px 12px; background: none; border: none;
-    color: var(--text3); cursor: pointer; transition: color 0.15s, background 0.15s;
-    gap: 3px; position: relative;
+    padding: 10px 4px 13px; background: none; border: none;
+    color: rgba(255,255,255,0.45); cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    gap: 4px; position: relative;
   }
-  .nav-tab::after {
-    content: ''; position: absolute; bottom: 0; left: 15%; right: 15%; height: 2px;
-    background: var(--green-primary); transform: scaleX(0); transition: transform 0.2s; border-radius: 2px 2px 0 0;
+  .nav-tab::before {
+    content: ''; position: absolute;
+    top: 0; left: 20%; right: 20%; height: 2px;
+    background: var(--green-primary); transform: scaleX(0);
+    transition: transform 0.2s; border-radius: 0 0 2px 2px;
   }
-  .nav-tab.active { color: var(--green-primary); background: var(--green-subtle); }
-  .nav-tab.active::after { transform: scaleX(1); }
+  .nav-tab.active {
+    color: #ffffff;
+    background: rgba(31,168,60,0.18);
+  }
+  .nav-tab.active::before { transform: scaleX(1); }
 
-  .nav-icon  { font-size: 17px; line-height: 1; }
-  .nav-label { font-size: 10px; font-family: var(--mono); font-weight: 500; }
+  .nav-icon  { font-size: 20px; line-height: 1; }
+  .nav-label { font-size: 9px; font-family: var(--mono); font-weight: 500; letter-spacing: 0.3px; color: inherit; }
 
   /* ── 스크롤바 ── */
   ::-webkit-scrollbar { width: 4px; }
