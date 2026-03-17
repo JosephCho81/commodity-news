@@ -107,8 +107,11 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 // ─── 탭 콘텐츠: 알루미늄 ──────────────────────────────────────────────────────
 function AluminumTab({ data }: { data: AluminumData }) {
   const { lme, scrap } = data;
+  const d = data as any;
   const isUp = lme.change != null && !String(lme.change).startsWith('-');
   const priceValid = isValidLmePrice(lme.price);
+  const verified = d.lme?.lme_verified === 'true' || d.lme?.lme_verified === true;
+  const verifySource = d.lme?.lme_verify_source ?? null;
 
   return (
     <div className="tab-content">
@@ -124,6 +127,14 @@ function AluminumTab({ data }: { data: AluminumData }) {
               전일 대비 {isUp ? '+' : ''}{formatNum(lme.change)} USD/톤
               {lme.change_pct ? ` (${lme.change_pct})` : ''}
             </span>
+          )}
+          {priceValid && (
+            <div className="lme-verify-row">
+              {verified
+                ? <span className="lme-verify-badge lme-verify-ok">✓ 교차검증 완료{verifySource ? ` · ${verifySource}` : ''}</span>
+                : <span className="lme-verify-badge lme-verify-warn">※ westmetall 단독 소스</span>
+              }
+            </div>
           )}
         </div>
         {lme.date && <span className="price-hero-date">기준: {lme.date}</span>}
@@ -723,6 +734,14 @@ const CSS = `
   /* ── 메인 ── */
   .app-main { flex: 1; overflow-y: auto; padding: 14px 14px 84px; }
   .tab-content { display: flex; flex-direction: column; gap: 10px; }
+
+  .lme-verify-row { margin-top: 4px; }
+  .lme-verify-badge {
+    font-family: var(--mono); font-size: 9px;
+    padding: 2px 7px; border-radius: 3px; display: inline-block;
+  }
+  .lme-verify-ok   { background: #e8f7ec; border: 1px solid var(--green-mid); color: var(--green-dark); }
+  .lme-verify-warn { background: #fef9f0; border: 1px solid #e67e22; color: #a05c00; }
 
   /* ── 가격 히어로 ── */
   .price-hero {
