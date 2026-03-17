@@ -276,6 +276,15 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
     || hasText(rprod.war_impact) || hasText(rprod.outlook)
     || rprod.annual_output || rprod.export_volume || hasText(rprod.main_importers);
 
+  // global_market 텍스트에서 USD/t 또는 USD/톤 앞의 숫자 추출 (참고가용)
+  const extractPriceHint = (text: string): string | null => {
+    if (!text) return null;
+    const m = text.match(/(\d{2,3}(?:\.\d+)?)\s*(?:USD\/[tT]|달러\/톤|USD\/톤)/);
+    return m ? m[1] : null;
+  };
+  const chinaHint = extractPriceHint(gm.current_level) || extractPriceHint(gm.key_drivers);
+  const russiaHint = rp.vs_china || null;
+
   return (
     <div className="tab-content">
 
@@ -290,9 +299,14 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
               ? <><span className="recab-price-val">{cp.fob_qinhuangdao}</span><span className="recab-price-unit"> USD/톤</span></>
               : cp.domestic_shanxi
                 ? <><span className="recab-price-val">{cp.domestic_shanxi}</span><span className="recab-price-unit"> CNY/톤</span></>
-                : <span className="recab-price-na">확인 중</span>
+                : chinaHint
+                  ? <><span className="recab-price-val">{chinaHint}</span><span className="recab-price-unit"> USD/톤</span></>
+                  : <span className="recab-price-na">시황 참고</span>
             }
           </div>
+          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && chinaHint && (
+            <div className="recab-price-ref">※ 시장 보도 참고가</div>
+          )}
           {cp.change && (
             <div className="recab-price-change" style={{ color: chinaDown ? 'var(--down)' : 'var(--up)' }}>
               {cp.change}
@@ -313,9 +327,12 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <div className="recab-price-box-main">
             {rp.fob_murmansk
               ? <><span className="recab-price-val">{rp.fob_murmansk}</span><span className="recab-price-unit"> USD/톤</span></>
-              : <span className="recab-price-na">확인 중</span>
+              : <span className="recab-price-na">시황 참고</span>
             }
           </div>
+          {!rp.fob_murmansk && russiaHint && (
+            <div className="recab-price-ref recab-price-ref--russia">{russiaHint}</div>
+          )}
           {rp.change && (
             <div className="recab-price-change" style={{ color: russiaDown ? 'var(--down)' : 'var(--up)' }}>
               {rp.change}
@@ -940,6 +957,15 @@ const CSS = `
   .recab-empty-icon { font-size: 32px; opacity: 0.4; }
   .recab-empty-text { font-size: 14px; font-weight: 600; color: var(--text2); }
   .recab-empty-sub  { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+  .recab-price-ref {
+    font-size: 10px; color: var(--text3); line-height: 1.5;
+    font-family: var(--sans); margin-top: 2px;
+  }
+  .recab-price-ref--russia {
+    font-size: 10px; color: #7a78a8; line-height: 1.5;
+    font-family: var(--sans); margin-top: 2px;
+  }
 
   /* ── 가탄제 가격 2박스 ── */
   .recab-price-grid {
