@@ -418,7 +418,7 @@ export default function App() {
           <div className="header-actions">
             {ageMin !== null && (
               <span className="cache-badge">
-                {meta?._cached ? `${formatAge(ageMin)} 업데이트` : '오늘 데이터'}
+                {new Date().toISOString().slice(0, 10)}
               </span>
             )}
           </div>
