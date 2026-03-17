@@ -173,12 +173,13 @@ function AluminumTab({ data }: { data: AluminumData }) {
 
 // ─── 탭 콘텐츠: 페로실리콘 ────────────────────────────────────────────────────
 function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
-  const { china_price, china_production, non_china, export_flows, market_summary } = data;
+  const { china_price, china_production, non_china, market_summary, non_china_context, korea_import } = data as any;
   return (
     <div className="tab-content">
+      {/* 가격 히어로 */}
       <div className="price-hero">
         <div className="price-hero-main">
-          <span className="price-hero-label">FeSi75 닝샤 현물가</span>
+          <span className="price-hero-label">페로실리콘 75 닝샤 현물가</span>
           {china_price.fesi75_ningxia
             ? <span className="price-hero-value">{china_price.fesi75_ningxia} <small>CNY/톤</small></span>
             : <span className="price-hero-na">가격 확인 중</span>
@@ -196,27 +197,41 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
         </div>
       </div>
 
-      <SectionCard title="가격 맥락" accent="CTX"><TextBlock text={china_price.price_context} /></SectionCard>
+      {/* 중국 시장 맥락 & 전망 */}
+      <SectionCard title="중국 시장 현황 및 전망" accent="CTX">
+        {china_price.china_context && <TextBlock text={china_price.china_context} />}
+        {china_price.china_outlook && (
+          <div className="outlook-box">
+            <span className="outlook-label">단기 전망</span>
+            <p className="outlook-text">{china_price.china_outlook}</p>
+          </div>
+        )}
+      </SectionCard>
 
+      {/* 중국 생산 현황 */}
       <SectionCard title="중국 생산 현황" accent="PROD">
         <div className="production-grid">
           <div className="prod-region">
-            <div className="prod-region-name">닝샤 寧夏</div>
+            <div className="prod-region-name">닝샤</div>
             <InfoRow label="전력" value={china_production.ningxia.power_situation} />
             {china_production.ningxia.utilization_rate && <InfoRow label="가동률" value={china_production.ningxia.utilization_rate} />}
             <InfoRow label="날씨" value={china_production.ningxia.weather_impact} />
           </div>
           <div className="prod-region">
-            <div className="prod-region-name">윈난 雲南</div>
-            <InfoRow label="전력" value={china_production.yunnan.power_situation} />
-            {china_production.yunnan.utilization_rate && <InfoRow label="가동률" value={china_production.yunnan.utilization_rate} />}
-            <InfoRow label="날씨" value={china_production.yunnan.weather_impact} />
+            <div className="prod-region-name">내몽골</div>
+            <InfoRow label="전력" value={china_production.neimenggu?.power_situation ?? china_production.yunnan?.power_situation} />
+            {(china_production.neimenggu?.utilization_rate ?? china_production.yunnan?.utilization_rate) && (
+              <InfoRow label="가동률" value={china_production.neimenggu?.utilization_rate ?? china_production.yunnan?.utilization_rate} />
+            )}
+            <InfoRow label="날씨" value={china_production.neimenggu?.weather_impact ?? china_production.yunnan?.weather_impact} />
           </div>
         </div>
         <TextBlock text={china_production.overall} />
       </SectionCard>
 
+      {/* 비중국 생산국 동향 */}
       <SectionCard title="비중국 생산국 동향" accent="INTL">
+        {non_china_context && <TextBlock text={non_china_context} />}
         {non_china.map((c) => (
           <div key={c.country} className="country-row">
             <div className="country-header">
@@ -224,19 +239,25 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
               <span className="country-producer">{c.producer}</span>
             </div>
             <p className="country-status">{c.status}</p>
+            {(c as any).price_context && (
+              <div className="country-price-tag">💲 {(c as any).price_context}</div>
+            )}
             <div className="country-flow-tag">→ {c.export_direction}</div>
           </div>
         ))}
       </SectionCard>
 
-      <SectionCard title="수출 방향 (한국·일본·EU·인도)" accent="FLOW">
-        <InfoRow label="한국" value={export_flows.korea} />
-        <InfoRow label="일본" value={export_flows.japan} />
-        <InfoRow label="EU" value={export_flows.eu} />
-        <InfoRow label="인도" value={export_flows.india} />
-      </SectionCard>
+      {/* 한국 수입 현황 */}
+      {korea_import && (
+        <SectionCard title="한국 수입 현황" accent="KR">
+          <TextBlock text={korea_import} />
+        </SectionCard>
+      )}
 
-      <SectionCard title="시장 종합 및 전망" accent="SUM"><TextBlock text={market_summary} /></SectionCard>
+      {/* 시장 종합 및 전망 */}
+      <SectionCard title="시장 종합 및 전망" accent="SUM">
+        <TextBlock text={market_summary} />
+      </SectionCard>
     </div>
   );
 }
@@ -636,6 +657,28 @@ const CSS = `
   .country-name     { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--green-dark); }
   .country-producer { font-size: 10px; color: var(--text3); }
   .country-status   { font-size: 12px; color: var(--text); line-height: 1.6; }
+  .outlook-box {
+    background: var(--green-subtle);
+    border-left: 3px solid var(--green-primary);
+    padding: 10px 12px;
+    border-radius: 0 4px 4px 0;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .outlook-label {
+    font-family: var(--mono); font-size: 9px; font-weight: 600;
+    color: var(--green-primary); letter-spacing: 1.5px; text-transform: uppercase;
+  }
+  .outlook-text { font-size: 12px; color: var(--text); line-height: 1.7; }
+
+  .country-price-tag {
+    font-family: var(--mono); font-size: 11px;
+    color: #1a2e1f; font-weight: 500;
+    background: var(--green-subtle);
+    border: 1px solid var(--green-mid);
+    padding: 3px 8px; border-radius: 3px;
+    display: inline-block; margin-top: 2px;
+  }
+
   .country-flow-tag {
     font-family: var(--mono); font-size: 10px; color: var(--green-primary);
     border: 1px solid var(--green-mid); background: var(--green-subtle);
