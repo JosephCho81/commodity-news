@@ -370,6 +370,59 @@ async function fetchScrapPrices() {
 }
 
 
+// ─── 일본 알루미늄 스크랩 가격 fetch (dokindokin.com - 오사카 스크랩 업체) ──────
+// 단위: 円/톤 (JPY/톤)
+async function fetchJapanScrapPrices() {
+  try {
+    const res = await fetch('https://www.dokindokin.com/scrap_type/aluminum/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html',
+        'Accept-Language': 'ja,en;q=0.9',
+      },
+    });
+    if (!res.ok) throw new Error(`dokindokin HTTP ${res.status}`);
+    const html = await res.text();
+
+    // 날짜 추출: "2026年03月17日現在"
+    const dateMatch = html.match(/(\d{4})年(\d{2})月(\d{2})日現在/);
+    const date = dateMatch
+      ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
+      : new Date().toISOString().slice(0, 10);
+
+    // 가격 추출: "440円/kg" → 440 × 1000 = 440,000 JPY/톤
+    const items = [
+      { key: 'アルミ（上）',    label: '6063 Extrusion (Clean, no attachments)' },
+      { key: 'アルミ（下）',    label: '6063 Extrusion (with attachments)' },
+      { key: 'アルミガラA',     label: 'Cast Aluminum A (pots/pans)' },
+      { key: 'アルミガラB',     label: 'Cast Aluminum B (mixed IH)' },
+      { key: 'アルミ缶（プレス）', label: 'UBC Pressed (Baled)' },
+      { key: 'アルミ缶',        label: 'UBC Loose' },
+      { key: 'アルミラジエーター', label: 'Aluminum Radiator' },
+    ];
+
+    const result = {};
+    for (const { key, label } of items) {
+      const idx = html.indexOf(key);
+      if (idx === -1) continue;
+      const segment = html.slice(idx, idx + 200);
+      // "440円/kg" 패턴
+      const m = segment.match(/<strong[^>]*>\s*(\d+)\s*<\/strong>\s*円\/kg/);
+      if (m) {
+        const perKg = parseInt(m[1], 10);
+        result[label] = perKg * 1000; // JPY/톤
+      }
+    }
+
+    console.log(`[dokindokin] 일본 스크랩 fetch 성공: ${Object.keys(result).length}개 (${date})`);
+    return { prices: result, date };
+  } catch (e) {
+    console.warn('[dokindokin] 일본 스크랩 fetch 실패:', e.message);
+    return null;
+  }
+}
+
+
 // ─── Perplexity 호출 ───────────────────────────────────────────────────────
 async function callPerplexity(prompt) {
   const res = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -466,11 +519,11 @@ const PROMPTS = {
       },
       {
         "region": "일본",
-        "key_grades": "UBC, 압출재 스크랩, 주물 스크랩",
-        "price_range": "최근 가격대 (JPY/kg 또는 USD/톤) 또는 방향성",
-        "price_driver": "일본 스크랩 수급: 엔화 환율 영향, 국내 소비 vs 수출 경쟁, 한국·동남아 바이어 동향 2~3문장",
-        "flow": "한국·동남아·인도 수출 현황",
-        "outlook": "일본 스크랩 단기 가격 전망 1~2문장"
+        "key_grades": "6063 Extrusion Clean, 6063 Extrusion w/attach, Cast Aluminum A, UBC Pressed, UBC Loose, Aluminum Radiator",
+        "price_range": "dokindokin.com 오사카 기준 주요 품목 가격 (JPY/톤). 예: アルミ上 440,000円/톤, UBC프레스 300,000円/톤, アルミガラA 280,000円/톤",
+        "price_driver": "일본 스크랩 가격 변동 이유: 엔화 환율 (LME 연동), 국내 건설경기·자동차 해체 물량, 한국·동남아 수입 수요, 계절적 발생량 변화 2~3문장",
+        "flow": "한국·동남아·인도 수출 현황 및 물동량 특이사항",
+        "outlook": "일본 스크랩 단기 가격 전망: 엔화 방향성, LME 연동 영향, 수출 수요 전망 1~2문장"
       }
     ]
   },
@@ -654,11 +707,13 @@ export default async function handler(req, res) {
     let lmeData = null;
     let outlookText = null;
     let scrapPrices = null;
+    let japanScrap = null;
     if (tab === 'aluminum') {
-      [lmeData, outlookText, scrapPrices] = await Promise.all([
+      [lmeData, outlookText, scrapPrices, japanScrap] = await Promise.all([
         fetchLmePrice(),
         fetchAluminumOutlook(),
         fetchScrapPrices(),
+        fetchJapanScrapPrices(),
       ]);
     }
 
@@ -670,19 +725,25 @@ export default async function handler(req, res) {
       if (scrapPrices?.us && Object.keys(scrapPrices.us).length > 0) {
         context += `\n[미국 알루미늄 스크랩 실제 가격 (USD/톤, scrapmonster.com 기준, USD/lb에서 환산)]\n`;
         for (const [k, v] of Object.entries(scrapPrices.us)) {
-          context += `${k}: $${v}/톤\n`;
+          context += `${k}: $${v.toLocaleString('en-US')}/톤\n`;
         }
       }
       if (scrapPrices?.eu && Object.keys(scrapPrices.eu).length > 0) {
         context += `\n[유럽 알루미늄 스크랩 실제 가격 (USD/톤, scrapmonster.com 기준)]\n`;
         for (const [k, v] of Object.entries(scrapPrices.eu)) {
-          context += `${k}: $${v}/톤\n`;
+          context += `${k}: $${v.toLocaleString('en-US')}/톤\n`;
         }
       }
       if (scrapPrices?.cn && Object.keys(scrapPrices.cn).length > 0) {
         context += `\n[중국 알루미늄 스크랩 실제 가격 (CNY/톤, scrapmonster.com 기준)]\n`;
         for (const [k, v] of Object.entries(scrapPrices.cn)) {
-          context += `${k}: ${v} CNY/톤\n`;
+          context += `${k}: ${v.toLocaleString('en-US')} CNY/톤\n`;
+        }
+      }
+      if (japanScrap?.prices && Object.keys(japanScrap.prices).length > 0) {
+        context += `\n[Japan Aluminum Scrap Prices (JPY/톤, dokindokin.com Osaka basis, ${japanScrap.date})]\n`;
+        for (const [k, v] of Object.entries(japanScrap.prices)) {
+          context += `${k}: ${v.toLocaleString('en-US')}円/톤\n`;
         }
       }
       prompt = PROMPTS[tab] + context;
