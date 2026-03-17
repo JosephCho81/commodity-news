@@ -180,10 +180,17 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
       <div className="price-hero">
         {(() => {
           const m = china_price.fob_tianjin_monthly as any;
-          const latestKey = m?.['2026_03'] && m['2026_03'] !== '미확인' ? '2026_03'
-            : m?.['2026_02'] && m['2026_02'] !== '미확인' ? '2026_02' : '2026_01';
-          const latestVal = m?.[latestKey];
-          const latestLabel = latestKey === '2026_03' ? '26년 3월' : latestKey === '2026_02' ? '26년 2월' : '26년 1월';
+          const isValid = (v: any) => v && !String(v).includes('미확인') && !String(v).includes('검색');
+          // 가장 최신 유효한 키 찾기
+          const validEntries = Object.entries(m || {})
+            .filter(([, v]) => isValid(v))
+            .sort(([a], [b]) => b.localeCompare(a));
+          const latestKey = validEntries[0]?.[0] ?? '';
+          const latestVal = validEntries[0]?.[1] ?? null;
+          const latestParts = latestKey ? latestKey.split('_') : [];
+          const latestLabel = latestParts.length === 2
+            ? `${latestParts[0].slice(2)}년 ${parseInt(latestParts[1], 10)}월`
+            : '';
           // 가격에서 "FOB 천진항" 등 중복 텍스트 제거, 숫자 범위만 추출
           const cleanPrice = latestVal
             ? latestVal.replace(/\(.*?\)/g, '').replace(/FOB.*기준/g, '').replace(/USD\/톤/g, '').trim()
@@ -200,34 +207,33 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
             </div>
           );
         })()}
-        {/* 월별 칩 */}
+        {/* 월별 칩 - 동적으로 최근 3개월 */}
         <div className="fob-monthly-row">
           {(() => {
             const m = china_price.fob_tianjin_monthly as any;
-            return ['2026_01','2026_02','2026_03'].map(k => {
-              const label = k === '2026_01' ? '1월' : k === '2026_02' ? '2월' : '3월';
-              const val = m?.[k];
-              if (!val) return null;
-              // 숫자 범위만 추출
-              const numMatch = val.match(/([\d,]+~[\d,]+)/);
-              const displayVal = numMatch ? numMatch[1] : val.replace(/\(.*?\)/g,'').replace(/FOB.*기준/g,'').replace(/USD\/톤/g,'').trim();
-              return (
-                <div key={k} className="fob-month-chip">
-                  <span className="fob-month-label">2026년 {label}</span>
-                  <span className="fob-month-price">{displayVal}</span>
-                </div>
-              );
-            });
+            if (!m) return null;
+            return Object.entries(m)
+              .filter(([, v]) => v && !String(v).includes('미확인') && !String(v).includes('검색'))
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([k, val]) => {
+                const parts = k.split('_');
+                const yr = parts[0];
+                const mo = parseInt(parts[1], 10);
+                const numMatch = String(val).match(/([\d,]+~[\d,]+)/);
+                const displayVal = numMatch ? numMatch[1] : String(val).replace(/\(.*?\)/g,'').replace(/FOB.*기준/g,'').replace(/USD\/톤/g,'').trim();
+                return (
+                  <div key={k} className="fob-month-chip">
+                    <span className="fob-month-label">{yr}년 {mo}월</span>
+                    <span className="fob-month-price">{displayVal}</span>
+                  </div>
+                );
+              });
           })()}
         </div>
         <div className="fob-unit-row">
           <span className="fob-unit-label">USD/톤</span>
         </div>
-        {china_price.fesi75_ningxia && !String(china_price.fesi75_ningxia).includes('USD') && (
-          <div className="price-hero-sub">
-            <span>닝샤 내수가: {china_price.fesi75_ningxia} CNY/톤</span>
-          </div>
-        )}
+
       </div>
 
       {/* 중국 시장 맥락 & 전망 */}
