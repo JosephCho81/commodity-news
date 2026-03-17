@@ -604,41 +604,41 @@ const PROMPTS = {
 
 【절대 규칙】
 - 모든 텍스트 필드(string)는 반드시 실제 내용을 작성하세요. "" 또는 "정보 없음" 금지.
-- 가격은 반드시 찾아서 채우세요. 석탄·무연탄 가격은 인터넷에 무조건 존재합니다.
-- 공식 인덱스 없으면 → 기업 홈페이지, 트레이딩 회사 고시가, 뉴스 보도 인용가 모두 허용.
-- 가격을 끝까지 못 찾은 경우에만 null. "확인 중" 같은 텍스트 절대 금지.
+- 가격 필드는 숫자만 입력하세요. 단위·설명 금지. 예: "135" (O), "135 USD/톤" (X), "약 135" (X)
+- 가격을 찾으면 반드시 해당 필드에 숫자로 기재. 텍스트 설명 안에만 넣고 필드를 null로 두는 것 금지.
+- 끝까지 못 찾은 경우에만 null 허용.
 
-【중국 무연탄 가격 — 아래 순서로 반드시 검색】
-1. sunsirs.com/h5/MovementTrend.aspx?goodsId=76 (三生재경 무연탄)
-2. 검색: "China anthracite price per ton 2026" 
-3. 검색: "친황다오 무연탄 FOB 가격" 또는 "Qinhuangdao anthracite FOB USD"
-4. 검색: "anthracite coal price March 2026"
-5. coalspot.com, steelorbis.com, metalbulletin.com 무연탄 섹션
-6. 한국 수입업체/트레이딩사 보도자료, 관세청 수입통계 인용가
-→ 위 중 하나라도 찾으면 기재. 참고: 중국 무연탄 FOB는 보통 100~180 USD/톤 범위
+【중국 무연탄 가격 검색 — 순서대로 시도】
+1. 검색: "China anthracite FOB Qinhuangdao price 2026"
+2. 검색: "칭황다오 무연탄 수출가 2026" 또는 "친황다오 석탄 FOB"
+3. 검색: "anthracite coal price per ton March 2026"
+4. coalspot.com, steelorbis.com, sunsirs.com 무연탄 시세
+5. 뉴스·보도에서 인용된 가격 수치 (예: "135 USD/톤" 같은 구체적 수치)
+→ 찾은 가격을 fob_qinhuangdao 또는 domestic_shanxi 필드에 숫자로 기재
+→ 참고 범위: FOB 100~180 USD/톤, 국내 현물 700~1000 CNY/톤
 
-【러시아 안트라사이트 가격 — 아래 순서로 반드시 검색】
-1. 검색: "Russia anthracite price 2026" 또는 "Russian anthracite export price"
-2. 검색: "SUEK anthracite price" 또는 "러시아 안트라사이트 수출가"
-3. Argus Media Russia coal, coalspot.com Russia section
-4. 인도·한국 수입 단가 보도 (예: "India anthracite import price Russia")
-5. 트레이딩사 게시가, 업계 포럼 인용가
-→ 참고: 러시아 안트라사이트 FOB는 보통 80~150 USD/톤 범위
+【러시아 안트라사이트 가격 검색 — 순서대로 시도】
+1. 검색: "Russia anthracite export price 2026"
+2. 검색: "Russian anthracite FOB price USD per ton"
+3. 검색: "SUEK anthracite price" 또는 "러시아 안트라사이트 수출가"
+4. 인도·한국 수입 단가 보도에서 러시아산 가격 인용 수치
+→ 찾은 가격을 fob_murmansk 필드에 숫자로 기재
+→ 참고 범위: FOB 80~150 USD/톤
 
 {
   "china_price": {
-    "fob_qinhuangdao": "중국 무연탄 FOB 친황다오 수출가 (USD/톤) — 반드시 찾아서 기재. 예: 145, 못 찾으면 null",
-    "cif_korea": "한국향 CIF 가격 (USD/톤) — 반드시 찾아서 기재. 못 찾으면 null",
-    "domestic_shanxi": "산시성 국내 현물가 (CNY/톤) — 반드시 찾아서 기재. 못 찾으면 null",
-    "calcined_cac_fob": "하소 안트라사이트 CAC FOB (USD/톤) — 못 찾으면 null",
+    "fob_qinhuangdao": "숫자만. 예: 135 (못 찾으면 null)",
+    "cif_korea": "숫자만. 예: 148 (못 찾으면 null)",
+    "domestic_shanxi": "숫자만 CNY/톤. 예: 850 (못 찾으면 null)",
+    "calcined_cac_fob": "숫자만 USD/톤. 못 찾으면 null",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "change": "전주 대비 변동 — 못 찾으면 null"
+    "change": "예: -2 USD/톤 또는 -1.5% (못 찾으면 null)"
   },
   "russia_price": {
-    "fob_murmansk": "러시아 안트라사이트 FOB 수출가 (USD/톤) — 반드시 찾아서 기재. 예: 110, 못 찾으면 null",
-    "cif_korea": "한국향 CIF (USD/톤) — 못 찾으면 null",
+    "fob_murmansk": "숫자만. 예: 110 (못 찾으면 null)",
+    "cif_korea": "숫자만. 예: 125 (못 찾으면 null)",
     "date": "가격 기준일 (YYYY-MM-DD)",
-    "change": "전주/전월 대비 변동 — 못 찾으면 null",
+    "change": "전주/전월 대비 변동 (못 찾으면 null)",
     "vs_china": "러시아산 vs 중국산 가격 격차 한 줄 요약 — 반드시 작성"
   },
   "global_market": {
