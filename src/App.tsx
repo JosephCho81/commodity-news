@@ -882,5 +882,5 @@ const CSS = `
     .production-grid { grid-template-columns: 1fr; }
     .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
   }
-`;
+`; 
 
