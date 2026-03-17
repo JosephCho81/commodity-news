@@ -276,13 +276,8 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
     || hasText(rprod.war_impact) || hasText(rprod.outlook)
     || rprod.annual_output || rprod.export_volume || hasText(rprod.main_importers);
 
-  // global_market 텍스트에서 USD/t 또는 USD/톤 앞의 숫자 추출 (참고가용)
-  const extractPriceHint = (text: string): string | null => {
-    if (!text) return null;
-    const m = text.match(/(\d{2,3}(?:\.\d+)?)\s*(?:USD\/[tT]|달러\/톤|USD\/톤)/i);
-    return m ? m[1] : null;
-  };
-  const chinaHint = extractPriceHint(gm.current_level) || extractPriceHint(gm.key_drivers);
+  // price_range_text 우선 표시 (숫자 자동 추출 제거 — 오추출 방지)
+  const chinaHint: string | null = null;
   const russiaHint = hasText(rp.vs_china) ? rp.vs_china : null;
 
   return (
