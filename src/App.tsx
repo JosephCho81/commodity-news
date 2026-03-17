@@ -154,12 +154,12 @@ function AluminumTab({ data }: { data: AluminumData }) {
         <div className="region-list">
           {scrap.regions.map((r) => (
             <div key={r.region} className="region-item">
-              <div className="region-item-header">
+              <div className="region-title-row">
                 <span className="region-name">{r.region}</span>
-                {r.price_range && r.price_range !== 'null' && (
-                  <span className="region-price">{r.price_range}</span>
-                )}
               </div>
+              {r.price_range && r.price_range !== 'null' && (
+                <div className="region-price-row">{r.price_range}</div>
+              )}
               {r.key_grades && <div className="region-grades-line">{r.key_grades}</div>}
               {r.price_driver && <p className="region-driver">{r.price_driver}</p>}
               {r.flow && <p className="region-flow-text">📦 {r.flow}</p>}
@@ -353,7 +353,7 @@ function SummaryTab({ data }: { data: SummaryData }) {
 
 // ─── 메인 앱 ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabId>('summary');
+  const [activeTab, setActiveTab] = useState<TabId>('aluminum');
   const [data, setData] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState<Record<TabId, boolean>>({
     aluminum: false, ferrosilicon: false, recarburizer: false, summary: false,
@@ -725,14 +725,40 @@ const CSS = `
 
   /* ── 지역 리스트 ── */
   .region-list { display: flex; flex-direction: column; }
-  .region-item { padding: 12px 0; border-bottom: 1px solid var(--border2); display: flex; flex-direction: column; gap: 5px; }
+  .region-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border2);
+    display: flex; flex-direction: column; gap: 6px;
+  }
   .region-item:last-child { border-bottom: none; }
-  .region-item-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .region-name        { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green-primary); }
-  .region-price       { font-family: var(--mono); font-size: 11px; color: var(--green-dark); font-weight: 500; }
-  .region-grades-line { font-family: var(--mono); font-size: 10px; color: var(--text3); }
-  .region-driver      { font-size: 12px; color: var(--text); line-height: 1.7; }
-  .region-flow-text   { font-size: 11px; color: var(--text2); line-height: 1.6; }
+
+  .region-title-row {
+    display: flex; align-items: center; gap: 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--green-mid);
+    margin-bottom: 2px;
+  }
+  .region-name {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: var(--green-dark);
+    letter-spacing: 0.5px;
+  }
+  .region-price-row {
+    font-family: var(--mono); font-size: 12px;
+    color: #1a2e1f; font-weight: 600;
+    background: var(--green-subtle);
+    border: 1px solid var(--green-mid);
+    padding: 5px 10px;
+    border-radius: 3px;
+    line-height: 1.6;
+  }
+  .region-grades-line {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--text3);
+    padding: 2px 0;
+  }
+  .region-driver { font-size: 12px; color: var(--text); line-height: 1.75; }
+  .region-flow-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
 
   /* ── 바텀 네비 ── */
   .bottom-nav {
