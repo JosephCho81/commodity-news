@@ -207,32 +207,7 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
             </div>
           );
         })()}
-        {/* 월별 칩 - 동적으로 최근 3개월 */}
-        <div className="fob-monthly-row">
-          {(() => {
-            const m = china_price.fob_tianjin_monthly as any;
-            if (!m) return null;
-            return Object.entries(m)
-              .filter(([, v]) => v && !String(v).includes('미확인') && !String(v).includes('검색'))
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([k, val]) => {
-                const parts = k.split('_');
-                const yr = parts[0];
-                const mo = parseInt(parts[1], 10);
-                const numMatch = String(val).match(/([\d,]+~[\d,]+)/);
-                const displayVal = numMatch ? numMatch[1] : String(val).replace(/\(.*?\)/g,'').replace(/FOB.*기준/g,'').replace(/USD\/톤/g,'').trim();
-                return (
-                  <div key={k} className="fob-month-chip">
-                    <span className="fob-month-label">{yr}년 {mo}월</span>
-                    <span className="fob-month-price">{displayVal}</span>
-                  </div>
-                );
-              });
-          })()}
-        </div>
-        <div className="fob-unit-row">
-          <span className="fob-unit-label">USD/톤</span>
-        </div>
+
 
       </div>
 
@@ -611,29 +586,8 @@ const CSS = `
   .price-hero-change { font-family: var(--mono); font-size: 12px; font-weight: 500; }
   .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text2); }
 
-  .fob-unit-row {
-    padding-top: 4px;
-  }
-  .fob-unit-label {
-    font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.5px;
-  }
-  .fob-monthly-row {
-    display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px;
-    border-top: 1px solid var(--border2); margin-top: 4px;
-  }
-  .fob-month-chip {
-    display: flex; flex-direction: column; gap: 2px;
-    background: var(--green-subtle); border: 1px solid var(--green-mid);
-    padding: 6px 10px; border-radius: 4px; flex: 1; min-width: 0;
-  }
-  .fob-month-label {
-    font-family: var(--mono); font-size: 9px; color: var(--text3);
-    letter-spacing: 0.5px;
-  }
-  .fob-month-price {
-    font-family: var(--mono); font-size: 12px; font-weight: 600; color: #1a2e1f;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
+
+
   .fob-price-tag {
     font-family: var(--mono); font-size: 11px; font-weight: 600;
     color: #1a2e1f;
@@ -888,5 +842,5 @@ const CSS = `
     .production-grid { grid-template-columns: 1fr; }
     .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
   }
-`; 
+`;
 
