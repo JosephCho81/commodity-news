@@ -250,6 +250,89 @@ async function fetchLmePrice() {
   }
 }
 
+// ─── Trading Economics 전망 텍스트 fetch ──────────────────────────────────────
+async function fetchAluminumOutlook() {
+  try {
+    const res = await fetch('https://tradingeconomics.com/commodity/aluminum', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+    if (!res.ok) throw new Error(`TE HTTP ${res.status}`);
+    const html = await res.text();
+
+    // <h2> 태그의 첫 번째 시황 텍스트 추출
+    const h2Match = html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/g);
+    if (!h2Match) throw new Error('TE: h2 없음');
+
+    // 텍스트 정리 (HTML 태그 제거)
+    const texts = h2Match
+      .map(h => h.replace(/<[^>]+>/g, '').trim())
+      .filter(t => t.length > 50);
+
+    if (texts.length === 0) throw new Error('TE: 텍스트 없음');
+
+    console.log(`[TE] 전망 텍스트 fetch 성공 (${texts[0].slice(0, 50)}...)`);
+    return texts.slice(0, 2).join(' ');
+  } catch (e) {
+    console.warn('[TE] 전망 fetch 실패:', e.message);
+    return null;
+  }
+}
+
+// ─── ScrapMonster 스크랩 가격 fetch ────────────────────────────────────────────
+async function fetchScrapPrices() {
+  try {
+    const res = await fetch('https://www.scrapmonster.com/scrap-prices/category/Aluminum-Scrap/116/1/1', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html',
+      },
+    });
+    if (!res.ok) throw new Error(`ScrapMonster HTTP ${res.status}`);
+    const html = await res.text();
+
+    // 미국 주요 품목 파싱 (USD/lb)
+    const usMatches = {};
+    const usItems = ['Zorba 90% NF', '6063 Extrusions', 'UBC', 'Old Sheet', '5052 Scrap'];
+    for (const item of usItems) {
+      const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(escaped + '[\s\S]{0,200}?([\d]+\.[\d]+)\s*\(', 'i');
+      const m = html.match(re);
+      if (m) usMatches[item] = parseFloat(m[1]);
+    }
+
+    // 유럽 주요 품목 파싱 (USD/Tonne)
+    const euMatches = {};
+    const euItems = ['Aluminum Cuttings', 'UBC', 'Old Cast', 'Mixed Aluminum Turnings'];
+    for (const item of euItems) {
+      const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(escaped + '[\s\S]{0,300}?([\d,]+\.\d+)\s*\|\s*\$US\/Tonne', 'i');
+      const m = html.match(re);
+      if (m) euMatches[item] = parseFloat(m[1].replace(/,/g, ''));
+    }
+
+    // 중국 주요 품목 파싱 (CNY/MT)
+    const cnMatches = {};
+    const cnItems = ['6063 Extrusions', 'Old Cast', 'Old Sheet', 'UBC'];
+    for (const item of cnItems) {
+      const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(escaped + '[\s\S]{0,300}?([\d,]+\.\d+)\s*\|\s*-?[\d,]+\s*\|\s*-?[\d.]+%\s*\|\s*CNY\/MT', 'i');
+      const m = html.match(re);
+      if (m) cnMatches[item] = parseFloat(m[1].replace(/,/g, ''));
+    }
+
+    const result = { us: usMatches, eu: euMatches, cn: cnMatches };
+    console.log('[ScrapMonster] fetch 성공:', JSON.stringify(result).slice(0, 100));
+    return result;
+  } catch (e) {
+    console.warn('[ScrapMonster] fetch 실패:', e.message);
+    return null;
+  }
+}
+
 // ─── Perplexity 호출 ───────────────────────────────────────────────────────
 async function callPerplexity(prompt) {
   const res = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -298,60 +381,64 @@ const PROMPTS = {
 
   aluminum: `오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
 
-【중요 지침】
-- LME 가격(price, change, change_pct, date)은 별도로 제공되므로 JSON에서 제외하세요. 텍스트 분석만 작성.
+【지침】
+- LME 가격은 별도로 주입되므로 price/change/date 필드는 null로 두세요.
+- 스크랩 가격은 scrapmonster.com 기준으로 작성하세요.
 - [1][2] 각주 번호 절대 금지.
-- 스크랩 가격: metal.com/aluminum-scrap, scrapmonster.com, AMM, Fastmarkets 기준 실제 확인된 가격대.
-- 확인 불가 숫자는 null, 불확실한 추정치 금지.
+- 텍스트는 한국어로 작성하세요.
 
 {
   "lme": {
-    "price": "숫자만 (예: 2485.50) — lme.com 최신 공식가 USD/톤. 반드시 실제 값.",
-    "change": "전일 대비 변동액 숫자만 (예: 12.50 또는 -8.00)",
-    "change_pct": "전일 대비 변동률 (예: +0.52%)",
-    "date": "가격 기준일 (YYYY-MM-DD)",
-    "move_reason": "오늘 가격 변동 이유 — 달러 인덱스, LME 재고 증감, 중국 수요, 미국 관세, 에너지 가격 등 실제 요인 2~3문장",
+    "price": null,
+    "change": null,
+    "change_pct": null,
+    "date": null,
+    "move_reason": "오늘 LME 알루미늄 가격 변동 이유 — 달러 인덱스, LME 재고 증감, 중국 수요, 중동 공급 차질, 미국 관세 등 실제 요인 2~3문장",
     "market_status": "현재 시장 상황 — LME 재고 톤수, 글로벌 수요 동향, 중국 생산/수출 현황 2~3문장",
-    "outlook": "가격 전망 — 단기 상승/하락 압력 요인과 방향성 2~3문장"
+    "outlook": "가격 전망 — 단기 상승/하락 압력 요인과 방향성 2~3문장. tradingeconomics.com 등 시장 전문가 전망 포함"
   },
   "scrap": {
-    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩 시장 전반 요약. 미국 관세 영향, 중국 수요, 물류 변화 등 포함 (3~4문장 구체적으로)",
-    "us_premium": "미국 P1020A 프리미엄 최신 분기 발표치 (USc/lb, 기준분기 명시, 예: 2026 Q1: 21.0 USc/lb)",
-    "eu_premium": "유럽 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 기준분기 명시)",
-    "japan_premium": "일본 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 기준분기 명시)",
+    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩 시장 전반 요약 3~4문장. 수급 변화, 주요 이슈 포함",
+    "us_premium": "미국 P1020A 프리미엄 최신 분기 발표치 (USc/lb, 분기 명시)",
+    "eu_premium": "유럽 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 분기 명시)",
+    "japan_premium": "일본 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 분기 명시)",
     "regions": [
       {
         "region": "미국",
-        "key_grades": "Zorba, Taint/Tabor, Twitch, 356 cast",
-        "price_range": "최근 실제 가격대 (USD/톤 또는 USc/lb). metal.com·AMM·scrapmonster 기준. 예: Zorba $1,450~1,520/톤",
-        "price_driver": "가격 변동 주요 원인: 미국 내 스크랩 공급량, 중국 수입 수요, 관세 영향, 달러 강세/약세 등 구체적으로 2~3문장",
-        "flow": "주요 수출 방향 (중국, 한국, 인도 등) 및 물동량 특이사항"
+        "key_grades": "Zorba, 6063 Extrusions, UBC, Old Sheet, 5052",
+        "price_range": "scrapmonster.com 기준 주요 품목 가격 (USD/lb). 예: Zorba $0.79/lb, 6063 $0.99/lb, UBC $0.86/lb",
+        "price_driver": "미국 스크랩 가격 변동 이유: 관세 영향, 중국 수입 수요, 달러 강세/약세, 국내 공급량 변화 2~3문장",
+        "flow": "주요 수출 방향 및 물동량 특이사항",
+        "outlook": "미국 스크랩 단기 가격 전망 1~2문장"
       },
       {
         "region": "유럽",
-        "key_grades": "Old Alloy, Tense, 6063 extrusion scrap",
-        "price_range": "최근 가격대 (EUR/톤 또는 USD/톤) 또는 방향성",
-        "price_driver": "유럽 스크랩 수급 상황: 자동차 해체 물량, 건설경기, 에너지 비용, 아시아 수출 경쟁 등 2~3문장",
-        "flow": "아시아·터키 수출 동향"
+        "key_grades": "Aluminum Cuttings, UBC, Old Cast, Mixed Turnings",
+        "price_range": "scrapmonster.com 기준 주요 품목 가격 (USD/톤). 예: Cuttings $1,350/톤, UBC $1,250/톤",
+        "price_driver": "유럽 스크랩 수급: 자동차 해체, 건설경기, 에너지 비용, 아시아 수출 경쟁 2~3문장",
+        "flow": "아시아·터키 수출 동향",
+        "outlook": "유럽 스크랩 단기 가격 전망 1~2문장"
+      },
+      {
+        "region": "중국",
+        "key_grades": "6063 Extrusions, Old Cast, Old Sheet, UBC, Zorba",
+        "price_range": "scrapmonster.com 기준 주요 품목 가격 (CNY/톤). 예: 6063 19,500 CNY/톤, Old Cast 19,300 CNY/톤",
+        "price_driver": "중국 내 스크랩 수급: 국내 소비 vs 수입 경쟁, 환경 규제, 제련소 가동률 변화 2~3문장",
+        "flow": "주요 수입국 및 물동량 방향",
+        "outlook": "중국 스크랩 단기 가격 전망 1~2문장"
       },
       {
         "region": "일본",
-        "key_grades": "UBC (Used Beverage Can), 압출재 스크랩, 주물 스크랩",
+        "key_grades": "UBC, 압출재 스크랩, 주물 스크랩",
         "price_range": "최근 가격대 (JPY/kg 또는 USD/톤) 또는 방향성",
         "price_driver": "일본 스크랩 수급: 엔화 환율 영향, 국내 소비 vs 수출 경쟁, 한국·동남아 바이어 동향 2~3문장",
-        "flow": "한국·동남아·인도 수출 현황"
-      },
-      {
-        "region": "중동",
-        "key_grades": "Mixed alloy, UBC",
-        "price_range": "최근 가격대 또는 방향성",
-        "price_driver": "중동 스크랩 발생량, 역내 제련소 수요, 아시아 수출 경쟁 2~3문장",
-        "flow": "인도·아시아 수출 동향"
+        "flow": "한국·동남아·인도 수출 현황",
+        "outlook": "일본 스크랩 단기 가격 전망 1~2문장"
       }
     ]
   },
   "updated_at": "응답 생성 시각 (ISO 8601)"
-}`,
+}`
 
   ferrosilicon: `오늘 날짜 기준으로 페로실리콘(FeSi) 시장 인텔리전스를 JSON으로 반환하세요.
 
@@ -526,15 +613,46 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── 2. LME 가격 직접 fetch (aluminum 탭만) ────────────────────────────
+    // ── 2. aluminum 탭 전용 데이터 직접 fetch ────────────────────────────
     let lmeData = null;
+    let outlookText = null;
+    let scrapPrices = null;
     if (tab === 'aluminum') {
-      lmeData = await fetchLmePrice();
+      [lmeData, outlookText, scrapPrices] = await Promise.all([
+        fetchLmePrice(),
+        fetchAluminumOutlook(),
+        fetchScrapPrices(),
+      ]);
     }
 
-    // ── 3. Perplexity 호출 (텍스트 시황만) ────────────────────────────────
+    // ── 3. Perplexity 호출 — 스크랩/전망 데이터 컨텍스트 주입 ────────────
+    let prompt = PROMPTS[tab];
+    if (tab === 'aluminum') {
+      let context = '\n\n【실시간 수집 데이터 — 반드시 아래 수치를 본문에 반영하세요】\n';
+      if (outlookText) context += `\n[가격 전망 참고 텍스트]\n${outlookText}\n`;
+      if (scrapPrices?.us && Object.keys(scrapPrices.us).length > 0) {
+        context += `\n[미국 알루미늄 스크랩 실제 가격 (USD/lb, scrapmonster.com 기준)]\n`;
+        for (const [k, v] of Object.entries(scrapPrices.us)) {
+          context += `${k}: $${v}/lb\n`;
+        }
+      }
+      if (scrapPrices?.eu && Object.keys(scrapPrices.eu).length > 0) {
+        context += `\n[유럽 알루미늄 스크랩 실제 가격 (USD/톤, scrapmonster.com 기준)]\n`;
+        for (const [k, v] of Object.entries(scrapPrices.eu)) {
+          context += `${k}: $${v}/톤\n`;
+        }
+      }
+      if (scrapPrices?.cn && Object.keys(scrapPrices.cn).length > 0) {
+        context += `\n[중국 알루미늄 스크랩 실제 가격 (CNY/톤, scrapmonster.com 기준)]\n`;
+        for (const [k, v] of Object.entries(scrapPrices.cn)) {
+          context += `${k}: ${v} CNY/톤\n`;
+        }
+      }
+      prompt = PROMPTS[tab] + context;
+    }
+
     console.log(`[Perplexity] 호출 시작: ${tab}`);
-    const raw = await callPerplexity(PROMPTS[tab]);
+    const raw = await callPerplexity(prompt);
 
     let parsed;
     try {
