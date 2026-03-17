@@ -91,30 +91,88 @@ export interface FerrosiliconData extends ApiMeta {
 // ─── 가탄제 탭 ────────────────────────────────────────────────────────────────
 export interface RecarburizerData extends ApiMeta {
   china_price: {
-    anthracite_shanxi: string | null;
-    anthracite_guizhou: string | null;
-    calcined_anthracite: string | null;
+    fob_qinhuangdao: string | null;
+    cif_korea: string | null;
+    domestic_shanxi: string | null;
+    calcined_cac_fob: string | null;
     date: string | null;
     change: string | null;
-    price_context: string;
+    // 구 필드 하위 호환
+    anthracite_shanxi?: string | null;
+    anthracite_guizhou?: string | null;
+    calcined_anthracite_cac?: string | null;
+    cpc_fob_china?: string | null;
+    price_context?: string;
+    price_outlook?: string | null;
+  };
+  russia_price: {
+    fob_murmansk: string | null;
+    cif_korea: string | null;
+    date: string | null;
+    change: string | null;
+    vs_china: string | null;
+  };
+  global_market: {
+    headline: string;
+    current_level: string;
+    key_drivers: string;
+    outlook: string;
   };
   china_production: {
-    mining_status: string;
-    processing_status: string;
-    policy_impact: string;
+    annual_output: string | null;
+    annual_consumption: string | null;
+    export_volume: string | null;
+    import_volume: string | null;
+    production_status: string;
+    cbam_carbon: string;
+    policy: string;
+    outlook: string;
+    // 구 필드 하위 호환
+    mining_status?: string;
+    processing_status?: string;
+    policy_impact?: string;
+    overall?: string;
+    mining_regions?: Array<{ region: string; utilization_rate: string | null; status: string; policy_impact: string }>;
   };
-  russia: {
-    export_volume: string;
+  russia_production: {
+    annual_output: string | null;
+    export_volume: string | null;
+    main_importers: string;
+    production_status: string;
     sanctions_impact: string;
-    price_competitiveness: string;
+    war_impact: string;
+    outlook: string;
   };
-  asia_flows: Array<{
+  asia_flows: {
+    available: boolean;
+    note?: string;
+    flows: Array<{
+      importer: string;
+      main_sources: string;
+      volume_trend: string;
+      price_trend: string;
+    }>;
+  } | Array<{
+    // 구 필드 하위 호환
     importer: string;
     main_sources: string;
     volume_trend: string;
     price_trend: string;
   }>;
   market_summary: string;
+  // 구 필드 하위 호환
+  russia?: {
+    export_volume: string;
+    sanctions_impact: string;
+    fob_price?: string | null;
+    price_competitiveness: string;
+  };
+  korea_import?: {
+    monthly_volume: string | null;
+    avg_unit_price: string | null;
+    source_mix: string;
+    trend: string;
+  };
 }
 
 // ─── 시황 종합 탭 ─────────────────────────────────────────────────────────────
