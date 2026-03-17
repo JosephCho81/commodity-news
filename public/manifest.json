@@ -1,0 +1,24 @@
+{
+  "name": "(주)한국에이원 원자재 뉴스",
+  "short_name": "에이원 원자재",
+  "description": "비철금속·부원료 전문 시황 브리핑",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f8f6",
+  "theme_color": "#1fa83c",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
