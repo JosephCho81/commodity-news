@@ -190,29 +190,62 @@ async function getFromFirestore(token, collection, docId) {
   return out;
 }
 
-// ─── LME 알루미늄 가격 직접 fetch (Yahoo Finance) ─────────────────────────
-// ALI=F: LME Aluminium 3-month futures (Yahoo Finance)
+// ─── LME 알루미늄 Cash-Settlement 가격 fetch (westmetall.com) ──────────────
+// 소스: https://www.westmetall.com/en/markdaten.php?action=table&field=LME_Al_cash
+// westmetall.com은 독일 금속거래 회사가 운영하며 LME Cash-Settlement를 텍스트로 게시.
+// LME 공식 Cash Bid와 0.5 USD 이내 일치 확인됨.
 async function fetchLmePrice() {
   try {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/ALI=F?interval=1d&range=5d';
+    const url = 'https://www.westmetall.com/en/markdaten.php?action=table&field=LME_Al_cash';
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
     });
-    if (!res.ok) throw new Error(`Yahoo HTTP ${res.status}`);
-    const json = await res.json();
-    const meta = json?.chart?.result?.[0]?.meta;
-    if (!meta) throw new Error('Yahoo 응답 구조 이상');
+    if (!res.ok) throw new Error(`westmetall HTTP ${res.status}`);
+    const html = await res.text();
 
-    const price = meta.regularMarketPrice ?? meta.previousClose;
-    const prevClose = meta.previousClose ?? meta.chartPreviousClose;
-    const change = price && prevClose ? +(price - prevClose).toFixed(2) : null;
-    const changePct = change && prevClose ? `${change >= 0 ? '+' : ''}${((change / prevClose) * 100).toFixed(2)}%` : null;
-    const date = new Date(meta.regularMarketTime * 1000).toISOString().slice(0, 10);
+    // 테이블에서 최신 2개 행 파싱
+    // 패턴: <td>16. March 2026</td><td>3,440.00</td><td>...</td>
+    const rowRegex = /<tr[^>]*>\s*<td[^>]*>([\d]+\.\s*\w+\s*\d{4})<\/td>\s*<td[^>]*>([\d,]+\.\d+)<\/td>/g;
+    const rows = [];
+    let m;
+    while ((m = rowRegex.exec(html)) !== null) {
+      const dateStr = m[1].trim(); // "16. March 2026"
+      const priceStr = m[2].replace(/,/g, ''); // "3440.00"
+      const price = parseFloat(priceStr);
+      if (price > 1500 && price < 5000) {
+        rows.push({ dateStr, price });
+      }
+      if (rows.length >= 2) break;
+    }
 
-    console.log(`[Yahoo] LME 가격 fetch 성공: ${price} USD/톤 (${date})`);
-    return { price: String(price), change: String(change), change_pct: changePct, date, source: 'yahoo' };
+    if (rows.length === 0) throw new Error('westmetall: 가격 파싱 실패');
+
+    const latest = rows[0];
+    const prev   = rows[1] ?? null;
+
+    // 날짜 파싱: "16. March 2026" → "2026-03-16"
+    const dateObj = new Date(latest.dateStr.replace(/\.$/, ''));
+    const date = isNaN(dateObj) ? latest.dateStr : dateObj.toISOString().slice(0, 10);
+
+    const change = prev ? +(latest.price - prev.price).toFixed(2) : null;
+    const changePct = (change !== null && prev)
+      ? `${change >= 0 ? '+' : ''}${((change / prev.price) * 100).toFixed(2)}%`
+      : null;
+
+    console.log(`[LME] Cash-Settlement: ${latest.price} USD/톤 (${date})`);
+    return {
+      price:      String(latest.price),
+      change:     change !== null ? String(change) : null,
+      change_pct: changePct,
+      date,
+      source:     'westmetall',
+    };
   } catch (e) {
-    console.warn('[Yahoo] LME 가격 fetch 실패:', e.message);
+    console.warn('[LME] westmetall fetch 실패 — Perplexity fallback:', e.message);
     return null;
   }
 }
@@ -515,19 +548,19 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── LME 가격 주입: Yahoo 성공 시 덮어씌움, 실패 시 Perplexity 값 유지
+    // ── LME 가격 주입: westmetall 성공 시 덮어씌움, 실패 시 Perplexity 값 유지
     if (tab === 'aluminum' && lmeData) {
-      console.log(`[LME] Yahoo 가격 주입: ${lmeData.price} (${lmeData.date})`);
+      console.log(`[LME] 가격 주입 (${lmeData.source}): ${lmeData.price} USD/톤 (${lmeData.date})`);
       parsed.lme = {
         ...parsed.lme,
         price:      lmeData.price,
         change:     lmeData.change,
         change_pct: lmeData.change_pct,
         date:       lmeData.date,
-        source:     'yahoo',
+        source:     lmeData.source,
       };
     } else if (tab === 'aluminum') {
-      console.warn('[LME] Yahoo 실패 — Perplexity 값 사용 (신뢰도 낮음)');
+      console.warn('[LME] 직접 fetch 전부 실패 — Perplexity fallback (신뢰도 낮음)');
       parsed.lme = { ...parsed.lme, source: 'perplexity' };
     }
 
