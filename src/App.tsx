@@ -86,11 +86,43 @@ function TextBlock({ text }: { text: string }) {
   return <p className="text-block">{text}</p>;
 }
 
+function SkeletonBlock({ width = '100%', height = 14 }: { width?: string; height?: number }) {
+  return <div className="skeleton" style={{ width, height }} />;
+}
+
 function LoadingState() {
   return (
-    <div className="loading-state">
-      <div className="loading-spinner" />
-      <p>시장 데이터 수집 중…</p>
+    <div className="tab-content">
+      {/* 가격 히어로 스켈레톤 */}
+      <div className="price-hero">
+        <div className="price-hero-main" style={{ gap: 8 }}>
+          <SkeletonBlock width="120px" height={10} />
+          <SkeletonBlock width="180px" height={28} />
+          <SkeletonBlock width="140px" height={12} />
+        </div>
+      </div>
+      {/* 섹션 카드 스켈레톤 3개 */}
+      {[1,2,3].map(i => (
+        <div key={i} className="section-card">
+          <div className="section-header">
+            <SkeletonBlock width="60px" height={10} />
+            <SkeletonBlock width="100px" height={10} />
+          </div>
+          <div className="section-body" style={{ gap: 8 }}>
+            <SkeletonBlock height={12} />
+            <SkeletonBlock width="90%" height={12} />
+            <SkeletonBlock width="75%" height={12} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Watermark() {
+  return (
+    <div className="watermark" aria-hidden="true">
+      <img src="/logo.png" alt="" className="watermark-img" />
     </div>
   );
 }
@@ -603,6 +635,7 @@ export default function App() {
         </header>
 
         <main className="app-main">
+          <Watermark />
           {renderContent()}
         </main>
 
@@ -916,6 +949,34 @@ const CSS = `
 
   /* ── 주목 변수 ── */
   .watch-text { font-size: 13px; color: var(--text); line-height: 1.9; white-space: pre-line; }
+
+  /* ── 스켈레톤 ── */
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  .skeleton {
+    border-radius: 4px;
+    background: linear-gradient(90deg, #e8f0ea 25%, #d4e8da 50%, #e8f0ea 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+    display: block;
+  }
+
+  /* ── 워터마크 ── */
+  .watermark {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 5;
+    user-select: none;
+  }
+  .watermark-img {
+    width: 220px;
+    opacity: 0.045;
+    filter: grayscale(100%);
+  }
 
   /* ── 로딩 / 에러 ── */
   .loading-state, .error-state {
