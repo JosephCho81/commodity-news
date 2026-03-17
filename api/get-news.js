@@ -438,7 +438,7 @@ const PROMPTS = {
     ]
   },
   "updated_at": "응답 생성 시각 (ISO 8601)"
-}`
+}`,
 
   ferrosilicon: `오늘 날짜 기준으로 페로실리콘(FeSi) 시장 인텔리전스를 JSON으로 반환하세요.
 
