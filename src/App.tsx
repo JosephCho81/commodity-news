@@ -563,23 +563,23 @@ const CSS = `
 
   .price-hero-label {
     font-size: 10px; font-family: var(--mono);
-    color: var(--text3); letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
   }
 
   .price-hero-value {
     font-size: 30px; font-family: var(--mono);
-    font-weight: 500; color: var(--green-dark); letter-spacing: -1px; line-height: 1.1;
+    font-weight: 500; color: #1a2e1f; letter-spacing: -1px; line-height: 1.1;
   }
-  .price-hero-value small { font-size: 13px; color: var(--text3); font-weight: 400; margin-left: 4px; }
+  .price-hero-value small { font-size: 13px; color: var(--text2); font-weight: 400; margin-left: 4px; }
 
   .price-hero-na { font-size: 18px; font-family: var(--mono); color: var(--text3); }
 
   .price-hero-change { font-family: var(--mono); font-size: 12px; font-weight: 500; }
-  .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text2); }
 
   .price-hero-sub {
     display: flex; flex-wrap: wrap; gap: 12px;
-    font-family: var(--mono); font-size: 11px; color: var(--text2);
+    font-family: var(--mono); font-size: 11px; color: var(--text);
     padding-top: 6px; border-top: 1px solid var(--border2); margin-top: 2px;
   }
 
