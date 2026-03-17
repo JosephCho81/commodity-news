@@ -543,6 +543,9 @@ export default function App() {
   const meta = tabData as (AluminumData | null);
   const ageMin = meta?._age_min ?? null;
 
+  // KST 오늘 날짜 (UTC+9)
+  const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
   return (
     <>
       <style>{CSS}</style>
@@ -556,11 +559,7 @@ export default function App() {
             </div>
           </div>
           <div className="header-actions">
-            {ageMin !== null && (
-              <span className="cache-badge">
-                {new Date().toISOString().slice(0, 10)}
-              </span>
-            )}
+            <span className="cache-badge">{todayKST}</span>
           </div>
         </header>
 
