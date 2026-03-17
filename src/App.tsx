@@ -823,34 +823,31 @@ const CSS = `
   /* ── 바텀 네비 ── */
   .bottom-nav {
     display: flex;
-    background: #2d4a35;
-    border-top: none;
+    background: #f0f6f2;
+    border-top: 2px solid var(--green-primary);
     position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
     width: 100%; max-width: 480px; z-index: 10;
-    box-shadow: 0 -3px 16px rgba(0,0,0,0.18);
+    box-shadow: 0 -2px 12px rgba(31,168,60,0.10);
   }
 
   .nav-tab {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 10px 4px 13px; background: none; border: none;
-    color: rgba(255,255,255,0.5); cursor: pointer;
+    color: #8aab94; cursor: pointer;
     transition: color 0.15s, background 0.15s;
-    gap: 4px; position: relative;
+    gap: 3px; position: relative;
   }
-  .nav-tab::before {
+  .nav-tab::after {
     content: ''; position: absolute;
-    top: 0; left: 20%; right: 20%; height: 2px;
-    background: #7ecf95; transform: scaleX(0);
-    transition: transform 0.2s; border-radius: 0 0 2px 2px;
+    top: -2px; left: 15%; right: 15%; height: 3px;
+    background: var(--green-primary); transform: scaleX(0);
+    transition: transform 0.2s; border-radius: 0 0 3px 3px;
   }
-  .nav-tab.active {
-    color: #ffffff;
-    background: rgba(126,207,149,0.15);
-  }
-  .nav-tab.active::before { transform: scaleX(1); }
+  .nav-tab.active { color: var(--green-primary); background: #e4f2e8; }
+  .nav-tab.active::after { transform: scaleX(1); }
 
-  .nav-icon  { font-size: 22px; line-height: 1; }
-  .nav-label { font-size: 11px; font-family: var(--sans); font-weight: 500; color: inherit; }
+  .nav-icon  { font-size: 18px; line-height: 1; font-family: var(--mono); color: inherit; }
+  .nav-label { font-size: 11px; font-family: var(--sans); font-weight: 600; color: inherit; }
 
   /* ── 스크롤바 ── */
   ::-webkit-scrollbar { width: 4px; }
