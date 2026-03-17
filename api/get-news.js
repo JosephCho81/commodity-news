@@ -836,7 +836,7 @@ export default async function handler(req, res) {
       parsed.lme = { ...parsed.lme, source: 'perplexity' };
     }
 
-    // ── 3. Firestore 캐시 저장 시도 ───────────────────────────────────────
+    // ── 3. Firestore 캐시 저장 (tab명으로 덮어쓰기 — 최신 1개 유지) ────────
     if (token) {
       try {
         await saveToFirestore(token, 'commodity_cache', tab, {
