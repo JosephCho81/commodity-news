@@ -246,22 +246,35 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
 }
 
 // ─── 탭 콘텐츠: 가탄제 ────────────────────────────────────────────────────────
+// 빈 문자열·null·undefined 모두 걸러내는 헬퍼
+function hasText(v: any): boolean {
+  return typeof v === 'string' && v.trim().length > 4;
+}
+
 function RecarburizerTab({ data }: { data: RecarburizerData }) {
   const d = data as any;
-  const cp    = d.china_price    ?? {};
-  const rp    = d.russia_price   ?? {};
-  const gm    = d.global_market  ?? {};
+  const cp    = d.china_price      ?? {};
+  const rp    = d.russia_price     ?? {};
+  const gm    = d.global_market    ?? {};
   const cprod = d.china_production ?? {};
   const rprod = d.russia_production ?? {};
   const af    = d.asia_flows;
-  const market_summary = d.market_summary ?? '';
+  const market_summary: string = d.market_summary ?? '';
 
   // asia_flows 정규화 (신: { available, flows } / 구: 배열)
   const flowAvailable: boolean = Array.isArray(af) ? af.length > 0 : (af?.available ?? false);
   const flowList: any[] = Array.isArray(af) ? af : (af?.flows ?? []);
 
-  const chinaDown = cp.change && String(cp.change).startsWith('-');
+  const chinaDown  = cp.change && String(cp.change).startsWith('-');
   const russiaDown = rp.change && String(rp.change).startsWith('-');
+
+  // 중국·러시아 생산 섹션에 표시할 내용이 하나라도 있는지 확인
+  const hasChinaProd = hasText(cprod.production_status) || hasText(cprod.cbam_carbon)
+    || hasText(cprod.policy) || hasText(cprod.outlook)
+    || cprod.annual_output || cprod.annual_consumption || cprod.export_volume;
+  const hasRussiaProd = hasText(rprod.production_status) || hasText(rprod.sanctions_impact)
+    || hasText(rprod.war_impact) || hasText(rprod.outlook)
+    || rprod.annual_output || rprod.export_volume || hasText(rprod.main_importers);
 
   return (
     <div className="tab-content">
@@ -318,26 +331,26 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
       </div>
 
       {/* ══ 전세계 시장 상황 ══ */}
-      {(gm.headline || gm.current_level || gm.key_drivers) && (
+      {(hasText(gm.headline) || hasText(gm.current_level) || hasText(gm.key_drivers)) && (
         <SectionCard title="전세계 시장 상황" accent="MKT">
-          {gm.headline && (
+          {hasText(gm.headline) && (
             <div className="recab-headline-box">
               <span className="recab-headline-text">{gm.headline}</span>
             </div>
           )}
-          {gm.current_level && (
+          {hasText(gm.current_level) && (
             <div style={{ marginBottom: 8 }}>
               <span className="recab-sub-label">현재 가격 수준</span>
               <TextBlock text={gm.current_level} />
             </div>
           )}
-          {gm.key_drivers && (
+          {hasText(gm.key_drivers) && (
             <div style={{ marginBottom: 8 }}>
               <span className="recab-sub-label">주요 가격 동인</span>
               <TextBlock text={gm.key_drivers} />
             </div>
           )}
-          {gm.outlook && (
+          {hasText(gm.outlook) && (
             <div className="outlook-box">
               <span className="outlook-label">단기 전망</span>
               <p className="outlook-text">{gm.outlook}</p>
@@ -347,45 +360,49 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
       )}
 
       {/* ══ 중국 생산 현황 ══ */}
-      <SectionCard title="중국 생산 현황" accent="CHN">
-        {(cprod.annual_output || cprod.annual_consumption || cprod.export_volume || cprod.import_volume) && (
-          <div className="recab-stat-grid">
-            {cprod.annual_output      && <div className="recab-stat-cell"><span className="recab-stat-label">연간 생산량</span><span className="recab-stat-val">{cprod.annual_output}</span></div>}
-            {cprod.annual_consumption && <div className="recab-stat-cell"><span className="recab-stat-label">연간 소비량</span><span className="recab-stat-val">{cprod.annual_consumption}</span></div>}
-            {cprod.export_volume      && <div className="recab-stat-cell"><span className="recab-stat-label">수출량</span><span className="recab-stat-val">{cprod.export_volume}</span></div>}
-            {cprod.import_volume      && <div className="recab-stat-cell"><span className="recab-stat-label">수입량</span><span className="recab-stat-val">{cprod.import_volume}</span></div>}
-          </div>
-        )}
-        {cprod.production_status && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">생산·채굴 현황</span><TextBlock text={cprod.production_status} /></div>}
-        {cprod.cbam_carbon       && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">CBAM · 탄소배출권</span><TextBlock text={cprod.cbam_carbon} /></div>}
-        {cprod.policy            && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 정책</span><TextBlock text={cprod.policy} /></div>}
-        {cprod.outlook && (
-          <div className="outlook-box">
-            <span className="outlook-label">생산·수출 전망</span>
-            <p className="outlook-text">{cprod.outlook}</p>
-          </div>
-        )}
-      </SectionCard>
+      {hasChinaProd && (
+        <SectionCard title="중국 생산 현황" accent="CHN">
+          {(cprod.annual_output || cprod.annual_consumption || cprod.export_volume || cprod.import_volume) && (
+            <div className="recab-stat-grid">
+              {cprod.annual_output      && <div className="recab-stat-cell"><span className="recab-stat-label">연간 생산량</span><span className="recab-stat-val">{cprod.annual_output}</span></div>}
+              {cprod.annual_consumption && <div className="recab-stat-cell"><span className="recab-stat-label">연간 소비량</span><span className="recab-stat-val">{cprod.annual_consumption}</span></div>}
+              {cprod.export_volume      && <div className="recab-stat-cell"><span className="recab-stat-label">수출량</span><span className="recab-stat-val">{cprod.export_volume}</span></div>}
+              {cprod.import_volume      && <div className="recab-stat-cell"><span className="recab-stat-label">수입량</span><span className="recab-stat-val">{cprod.import_volume}</span></div>}
+            </div>
+          )}
+          {hasText(cprod.production_status) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">생산·채굴 현황</span><TextBlock text={cprod.production_status} /></div>}
+          {hasText(cprod.cbam_carbon)       && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">CBAM · 탄소배출권</span><TextBlock text={cprod.cbam_carbon} /></div>}
+          {hasText(cprod.policy)            && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 정책</span><TextBlock text={cprod.policy} /></div>}
+          {hasText(cprod.outlook) && (
+            <div className="outlook-box">
+              <span className="outlook-label">생산·수출 전망</span>
+              <p className="outlook-text">{cprod.outlook}</p>
+            </div>
+          )}
+        </SectionCard>
+      )}
 
       {/* ══ 러시아 생산 현황 ══ */}
-      <SectionCard title="러시아 생산 현황" accent="RUS">
-        {(rprod.annual_output || rprod.export_volume) && (
-          <div className="recab-stat-grid">
-            {rprod.annual_output  && <div className="recab-stat-cell"><span className="recab-stat-label">연간 생산량</span><span className="recab-stat-val">{rprod.annual_output}</span></div>}
-            {rprod.export_volume  && <div className="recab-stat-cell"><span className="recab-stat-label">수출량</span><span className="recab-stat-val">{rprod.export_volume}</span></div>}
-          </div>
-        )}
-        {rprod.main_importers    && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 수입국</span><div className="country-price-tag">{rprod.main_importers}</div></div>}
-        {rprod.production_status && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">생산·채굴 현황</span><TextBlock text={rprod.production_status} /></div>}
-        {rprod.war_impact        && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">전쟁 영향</span><TextBlock text={rprod.war_impact} /></div>}
-        {rprod.sanctions_impact  && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">제재 및 수출 루트</span><TextBlock text={rprod.sanctions_impact} /></div>}
-        {rprod.outlook && (
-          <div className="outlook-box">
-            <span className="outlook-label">생산·수출 전망</span>
-            <p className="outlook-text">{rprod.outlook}</p>
-          </div>
-        )}
-      </SectionCard>
+      {hasRussiaProd && (
+        <SectionCard title="러시아 생산 현황" accent="RUS">
+          {(rprod.annual_output || rprod.export_volume) && (
+            <div className="recab-stat-grid">
+              {rprod.annual_output  && <div className="recab-stat-cell"><span className="recab-stat-label">연간 생산량</span><span className="recab-stat-val">{rprod.annual_output}</span></div>}
+              {rprod.export_volume  && <div className="recab-stat-cell"><span className="recab-stat-label">수출량</span><span className="recab-stat-val">{rprod.export_volume}</span></div>}
+            </div>
+          )}
+          {hasText(rprod.main_importers)    && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 수입국</span><div className="country-price-tag">{rprod.main_importers}</div></div>}
+          {hasText(rprod.production_status) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">생산·채굴 현황</span><TextBlock text={rprod.production_status} /></div>}
+          {hasText(rprod.war_impact)        && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">전쟁 영향</span><TextBlock text={rprod.war_impact} /></div>}
+          {hasText(rprod.sanctions_impact)  && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">제재 및 수출 루트</span><TextBlock text={rprod.sanctions_impact} /></div>}
+          {hasText(rprod.outlook) && (
+            <div className="outlook-box">
+              <span className="outlook-label">생산·수출 전망</span>
+              <p className="outlook-text">{rprod.outlook}</p>
+            </div>
+          )}
+        </SectionCard>
+      )}
 
       {/* ══ 아시아 물동량 흐름 (데이터 있을 때만) ══ */}
       {flowAvailable && flowList.length > 0 && (
@@ -407,9 +424,20 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
       )}
 
       {/* ══ 시장 종합 의견 ══ */}
-      <SectionCard title="시장 종합 의견" accent="SUM">
-        <TextBlock text={market_summary} />
-      </SectionCard>
+      {hasText(market_summary) && (
+        <SectionCard title="시장 종합 의견" accent="SUM">
+          <TextBlock text={market_summary} />
+        </SectionCard>
+      )}
+
+      {/* ══ 모든 내용이 비어있을 때 fallback ══ */}
+      {!hasChinaProd && !hasRussiaProd && !hasText(gm.headline) && !hasText(market_summary) && (
+        <div className="recab-empty-state">
+          <div className="recab-empty-icon">◍</div>
+          <p className="recab-empty-text">가탄제 시황 데이터를 수집하지 못했습니다.</p>
+          <p className="recab-empty-sub">잠시 후 다시 시도해 주세요.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -905,6 +933,14 @@ const CSS = `
   }
   .region-driver { font-size: 12px; color: var(--text); line-height: 1.75; }
   .region-flow-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
+
+  .recab-empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 48px 20px; gap: 10px; color: var(--text3);
+  }
+  .recab-empty-icon { font-size: 32px; opacity: 0.4; }
+  .recab-empty-text { font-size: 14px; font-weight: 600; color: var(--text2); }
+  .recab-empty-sub  { font-family: var(--mono); font-size: 11px; color: var(--text3); }
 
   /* ── 가탄제 가격 2박스 ── */
   .recab-price-grid {
