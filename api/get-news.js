@@ -547,65 +547,65 @@ const PROMPTS = {
   ferrosilicon: `오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준 페로실리콘 75 시장 인텔리전스를 JSON으로 반환하세요.
 
 【절대 규칙】
-1. null 반환 금지. 모든 문자열 필드는 반드시 실제 텍스트로 채울 것.
-2. hbis_bid_price: HBIS Group(허베이강철그룹, 중국 2위 철강사)의 최신 월별 페로실리콘 입찰가. mysteel.net 또는 업계 뉴스에서 검색. 예: 2026년 1월 Yuan 5,900/t($826/t) 반드시 검색해서 기재.
-3. fob_tianjin_monthly: mysteel, Metal Bulletin에서 검색. 확인된 월만 기재, 없으면 미확인.
-4. 가격·수치 없이 막연한 서술 금지. 반드시 구체적 숫자와 날짜 포함.
-5. market_summary: 반드시 3~4문장, 가격 방향성 근거 포함.
-6. [1][2] 각주 번호 절대 금지. 한국어 작성.
+1. null 및 빈 문자열 금지. 모든 문자열 필드는 반드시 내용 작성.
+2. 수치가 없으면 최신 뉴스·업계 동향·구조적 배경으로 서술. "확인된 수치 없음" 절대 금지.
+3. hbis_bid_price: HBIS Group 월별 입찰가 검색. 검색어: "HBIS ferrosilicon bidding price 2026". 반드시 최신값 기재.
+4. fob_tianjin_monthly: mysteel, Metal Bulletin 검색. 없으면 미확인.
+5. market_summary: 반드시 3~4문장.
+6. 각주 번호 절대 금지. 한국어 작성.
 
 {
   "china_price": {
-    "hbis_bid_price": "HBIS Group 최신 월별 페로실리콘 입찰가. Yuan/톤 및 USD/톤 병기, 발표월 명시. 예: 2026년 1월 Yuan 5900/톤, USD 826/톤. 반드시 검색해서 기재.",
+    "hbis_bid_price": "HBIS Group 최신 월별 입찰가. Yuan/톤 및 USD/톤 병기. 예: 2026년 1월 Yuan 5760/톤 USD 805/톤",
     "hbis_bid_month": "HBIS 입찰가 기준 연월. 예: 2026-01",
-    "hbis_bid_change": "전월 대비 변동. 예: +Yuan 100/톤. 없으면 null",
+    "hbis_bid_change": "전월 대비 변동. 없으면 null",
     "fob_tianjin_monthly": {
-      "2026_01": "2026년 1월 FOB 천진항 실제 확인 가격. 없으면 미확인",
-      "2026_02": "2026년 2월 FOB 천진항 실제 확인 가격. 없으면 미확인",
-      "2026_03": "2026년 3월 FOB 천진항 최신 확인 가격. 없으면 미확인"
+      "2026_01": "FOB 천진항 가격. 없으면 미확인",
+      "2026_02": "FOB 천진항 가격. 없으면 미확인",
+      "2026_03": "FOB 천진항 가격. 없으면 미확인"
     },
-    "fesi75_ningxia": "닝샤 페로실리콘 75 내수 현물가 CNY/톤. 최근 확인된 수치 기재",
-    "date": "가격 기준일 (YYYY-MM-DD)",
-    "change": "전월 대비 변동 방향 및 폭",
-    "china_context": "FOB 천진항 수출가 또는 HBIS 입찰가 기준 구체적 수치 포함, 전월 대비 변화폭(USD/톤), 한국·일본·EU 바이어 수요 동향, 철강사 입찰 동향 3~4문장. 수치 없는 서술 금지.",
-    "china_outlook": "향후 1~3개월 중국 페로실리콘 가격 방향성과 근거를 2문장으로. 수치 포함 필수."
+    "fesi75_ningxia": "닝샤 내수 현물가 CNY/톤. 최근 수치 또는 추정 범위",
+    "date": "기준일 YYYY-MM-DD",
+    "change": "전월 대비 변동",
+    "china_context": "HBIS 입찰가 기준 현재 수준, 전월 대비 변화, 한국·일본·EU 바이어 동향, 철강사 입찰 동향 3~4문장. 반드시 작성.",
+    "china_outlook": "향후 1~3개월 가격 방향성과 근거 2문장. 반드시 작성."
   },
   "china_production": {
-    "overall": "현재 중국 페로실리콘 생산 현황: 닝샤·내몽골 가동률(% 수치 명시)과 변화 이유(전력비·원코크 원가·환경 규제), 생산량 증감 추이(톤 또는 % 명시), 수출 물량 변화 — 반드시 4~5문장, 수치 포함"
+    "overall": "닝샤·내몽골 가동률과 변화 이유, 생산량 증감, 수출 물량 변화, 2026년 전망 4~5문장. 수치 없으면 업계 구조적 현황으로 서술. 반드시 작성."
   },
   "non_china": [
     {
       "country": "노르웨이",
       "producer": "Elkem, Ferroglobe",
-      "status": "최근 가동 현황, 생산량 변화, EU CBAM 영향, 유럽 에너지가격 영향 포함. 수치 있으면 반드시 기재.",
-      "price_context": "유럽산 FOB 가격 수준 또는 중국산 대비 프리미엄",
+      "status": "가동 현황, EU CBAM 영향, 에너지가격 영향 포함. 반드시 작성.",
+      "price_context": "유럽산 FOB 수준 또는 중국산 대비 프리미엄",
       "export_direction": "EU 역내, 미국, 일본 수출"
     },
     {
       "country": "카자흐스탄",
       "producer": "Kazsilicon, ENRC",
-      "status": "최근 생산·수출 동향, 증설 현황, 가격 경쟁력 포함. 수치 있으면 반드시 기재.",
+      "status": "생산·수출 동향, 증설 현황, 가격 경쟁력. 반드시 작성.",
       "price_context": "중국산 대비 가격 경쟁력",
       "export_direction": "유럽, 한국, 일본 수출"
     },
     {
       "country": "말레이시아",
       "producer": "OM Holdings",
-      "status": "최근 생산·수출 동향, 한국·일본 수요 변화 포함. 수치 있으면 반드시 기재.",
+      "status": "생산·수출 동향, 한국·일본 수요 변화. 반드시 작성.",
       "price_context": "말레이시아산 가격 수준 및 중국산 대비 경쟁력",
       "export_direction": "한국, 일본, 인도 수출"
     },
     {
       "country": "러시아",
       "producer": "CHEMK",
-      "status": "제재 이후 수출 루트 변화, 2025~2026년 생산·수출 동향, 할인 폭 포함.",
+      "status": "제재 이후 수출 루트 변화, 생산·수출 동향, 할인 폭. 반드시 작성.",
       "price_context": "제재 이후 할인 폭 및 가격 경쟁력",
       "export_direction": "중국, 인도, 터키 우회 수출"
     }
   ],
-  "non_china_context": "비중국 생산국 전반 현황 — EU CBAM, 카자흐스탄 증설, 러시아 제재, 중국산 점유율 2~3문장",
-  "market_summary": "페로실리콘 75 시장 종합 — HBIS 입찰가 기준 가격 수준(수치 포함), 중국 FOB 방향성, 비중국 공급 변화, 글로벌 철강 수요 전망, 단기 가격 방향성 3~4문장",
-  "updated_at": "응답 생성 시각 (ISO 8601)"
+  "non_china_context": "EU CBAM, 카자흐스탄 증설, 러시아 제재, 중국산 점유율 현황 2~3문장. 반드시 작성.",
+  "market_summary": "HBIS 입찰가 기준 가격 수준, 중국 FOB 방향성, 비중국 공급 변화, 글로벌 철강 수요 전망, 단기 가격 방향성 3~4문장. 반드시 작성.",
+  "updated_at": "응답 생성 시각 ISO 8601"
 }`,
 
   recarburizer: `당신은 원자재 시장 애널리스트입니다. 아래 JSON을 오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준으로 완전히 채워서 반환하세요.
