@@ -932,6 +932,22 @@ export default async function handler(req, res) {
       parsed = parseJSON(raw);
     } catch (e) {
       console.error('[JSON] 파싱 실패:', e.message, '| raw:', raw.slice(0, 300));
+
+      // JSON 파싱 실패 시 어제 데이터 fallback
+      if (token) {
+        try {
+          const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
+          const fallback = await getFromFirestore(token, 'commodity_cache', `${tab}_${yesterdayKST}`);
+          if (fallback?.data) {
+            console.log(`[Fallback] JSON 파싱 실패 → 어제 데이터 반환`);
+            const fallbackParsed = JSON.parse(fallback.data);
+            return res.status(200).json({ ...fallbackParsed, _cached: true, _fallback: true, _age_min: 0 });
+          }
+        } catch (fe) {
+          console.warn('[Fallback] 어제 데이터도 없음');
+        }
+      }
+
       return res.status(500).json({
         error: 'JSON parse failed',
         detail: e.message,
@@ -991,6 +1007,28 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...parsed, _cached: false, _age_min: 0 });
   } catch (err) {
     console.error('[Handler] 예외:', err.message);
+
+    // Perplexity 실패 시 어제 데이터 fallback
+    if (token) {
+      try {
+        const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
+        const yesterdayDocId = `${tab}_${yesterdayKST}`;
+        const fallback = await getFromFirestore(token, 'commodity_cache', yesterdayDocId);
+        if (fallback?.data) {
+          console.log(`[Fallback] 어제 데이터 반환: ${yesterdayDocId}`);
+          const parsed = JSON.parse(fallback.data);
+          return res.status(200).json({
+            ...parsed,
+            _cached: true,
+            _fallback: true,
+            _age_min: Math.round((Date.now() - Number(fallback.cached_at || 0)) / 60000),
+          });
+        }
+      } catch (e) {
+        console.warn('[Fallback] 어제 데이터도 없음:', e.message);
+      }
+    }
+
     return res.status(500).json({ error: err.message });
   }
 }
