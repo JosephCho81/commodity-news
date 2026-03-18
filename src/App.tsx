@@ -667,12 +667,28 @@ export default function App() {
   // KST 오늘 날짜 (UTC+9)
   const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  // 리포트 생성
-  function generateReport() {
-    const al  = data['aluminum']     as any;
-    const fsi = data['ferrosilicon'] as any;
-    const rec = data['recarburizer'] as any;
-    const sum = data['summary']      as any;
+  // 리포트 생성 — 없는 탭 데이터 먼저 fetch 후 생성
+  async function generateReport() {
+    const tabs: TabId[] = ['aluminum', 'ferrosilicon', 'recarburizer', 'summary'];
+    const currentData = { ...data };
+
+    // 로드 안 된 탭 먼저 fetch
+    const missing = tabs.filter(t => !currentData[t] && !loading[t]);
+    if (missing.length > 0) {
+      await Promise.all(missing.map(async (tab) => {
+        try {
+          const res = await fetch(`${API_BASE}?tab=${tab}`);
+          const json = await res.json();
+          if (!json.error) currentData[tab] = json;
+        } catch {}
+      }));
+      setData(currentData);
+    }
+
+    const al  = currentData['aluminum']     as any;
+    const fsi = currentData['ferrosilicon'] as any;
+    const rec = currentData['recarburizer'] as any;
+    const sum = currentData['summary']      as any;
 
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -752,7 +768,9 @@ export default function App() {
       <div class="rpt-company">(주)한국에이원</div>
       <div class="rpt-title">오늘의 원자재 시황 브리핑</div>
     </div>
-    <div class="rpt-date">기준일: ${todayKST}<br>자료: LME · westmetall · Perplexity AI</div>
+    <div class="rpt-date">기준일: ${todayKST}<br>
+      출처: LME(westmetall.com) · scrapmonster.com · dokindokin.com<br>
+      tradingeconomics.com · mysteel.net · Perplexity AI 검색 종합</div>
   </div>
 
   ${sum ? `
@@ -874,7 +892,7 @@ export default function App() {
             </div>
           </div>
           <div className="header-actions">
-            <button className="report-btn" onClick={generateReport}>📄 리포트</button>
+            <button className="report-btn" onClick={() => generateReport()}>📄 리포트</button>
             <span className="cache-badge">{todayKST}</span>
           </div>
         </header>
