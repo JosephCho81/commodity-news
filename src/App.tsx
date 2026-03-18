@@ -768,9 +768,7 @@ export default function App() {
       <div class="rpt-company">(주)한국에이원</div>
       <div class="rpt-title">오늘의 원자재 시황 브리핑</div>
     </div>
-    <div class="rpt-date">기준일: ${todayKST}<br>
-      출처: LME(westmetall.com) · scrapmonster.com · dokindokin.com<br>
-      tradingeconomics.com · mysteel.net · Perplexity AI 검색 종합</div>
+    <div class="rpt-date">기준일: ${todayKST}</div>
   </div>
 
   ${sum ? `
@@ -863,7 +861,7 @@ export default function App() {
 
   <div class="rpt-footer">
     <span>(주)한국에이원 내부 참고용 자료</span>
-    <span>본 자료는 AI 기반 자동 수집 정보로, 투자 및 구매 의사결정의 단독 근거로 사용할 수 없습니다.</span>
+    <span>LME(westmetall.com) · scrapmonster.com · dokindokin.com · tradingeconomics.com · mysteel.net · Perplexity AI</span>
   </div>
 
 </div>
