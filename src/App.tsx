@@ -208,35 +208,49 @@ function AluminumTab({ data }: { data: AluminumData }) {
 // ─── 탭 콘텐츠: 페로실리콘 ────────────────────────────────────────────────────
 function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
   const { china_price, china_production, non_china, market_summary, non_china_context, korea_import } = data as any;
+
+  // HBIS 입찰가 우선, 없으면 FOB 월별 가격 fallback
+  const hbisBid = china_price.hbis_bid_price ?? null;
+  const hbisMonth = china_price.hbis_bid_month ?? null;
+  const hbisChange = china_price.hbis_bid_change ?? null;
+  const hbisChangeDown = hbisChange && String(hbisChange).startsWith('-');
+
+  // FOB fallback
+  const m = china_price.fob_tianjin_monthly as any;
+  const isValid = (v: any) => v && !String(v).includes('미확인') && !String(v).includes('검색');
+  const validEntries = Object.entries(m || {}).filter(([, v]) => isValid(v)).sort(([a], [b]) => b.localeCompare(a));
+  const fobLatestVal = validEntries[0]?.[1] as string ?? null;
+  const numMatch = fobLatestVal ? fobLatestVal.match(/([\d,]+~[\d,]+)/) : null;
+  const fobRange = numMatch ? numMatch[1] : null;
+
   return (
     <div className="tab-content">
       <div className="price-hero">
         <div className="price-hero-main">
-          {(() => {
-            const m = china_price.fob_tianjin_monthly as any;
-            const isValid = (v: any) => v && !String(v).includes('미확인') && !String(v).includes('검색');
-            const validEntries = Object.entries(m || {})
-              .filter(([, v]) => isValid(v))
-              .sort(([a], [b]) => b.localeCompare(a));
-            const latestKey = validEntries[0]?.[0] ?? '';
-            const latestVal = validEntries[0]?.[1] as string ?? null;
-            const latestParts = latestKey ? latestKey.split('_') : [];
-            const yr = latestParts[0] ?? '';
-            const mo = latestParts[1] ? parseInt(latestParts[1], 10) : 0;
-            const numMatch = latestVal ? latestVal.match(/([\d,]+~[\d,]+)/) : null;
-            const priceRange = numMatch ? numMatch[1] : null;
-            return (
-              <>
-                <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
-                {priceRange
-                  ? <span className="price-hero-value">{priceRange} <small>USD/톤</small></span>
-                  : <span className="price-hero-na">가격 확인 중</span>
-                }
-                {yr && mo && <span className="price-hero-date">기준: {yr.slice(2)}년 {mo}월</span>}
-              </>
-            );
-          })()}
+          {hbisBid ? (
+            <>
+              <span className="price-hero-label">HBIS Group 페로실리콘 입찰가</span>
+              <span className="price-hero-value" style={{ fontSize: 20 }}>{hbisBid}</span>
+              {hbisChange && (
+                <span className="price-hero-change" style={{ color: hbisChangeDown ? 'var(--down)' : 'var(--up)' }}>
+                  전월 대비 {hbisChange}
+                </span>
+              )}
+              <span className="fsi-hbis-note">※ HBIS Group(중국 2위 철강사) 월별 공식 입찰가 기준</span>
+            </>
+          ) : fobRange ? (
+            <>
+              <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
+              <span className="price-hero-value">{fobRange} <small>USD/톤</small></span>
+            </>
+          ) : (
+            <>
+              <span className="price-hero-label">페로실리콘 75</span>
+              <span className="price-hero-na">가격 확인 중</span>
+            </>
+          )}
         </div>
+        {hbisMonth && <span className="price-hero-date">기준: {hbisMonth}</span>}
       </div>
 
       {/* 중국 시장 맥락 & 전망 */}
@@ -797,6 +811,11 @@ const CSS = `
   .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text2); }
 
 
+
+  .fsi-hbis-note {
+    font-family: var(--mono); font-size: 9px; color: var(--text3);
+    margin-top: 2px; display: block;
+  }
 
   .fob-price-tag {
     font-family: var(--mono); font-size: 11px; font-weight: 600;
