@@ -84,7 +84,8 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 
 function TextBlock({ text }: { text: string | null | undefined }) {
   if (!text || String(text).trim().length === 0) return null;
-  return <p className="text-block">{text}</p>;
+  const cleaned = String(text).replace(/Yuan/g, 'CNY');
+  return <p className="text-block">{cleaned}</p>;
 }
 
 function SkeletonBlock({ width = '100%', height = 14 }: { width?: string; height?: number }) {
@@ -230,7 +231,24 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           {hbisBid ? (
             <>
               <span className="price-hero-label">HBIS GROUP 페로실리콘 입찰가</span>
-              <span className="price-hero-value" style={{ fontSize: 20 }}>{String(hbisBid).replace(/Yuan/g, 'CNY')}</span>
+              {(() => {
+                const raw = String(hbisBid);
+                // USD와 CNY 추출
+                const usdMatch = raw.match(/USD\s*[약]?\s*([\d,]+)/i);
+                const cnyMatch = raw.match(/(?:CNY|Yuan)\s*([\d,]+)/i);
+                const usd = usdMatch ? Number(usdMatch[1].replace(/,/g, '')).toLocaleString() : null;
+                const cny = cnyMatch ? Number(cnyMatch[1].replace(/,/g, '')).toLocaleString() : null;
+                if (usd || cny) {
+                  return (
+                    <span className="price-hero-value" style={{ fontSize: 20 }}>
+                      {usd && `USD ${usd}/톤`}
+                      {usd && cny && <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 400 }}> (CNY {cny}/톤 · 중국 내수가)</span>}
+                      {!usd && cny && `CNY ${cny}/톤`}
+                    </span>
+                  );
+                }
+                return <span className="price-hero-value" style={{ fontSize: 16 }}>{raw}</span>;
+              })()}
               {hbisChange && (
                 <span className="price-hero-change" style={{ color: hbisChangeDown ? 'var(--down)' : 'var(--up)' }}>
                   {String(hbisChange).replace(/Yuan/g, 'CNY')}
@@ -250,7 +268,12 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
             </>
           )}
         </div>
-        {hbisMonth && <span className="price-hero-date">기준: {hbisMonth}</span>}
+        {hbisMonth && (() => {
+          const parts = String(hbisMonth).split('-');
+          const yr = parts[0] ? parts[0].slice(2) + '년' : '';
+          const mo = parts[1] ? parseInt(parts[1]) + '월' : '';
+          return <span className="price-hero-date">기준: {yr} {mo}</span>;
+        })()}
       </div>
 
       {/* 중국 시장 맥락 & 전망 */}
