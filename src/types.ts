@@ -1,17 +1,16 @@
 // src/types.ts — 비철금속 원자재 인텔리전스 타입 정의
 
-// ─── 공통 ─────────────────────────────────────────────────────────────────────
 export type Direction = 'UP' | 'DOWN' | 'NEUTRAL';
 export type Urgency = 'HIGH' | 'MEDIUM' | 'LOW';
 export type Probability = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface ApiMeta {
   _cached?: boolean;
+  _fallback?: boolean;
   _age_min?: number;
   updated_at?: string;
 }
 
-// ─── 알루미늄 탭 ──────────────────────────────────────────────────────────────
 export interface AluminumData extends ApiMeta {
   lme: {
     price: string | null;
@@ -21,6 +20,8 @@ export interface AluminumData extends ApiMeta {
     move_reason: string;
     market_status: string;
     outlook: string;
+    lme_verified?: boolean | string;
+    lme_verify_source?: string;
   };
   scrap: {
     weekly_summary: string;
@@ -38,44 +39,19 @@ export interface AluminumData extends ApiMeta {
   };
 }
 
-// ─── 페로실리콘 탭 ────────────────────────────────────────────────────────────
 export interface FerrosiliconData extends ApiMeta {
   china_price: {
-    fesi75_ningxia: string | null;
-    fesi75_neimenggu?: string | null;
-    date: string | null;
-    change: string | null;
-    fob_tianjin_monthly?: {
-      '2026_01'?: string | null;
-      '2026_02'?: string | null;
-      '2026_03'?: string | null;
-    };
-    // 구 필드 (하위 호환)
-    price_context?: string;
-    // 신 필드
+    hbis_bid_price?: string | null;
+    hbis_bid_month?: string | null;
+    hbis_bid_change?: string | null;
+    fob_tianjin_monthly?: Record<string, string | null>;
+    fesi75_ningxia?: string | null;
+    date?: string | null;
+    change?: string | null;
     china_context?: string;
     china_outlook?: string;
   };
-  china_production: {
-    ningxia: {
-      power_situation: string;
-      utilization_rate: string | null;
-      weather_impact: string;
-    };
-    // 신 필드: 내몽골
-    neimenggu?: {
-      power_situation: string;
-      utilization_rate: string | null;
-      weather_impact: string;
-    };
-    // 구 필드: 윈난 (하위 호환)
-    yunnan?: {
-      power_situation: string;
-      utilization_rate: string | null;
-      weather_impact: string;
-    };
-    overall: string;
-  };
+  china_production: { overall: string; };
   non_china: Array<{
     country: string;
     producer: string;
@@ -88,96 +64,58 @@ export interface FerrosiliconData extends ApiMeta {
   market_summary: string;
 }
 
-// ─── 가탄제 탭 ────────────────────────────────────────────────────────────────
 export interface RecarburizerData extends ApiMeta {
   china_price: {
-    fob_qinhuangdao: string | null;
-    cif_korea: string | null;
-    domestic_shanxi: string | null;
-    calcined_cac_fob: string | null;
-    date: string | null;
-    change: string | null;
-    // 구 필드 하위 호환
-    anthracite_shanxi?: string | null;
-    anthracite_guizhou?: string | null;
-    calcined_anthracite_cac?: string | null;
-    cpc_fob_china?: string | null;
-    price_context?: string;
-    price_outlook?: string | null;
+    fob_qinhuangdao?: number | string | null;
+    cif_korea?: number | string | null;
+    domestic_shanxi?: number | string | null;
+    calcined_cac_fob?: number | string | null;
+    price_range_text?: string | null;
+    price_range_source?: string | null;
+    price_range_note?: string | null;
+    date?: string | null;
+    change?: string | null;
   };
   russia_price: {
-    fob_murmansk: string | null;
-    cif_korea: string | null;
-    date: string | null;
-    change: string | null;
-    vs_china: string | null;
+    fob_murmansk?: number | string | null;
+    cif_korea?: number | string | null;
+    price_range_text?: string | null;
+    price_range_source?: string | null;
+    price_range_note?: string | null;
+    date?: string | null;
+    change?: string | null;
+    vs_china?: string | null;
   };
-  global_market: {
-    headline: string;
-    current_level: string;
-    key_drivers: string;
-    outlook: string;
+  global_market?: {
+    headline?: string;
+    current_level?: string;
+    key_drivers?: string;
+    outlook?: string;
   };
-  china_production: {
-    annual_output: string | null;
-    annual_consumption: string | null;
-    export_volume: string | null;
-    import_volume: string | null;
-    production_status: string;
-    cbam_carbon: string;
-    policy: string;
-    outlook: string;
-    // 구 필드 하위 호환
-    mining_status?: string;
-    processing_status?: string;
-    policy_impact?: string;
-    overall?: string;
-    mining_regions?: Array<{ region: string; utilization_rate: string | null; status: string; policy_impact: string }>;
+  china_production?: {
+    annual_output?: string | null;
+    annual_consumption?: string | null;
+    export_volume?: string | null;
+    production_status?: string;
+    cbam_carbon?: string;
+    policy?: string;
+    outlook?: string;
   };
-  russia_production: {
-    annual_output: string | null;
-    export_volume: string | null;
-    main_importers: string;
-    production_status: string;
-    sanctions_impact: string;
-    war_impact: string;
-    outlook: string;
+  russia_production?: {
+    annual_output?: string | null;
+    export_volume?: string | null;
+    main_importers?: string;
+    production_status?: string;
+    war_impact?: string;
+    sanctions_impact?: string;
+    outlook?: string;
   };
-  asia_flows: {
-    available: boolean;
-    note?: string;
-    flows: Array<{
-      importer: string;
-      main_sources: string;
-      volume_trend: string;
-      price_trend: string;
-    }>;
-  } | Array<{
-    // 구 필드 하위 호환
-    importer: string;
-    main_sources: string;
-    volume_trend: string;
-    price_trend: string;
-  }>;
+  asia_flows?: any;
   market_summary: string;
-  // 구 필드 하위 호환
-  russia?: {
-    export_volume: string;
-    sanctions_impact: string;
-    fob_price?: string | null;
-    price_competitiveness: string;
-  };
-  korea_import?: {
-    monthly_volume: string | null;
-    avg_unit_price: string | null;
-    source_mix: string;
-    trend: string;
-  };
 }
 
-// ─── 시황 종합 탭 ─────────────────────────────────────────────────────────────
 export interface SummaryData extends ApiMeta {
-  date: string | null;
+  date?: string | null;
   one_liner: string;
   key_signals: Array<{
     commodity: string;
@@ -194,7 +132,6 @@ export interface SummaryData extends ApiMeta {
   week_ahead: string;
 }
 
-// ─── 탭 정의 ──────────────────────────────────────────────────────────────────
 export type TabId = 'aluminum' | 'ferrosilicon' | 'recarburizer' | 'summary';
 
 export interface TabConfig {
