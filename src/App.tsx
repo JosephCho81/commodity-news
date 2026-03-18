@@ -1033,13 +1033,20 @@ const CSS = `
   }
 
   /* ── 메인 ── */
-  .app-body { display: flex; flex-direction: column; flex: 1; }
+  .app-body { display: flex; flex-direction: row; flex: 1; }
   .app-main { flex: 1; overflow-y: auto; padding: 14px 14px 84px; }
   .tab-content { display: flex; flex-direction: column; gap: 10px; }
 
-  /* 모바일에서 nav는 DOM 순서 무관하게 하단 고정 */
+  /* 모바일에서 nav 하단 고정 */
   @media (max-width: 767px) {
-    .app-body { flex-direction: column-reverse; }
+    .app-body { flex-direction: column; }
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      width: 100%; max-width: 100%;
+      flex-direction: row;
+      min-height: auto;
+      padding: 0;
+    }
   }
 
   .report-btn {
@@ -1543,6 +1550,15 @@ const CSS = `
     .app {
       max-width: 100%;
       min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-body {
+      flex-direction: row;
+      flex: 1;
+      height: calc(100dvh - 72px);
+      overflow: hidden;
     }
 
     /* 헤더 */
@@ -1555,23 +1571,16 @@ const CSS = `
     .report-btn { font-size: 13px; padding: 6px 16px; }
     .cache-badge { font-size: 12px; }
 
-    /* 전체 레이아웃: 사이드탭 + 콘텐츠 */
-    .app-body {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
     /* 사이드 탭바 */
     .bottom-nav {
-      position: sticky;
-      top: 0;
-      left: 0;
+      position: relative;
       bottom: auto;
+      left: auto;
       transform: none;
       width: 180px;
+      min-width: 180px;
       max-width: 180px;
-      min-height: calc(100dvh - 72px);
+      height: 100%;
       flex-direction: column;
       border-top: none;
       border-right: 2px solid var(--green-primary);
@@ -1579,6 +1588,7 @@ const CSS = `
       padding: 16px 0;
       background: var(--surface);
       align-items: stretch;
+      overflow-y: auto;
     }
 
     .nav-tab {
@@ -1603,7 +1613,7 @@ const CSS = `
       flex: 1;
       padding: 24px 40px 40px;
       overflow-y: auto;
-      max-width: 860px;
+      height: 100%;
     }
 
     /* 콘텐츠 2컬럼 그리드 */
@@ -1614,20 +1624,8 @@ const CSS = `
       align-items: start;
     }
 
-    /* 가격 히어로는 항상 전체 너비 */
-    .price-hero {
-      grid-column: 1 / -1;
-    }
-
-    /* 가탄제 가격 그리드 전체 너비 */
-    .recab-price-grid {
-      grid-column: 1 / -1;
-    }
-
-    /* 시황종합 시그널은 전체 너비 */
-    .section-card:first-of-type {
-      grid-column: 1 / -1;
-    }
+    .price-hero { grid-column: 1 / -1; }
+    .recab-price-grid { grid-column: 1 / -1; }
 
     .price-hero-value { font-size: 32px; }
     .section-card { font-size: 14px; }
@@ -1635,8 +1633,7 @@ const CSS = `
 
   /* ── 와이드 PC (1200px 이상) ── */
   @media (min-width: 1200px) {
-    .app-main { max-width: 1100px; }
-    .bottom-nav { width: 200px; max-width: 200px; }
+    .bottom-nav { width: 200px; min-width: 200px; max-width: 200px; }
     .nav-label { font-size: 16px; }
   }
 `;
