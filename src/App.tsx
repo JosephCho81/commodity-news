@@ -229,11 +229,11 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
         <div className="price-hero-main">
           {hbisBid ? (
             <>
-              <span className="price-hero-label">HBIS Group 페로실리콘 입찰가</span>
-              <span className="price-hero-value" style={{ fontSize: 20 }}>{hbisBid}</span>
+              <span className="price-hero-label">HBIS GROUP 페로실리콘 입찰가</span>
+              <span className="price-hero-value" style={{ fontSize: 20 }}>{String(hbisBid).replace(/Yuan/g, 'CNY')}</span>
               {hbisChange && (
                 <span className="price-hero-change" style={{ color: hbisChangeDown ? 'var(--down)' : 'var(--up)' }}>
-                  전월 대비 {hbisChange}
+                  전월 대비 {String(hbisChange).replace(/Yuan/g, 'CNY')}
                 </span>
               )}
               <span className="fsi-hbis-note">※ HBIS Group(중국 2위 철강사) 월별 공식 입찰가 기준</span>
