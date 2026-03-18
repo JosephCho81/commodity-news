@@ -911,11 +911,6 @@ export default function App() {
         </header>
 
         <div className="app-body">
-          <main className="app-main">
-            <Watermark />
-            {renderContent()}
-          </main>
-
           <nav className="bottom-nav">
             {TABS.map((tab) => (
               <button
@@ -927,6 +922,11 @@ export default function App() {
               </button>
             ))}
           </nav>
+
+          <main className="app-main">
+            <Watermark />
+            {renderContent()}
+          </main>
         </div>
       </div>
     </>
@@ -1036,6 +1036,11 @@ const CSS = `
   .app-body { display: flex; flex-direction: column; flex: 1; }
   .app-main { flex: 1; overflow-y: auto; padding: 14px 14px 84px; }
   .tab-content { display: flex; flex-direction: column; gap: 10px; }
+
+  /* 모바일에서 nav는 DOM 순서 무관하게 하단 고정 */
+  @media (max-width: 767px) {
+    .app-body { flex-direction: column-reverse; }
+  }
 
   .report-btn {
     font-family: var(--sans); font-size: 11px; font-weight: 600;
