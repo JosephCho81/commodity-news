@@ -290,62 +290,150 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
 }
 
 // ─── 탭 콘텐츠: 가탄제 ────────────────────────────────────────────────────────
+function hasText(v: any): boolean {
+  return typeof v === 'string' && v.trim().length > 4;
+}
+
 function RecarburizerTab({ data }: { data: RecarburizerData }) {
-  const { china_price, china_production, russia, asia_flows, market_summary } = data;
+  const d = data as any;
+  const cp    = d.china_price      ?? {};
+  const rp    = d.russia_price     ?? {};
+  const gm    = d.global_market    ?? {};
+  const cprod = d.china_production ?? {};
+  const rprod = d.russia_production ?? {};
+  const af    = d.asia_flows;
+  const market_summary: string = d.market_summary ?? '';
+
+  const flowAvailable: boolean = Array.isArray(af) ? af.length > 0 : (af?.available ?? false);
+  const flowList: any[] = Array.isArray(af) ? af : (af?.flows ?? []);
+
+  const chinaDown  = cp.change && String(cp.change).startsWith('-');
+  const russiaDown = rp.change && String(rp.change).startsWith('-');
+  const russiaHint = hasText(rp.vs_china) ? rp.vs_china : null;
+
+  const hasChinaProd = hasText(cprod.production_status) || hasText(cprod.cbam_carbon)
+    || hasText(cprod.policy) || hasText(cprod.outlook)
+    || cprod.annual_output || cprod.annual_consumption || cprod.export_volume;
+  const hasRussiaProd = hasText(rprod.production_status) || hasText(rprod.sanctions_impact)
+    || hasText(rprod.war_impact) || hasText(rprod.outlook)
+    || rprod.annual_output || rprod.export_volume || hasText(rprod.main_importers);
+
   return (
     <div className="tab-content">
-      <div className="price-hero">
-        <div className="price-hero-main">
-          <span className="price-hero-label">중국 무연탄 현물가</span>
-          {china_price.anthracite_shanxi
-            ? <span className="price-hero-value">{china_price.anthracite_shanxi} <small>CNY/톤</small></span>
-            : <span className="price-hero-na">가격 확인 중</span>
-          }
-          {china_price.change && (
-            <span className="price-hero-change"
-              style={{ color: String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
-              {china_price.change}
-            </span>
+      <div className="recab-price-grid">
+        <div className="recab-price-box">
+          <div className="recab-price-box-country">🇨🇳 중국 무연탄</div>
+          <div className="recab-price-box-main">
+            {cp.fob_qinhuangdao
+              ? <><span className="recab-price-val">USD {cp.fob_qinhuangdao}/MT</span></>
+              : cp.domestic_shanxi
+                ? <><span className="recab-price-val">{cp.domestic_shanxi}</span><span className="recab-price-unit"> CNY/MT</span></>
+                : hasText(cp.price_range_text)
+                  ? <span className="recab-price-val">{cp.price_range_text}</span>
+                  : <span className="recab-price-na">—</span>
+            }
+          </div>
+          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && hasText(cp.price_range_source) && (
+            <div className="recab-price-ref">({cp.price_range_source})</div>
           )}
+          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && hasText(cp.price_range_note) && (
+            <div className="recab-price-note">※ {cp.price_range_note}</div>
+          )}
+          {cp.change && (
+            <div className="recab-price-change" style={{ color: chinaDown ? 'var(--down)' : 'var(--up)' }}>
+              {cp.change}
+            </div>
+          )}
+          <div className="recab-price-tags">
+            {cp.fob_qinhuangdao && <span className="recab-tag">FOB 친황다오</span>}
+            {cp.cif_korea && <span className="recab-tag">CIF 한국 {cp.cif_korea}</span>}
+            {cp.date && <span className="recab-tag-date">{cp.date}</span>}
+          </div>
         </div>
-        <div className="price-hero-sub">
-          {china_price.anthracite_guizhou && <span>귀저우: {china_price.anthracite_guizhou} CNY/톤</span>}
-          {china_price.calcined_anthracite && <span>하소: {china_price.calcined_anthracite} CNY/톤</span>}
-          {china_price.date && <span>기준: {china_price.date}</span>}
+
+        <div className="recab-price-box recab-price-box--russia">
+          <div className="recab-price-box-country">🇷🇺 러시아 안트라사이트</div>
+          <div className="recab-price-box-main">
+            {rp.fob_murmansk
+              ? <><span className="recab-price-val">USD {rp.fob_murmansk}/MT</span></>
+              : hasText(rp.price_range_text)
+                ? <span className="recab-price-val">{rp.price_range_text}</span>
+                : <span className="recab-price-na">—</span>
+            }
+          </div>
+          {!rp.fob_murmansk && hasText(rp.price_range_source) && (
+            <div className="recab-price-ref recab-price-ref--russia">({rp.price_range_source})</div>
+          )}
+          {!rp.fob_murmansk && hasText(rp.price_range_note) && (
+            <div className="recab-price-note recab-price-note--russia">※ {rp.price_range_note}</div>
+          )}
+          {!rp.fob_murmansk && !hasText(rp.price_range_text) && russiaHint && (
+            <div className="recab-price-ref recab-price-ref--russia">{russiaHint}</div>
+          )}
+          {rp.change && (
+            <div className="recab-price-change" style={{ color: russiaDown ? 'var(--down)' : 'var(--up)' }}>
+              {rp.change}
+            </div>
+          )}
+          <div className="recab-price-tags">
+            {rp.fob_murmansk && <span className="recab-tag">FOB 무르만스크</span>}
+            {rp.cif_korea && <span className="recab-tag">CIF 한국 {rp.cif_korea}</span>}
+            {rp.date && <span className="recab-tag-date">{rp.date}</span>}
+          </div>
         </div>
       </div>
 
-      <SectionCard title="가격 맥락" accent="CTX"><TextBlock text={china_price.price_context} /></SectionCard>
+      {(hasText(gm.headline) || hasText(gm.current_level) || hasText(gm.key_drivers)) && (
+        <SectionCard title="전세계 시장 상황" accent="MKT">
+          {hasText(gm.headline) && <div className="recab-headline-box"><span className="recab-headline-text">{gm.headline}</span></div>}
+          {hasText(gm.current_level) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">현재 가격 수준</span><TextBlock text={gm.current_level} /></div>}
+          {hasText(gm.key_drivers) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 가격 동인</span><TextBlock text={gm.key_drivers} /></div>}
+          {hasText(gm.outlook) && <div className="outlook-box"><span className="outlook-label">단기 전망</span><p className="outlook-text">{gm.outlook}</p></div>}
+        </SectionCard>
+      )}
 
-      <SectionCard title="중국 생산 현황" accent="PROD">
-        <InfoRow label="채굴 현황" value={china_production.mining_status} />
-        <InfoRow label="가공 현황" value={china_production.processing_status} />
-        <InfoRow label="정책 영향" value={china_production.policy_impact} />
-      </SectionCard>
+      {hasChinaProd && (
+        <SectionCard title="중국 생산 현황" accent="CHN">
+          {hasText(cprod.production_status) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">생산·채굴 현황</span><TextBlock text={cprod.production_status} /></div>}
+          {hasText(cprod.cbam_carbon) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">CBAM · 탄소배출권</span><TextBlock text={cprod.cbam_carbon} /></div>}
+          {hasText(cprod.policy) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 정책</span><TextBlock text={cprod.policy} /></div>}
+          {hasText(cprod.outlook) && <div className="outlook-box"><span className="outlook-label">생산·수출 전망</span><p className="outlook-text">{cprod.outlook}</p></div>}
+        </SectionCard>
+      )}
 
-      <SectionCard title="러시아 안트라사이트" accent="RUS">
-        <InfoRow label="수출 현황" value={russia.export_volume} />
-        <InfoRow label="제재 영향" value={russia.sanctions_impact} />
-        <InfoRow label="가격 경쟁력" value={russia.price_competitiveness} />
-      </SectionCard>
+      {hasRussiaProd && (
+        <SectionCard title="러시아 생산 현황" accent="RUS">
+          {hasText(rprod.main_importers) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 수입국</span><div className="country-price-tag">{rprod.main_importers}</div></div>}
+          {hasText(rprod.production_status) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">생산·채굴 현황</span><TextBlock text={rprod.production_status} /></div>}
+          {hasText(rprod.war_impact) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">전쟁 영향</span><TextBlock text={rprod.war_impact} /></div>}
+          {hasText(rprod.sanctions_impact) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">제재 및 수출 루트</span><TextBlock text={rprod.sanctions_impact} /></div>}
+          {hasText(rprod.outlook) && <div className="outlook-box"><span className="outlook-label">생산·수출 전망</span><p className="outlook-text">{rprod.outlook}</p></div>}
+        </SectionCard>
+      )}
 
-      <SectionCard title="아시아 물동량 흐름" accent="FLOW">
-        <div className="flow-table">
-          <div className="flow-table-header">
-            <span>수입국</span><span>주요 공급국</span><span>물량 추이</span><span>단가 동향</span>
-          </div>
-          {asia_flows.map((f) => (
-            <div key={f.importer} className="flow-table-row">
-              <span className="flow-importer">{f.importer}</span>
-              <span>{f.main_sources}</span>
-              <span>{f.volume_trend}</span>
-              <span>{f.price_trend}</span>
+      {flowAvailable && flowList.length > 0 && (
+        <SectionCard title="아시아 물동량 흐름" accent="FLOW">
+          <div className="flow-table">
+            <div className="flow-table-header">
+              <span>수입국</span><span>주요 공급국</span><span>물량 추이</span><span>단가 동향</span>
             </div>
-          ))}
-        </div>
-      </SectionCard>
+            {flowList.map((f: any) => (
+              <div key={f.importer} className="flow-table-row">
+                <span className="flow-importer">{f.importer}</span>
+                <span>{f.main_sources}</span>
+                <span>{f.volume_trend}</span>
+                <span>{f.price_trend}</span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
 
-      <SectionCard title="시장 종합 및 전망" accent="SUM"><TextBlock text={market_summary} /></SectionCard>
+      {hasText(market_summary) && (
+        <SectionCard title="시장 종합 의견" accent="SUM">
+          <TextBlock text={market_summary} />
+        </SectionCard>
+      )}
     </div>
   );
 }
@@ -353,16 +441,18 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
 // ─── 탭 콘텐츠: 시황 종합 ─────────────────────────────────────────────────────
 function SummaryTab({ data }: { data: SummaryData }) {
   const { one_liner, key_signals, risk_signals, week_ahead } = data;
+  const cleanOneLiner = (one_liner ?? '').replace(/^["'"']+|["'"']+$/g, '').trim();
+
   return (
     <div className="tab-content">
       <div className="one-liner-card">
         <div className="one-liner-label">TODAY</div>
-        <div className="one-liner-text">"{one_liner}"</div>
+        <div className="one-liner-text">{cleanOneLiner || '시장 데이터 수집 중'}</div>
       </div>
 
       <SectionCard title="품목별 핵심 시그널" accent="SIGNAL">
-        {key_signals.map((s) => (
-          <div key={s.commodity} className="signal-row">
+        {(key_signals ?? []).map((s, i) => (
+          <div key={s.commodity ?? i} className="signal-row">
             <div className="signal-meta">
               <span className="signal-commodity">{s.commodity}</span>
               <span className="signal-dir" style={{ color: directionColor(s.direction) }}>
@@ -372,13 +462,13 @@ function SummaryTab({ data }: { data: SummaryData }) {
                 {urgencyBadge(s.urgency)}
               </span>
             </div>
-            <p className="signal-text">{s.signal}</p>
+            {s.signal && <p className="signal-text">{s.signal}</p>}
           </div>
         ))}
       </SectionCard>
 
       <SectionCard title="주요 리스크 신호" accent="RISK">
-        {risk_signals.map((r, i) => (
+        {(risk_signals ?? []).map((r, i) => (
           <div key={i} className="risk-row">
             <div className="risk-header">
               <span className="risk-name">{r.risk}</span>
@@ -386,15 +476,17 @@ function SummaryTab({ data }: { data: SummaryData }) {
                 {r.probability === 'HIGH' ? '고' : r.probability === 'MEDIUM' ? '중' : '저'}위험
               </span>
             </div>
-            <p className="risk-affected">영향: {r.affected}</p>
-            <p className="risk-impact">{r.impact}</p>
+            {r.affected && <p className="risk-affected">영향: {r.affected}</p>}
+            {r.impact && <p className="risk-impact">{r.impact}</p>}
           </div>
         ))}
       </SectionCard>
 
-      <SectionCard title="이번 주 주목 변수" accent="WATCH">
-        <div className="watch-text">{week_ahead}</div>
-      </SectionCard>
+      {week_ahead && (
+        <SectionCard title="이번 주 주목 변수" accent="WATCH">
+          <div className="watch-text">{week_ahead}</div>
+        </SectionCard>
+      )}
     </div>
   );
 }
@@ -879,6 +971,31 @@ const CSS = `
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--green-mid); border-radius: 2px; }
+
+  /* ── 가탄제 가격 2박스 ── */
+  .recab-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .recab-price-box { background: #fff; border: 1.5px solid var(--green-mid); border-radius: 8px; padding: 14px 12px 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow); }
+  .recab-price-box--russia { border-color: #d0cfe8; background: #fafafe; }
+  .recab-price-box-country { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.5px; margin-bottom: 2px; }
+  .recab-price-box-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px; }
+  .recab-price-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--green-dark); line-height: 1.2; }
+  .recab-price-unit { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+  .recab-price-na { font-family: var(--mono); font-size: 13px; color: var(--text3); }
+  .recab-price-change { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+  .recab-price-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .recab-tag { font-family: var(--mono); font-size: 9px; background: var(--green-subtle); border: 1px solid var(--green-mid); color: var(--green-dark); padding: 2px 6px; border-radius: 3px; }
+  .recab-tag-date { font-family: var(--mono); font-size: 9px; color: var(--text3); padding: 2px 4px; }
+  .recab-price-ref { font-size: 10px; color: var(--text3); font-family: var(--sans); margin-top: 2px; }
+  .recab-price-ref--russia { font-size: 10px; color: #7a78a8; font-family: var(--sans); margin-top: 2px; }
+  .recab-price-note { font-size: 10px; color: var(--text3); font-family: var(--sans); margin-top: 2px; }
+  .recab-price-note--russia { color: #7a78a8; }
+  .recab-sub-label { display: block; font-family: var(--mono); font-size: 9px; font-weight: 600; color: var(--green-primary); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 4px; }
+  .recab-headline-box { background: var(--green-primary); border-radius: 5px; padding: 12px 14px; margin-bottom: 12px; }
+  .recab-headline-text { font-size: 13px; font-weight: 600; color: #fff; line-height: 1.65; }
+  .recab-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .recab-stat-cell { background: var(--green-subtle); border: 1px solid var(--border); border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 3px; }
+  .recab-stat-label { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+  .recab-stat-val { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green-dark); line-height: 1.4; }
 
   /* ── 반응형 ── */
   @media (max-width: 360px) {
