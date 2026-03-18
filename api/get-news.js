@@ -553,6 +553,11 @@ const PROMPTS = {
 4. fob_tianjin_monthly: mysteel, Metal Bulletin 검색. 없으면 미확인.
 5. market_summary: 반드시 3~4문장.
 6. 각주 번호 절대 금지. 한국어 작성.
+7. 【가격 표기 형식 필수】 모든 가격은 반드시 아래 형식으로 통일:
+   - USD가 있으면: "USD X,XXX/톤 (CNY X,XXX/톤)" 형식
+   - CNY만 있으면: "CNY X,XXX/톤" 형식
+   - 천단위 콤마 필수. "Yuan" 사용 금지, 반드시 "CNY" 사용.
+   - 예: "USD 819/톤 (CNY 5,850/톤)", "CNY 5,532/톤"
 
 {
   "china_price": {
