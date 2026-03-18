@@ -911,6 +911,11 @@ export default function App() {
         </header>
 
         <div className="app-body">
+          <main className="app-main">
+            <Watermark />
+            {renderContent()}
+          </main>
+
           <nav className="bottom-nav">
             {TABS.map((tab) => (
               <button
@@ -922,11 +927,6 @@ export default function App() {
               </button>
             ))}
           </nav>
-
-          <main className="app-main">
-            <Watermark />
-            {renderContent()}
-          </main>
         </div>
       </div>
     </>
@@ -1572,8 +1572,9 @@ const CSS = `
     .report-btn { font-size: 13px; padding: 6px 16px; }
     .cache-badge { font-size: 12px; }
 
-    /* 사이드 탭바 */
+    /* 사이드 탭바 — PC에서 왼쪽 */
     .bottom-nav {
+      order: -1;
       position: relative;
       bottom: auto; left: auto; transform: none;
       width: 160px; min-width: 160px; max-width: 160px;
