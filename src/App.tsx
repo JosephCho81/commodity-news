@@ -1624,5 +1624,5 @@ const CSS = `
     .bottom-nav { width: 180px; min-width: 180px; max-width: 180px; }
     .nav-label { font-size: 16px; }
   }
-`;
+`; 
 
