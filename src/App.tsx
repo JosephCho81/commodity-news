@@ -1223,6 +1223,8 @@ const CSS = `
   .one-liner-card {
     background: var(--green-primary);
     padding: 20px 18px; border-radius: 6px; box-shadow: var(--shadow);
+    grid-column: 1 / -1 !important;
+    width: 100%;
   }
   .one-liner-label { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.6); letter-spacing: 3px; margin-bottom: 8px; }
   .one-liner-text  { font-size: 15px; font-weight: 600; color: #ffffff; line-height: 1.7; }
