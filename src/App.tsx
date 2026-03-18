@@ -1562,9 +1562,7 @@ const CSS = `
     }
 
     /* 헤더 */
-    .app-header {
-      padding: 14px 40px;
-    }
+    .app-header { padding: 14px 32px; }
     .brand-logo { height: 44px; }
     .brand-name { font-size: 18px; }
     .brand-sub  { font-size: 13px; }
@@ -1574,66 +1572,52 @@ const CSS = `
     /* 사이드 탭바 */
     .bottom-nav {
       position: relative;
-      bottom: auto;
-      left: auto;
-      transform: none;
-      width: 180px;
-      min-width: 180px;
-      max-width: 180px;
+      bottom: auto; left: auto; transform: none;
+      width: 160px; min-width: 160px; max-width: 160px;
       height: 100%;
       flex-direction: column;
       border-top: none;
       border-right: 2px solid var(--green-primary);
-      box-shadow: 2px 0 12px rgba(31,168,60,0.08);
-      padding: 16px 0;
+      box-shadow: 2px 0 8px rgba(31,168,60,0.06);
+      padding: 20px 0;
       background: var(--surface);
       align-items: stretch;
       overflow-y: auto;
     }
-
     .nav-tab {
-      flex: none;
-      padding: 16px 20px;
-      align-items: flex-start;
-      justify-content: flex-start;
+      flex: none; padding: 14px 20px;
+      align-items: flex-start; justify-content: flex-start;
       border-radius: 0;
     }
     .nav-tab::after {
-      top: 15%; bottom: 15%;
-      left: -2px; right: auto;
+      top: 20%; bottom: 20%; left: -2px; right: auto;
       width: 3px; height: auto;
-      transform: scaleY(0);
-      border-radius: 0 3px 3px 0;
+      transform: scaleY(0); border-radius: 0 3px 3px 0;
     }
     .nav-tab.active::after { transform: scaleY(1); }
     .nav-label { font-size: 15px; }
 
-    /* 메인 콘텐츠 */
+    /* 메인 콘텐츠 — 1컬럼, 적절한 최대 너비 */
     .app-main {
-      flex: 1;
-      padding: 24px 40px 40px;
-      overflow-y: auto;
-      height: 100%;
+      flex: 1; overflow-y: auto; height: 100%;
+      padding: 28px 48px 48px;
+      max-width: 820px;
     }
 
-    /* 콘텐츠 2컬럼 그리드 */
+    /* 1컬럼 유지 — 빈 공간 없음 */
     .tab-content {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      align-items: start;
+      display: flex; flex-direction: column; gap: 14px;
     }
-
-    .price-hero { grid-column: 1 / -1; }
-    .recab-price-grid { grid-column: 1 / -1; }
 
     .price-hero-value { font-size: 32px; }
     .section-card { font-size: 14px; }
+    .text-block { font-size: 13px; line-height: 1.8; }
   }
 
   /* ── 와이드 PC (1200px 이상) ── */
   @media (min-width: 1200px) {
-    .bottom-nav { width: 200px; min-width: 200px; max-width: 200px; }
+    .app-main { max-width: 900px; padding: 32px 64px 64px; }
+    .bottom-nav { width: 180px; min-width: 180px; max-width: 180px; }
     .nav-label { font-size: 16px; }
   }
 `;
