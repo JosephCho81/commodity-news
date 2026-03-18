@@ -82,49 +82,15 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function TextBlock({ text }: { text: string | null | undefined }) {
-  if (!text || String(text).trim().length === 0) return null;
-  const cleaned = String(text).replace(/Yuan/g, 'CNY');
-  return <p className="text-block">{cleaned}</p>;
-}
-
-function SkeletonBlock({ width = '100%', height = 14 }: { width?: string; height?: number }) {
-  return <div className="skeleton" style={{ width, height }} />;
+function TextBlock({ text }: { text: string }) {
+  return <p className="text-block">{text}</p>;
 }
 
 function LoadingState() {
   return (
-    <div className="tab-content">
-      {/* 가격 히어로 스켈레톤 */}
-      <div className="price-hero">
-        <div className="price-hero-main" style={{ gap: 8 }}>
-          <SkeletonBlock width="120px" height={10} />
-          <SkeletonBlock width="180px" height={28} />
-          <SkeletonBlock width="140px" height={12} />
-        </div>
-      </div>
-      {/* 섹션 카드 스켈레톤 3개 */}
-      {[1,2,3].map(i => (
-        <div key={i} className="section-card">
-          <div className="section-header">
-            <SkeletonBlock width="60px" height={10} />
-            <SkeletonBlock width="100px" height={10} />
-          </div>
-          <div className="section-body" style={{ gap: 8 }}>
-            <SkeletonBlock height={12} />
-            <SkeletonBlock width="90%" height={12} />
-            <SkeletonBlock width="75%" height={12} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Watermark() {
-  return (
-    <div className="watermark" aria-hidden="true">
-      <img src="/logo.png" alt="" className="watermark-img" />
+    <div className="loading-state">
+      <div className="loading-spinner" />
+      <p>시장 데이터 수집 중…</p>
     </div>
   );
 }
@@ -141,7 +107,6 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 // ─── 탭 콘텐츠: 알루미늄 ──────────────────────────────────────────────────────
 function AluminumTab({ data }: { data: AluminumData }) {
   const { lme, scrap } = data;
-  const d = data as any;
   const isUp = lme.change != null && !String(lme.change).startsWith('-');
   const priceValid = isValidLmePrice(lme.price);
 
@@ -149,7 +114,7 @@ function AluminumTab({ data }: { data: AluminumData }) {
     <div className="tab-content">
       <div className="price-hero">
         <div className="price-hero-main">
-          <span className="price-hero-label">LME 알루미늄 Cash Settlement</span>
+          <span className="price-hero-label">LME 알루미늄 공식가</span>
           {priceValid
             ? <span className="price-hero-value">{formatNum(lme.price)} <small>USD/톤</small></span>
             : <span className="price-hero-na">가격 확인 중</span>
@@ -209,83 +174,35 @@ function AluminumTab({ data }: { data: AluminumData }) {
 // ─── 탭 콘텐츠: 페로실리콘 ────────────────────────────────────────────────────
 function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
   const { china_price, china_production, non_china, market_summary, non_china_context, korea_import } = data as any;
-
-  // HBIS 입찰가 우선, 없으면 FOB 월별 가격 fallback
-  const hbisBidRaw = china_price.hbis_bid_price ?? null;
-  const hbisBid = hbisBidRaw && !String(hbisBidRaw).includes('미확인') ? hbisBidRaw : null;
-  const hbisMonth = china_price.hbis_bid_month ?? null;
-  const hbisChange = china_price.hbis_bid_change ?? null;
-  const hbisChangeDown = hbisChange && String(hbisChange).startsWith('-');
-
-  // FOB fallback — fob_tianjin_monthly
-  const m = china_price.fob_tianjin_monthly as any;
-  const isValid = (v: any) => v && !String(v).includes('미확인') && !String(v).includes('검색');
-  const validEntries = Object.entries(m || {}).filter(([, v]) => isValid(v)).sort(([a], [b]) => b.localeCompare(a));
-  const fobLatestVal = validEntries[0]?.[1] as string ?? null;
-  const numMatch = fobLatestVal ? fobLatestVal.match(/([\d,]+~[\d,]+)/) : null;
-  const fobRange = numMatch ? numMatch[1] : null;
-
-  // FOB fallback2 — china_context 텍스트에서 USD X,XXX~X,XXX 패턴 추출
-  const ctxFobMatch = china_price.china_context
-    ? String(china_price.china_context).match(/USD\s*([\d,]+[~\-][\d,]+)/)
-    : null;
-  const ctxFobRange = ctxFobMatch ? ctxFobMatch[1] : null;
-
   return (
     <div className="tab-content">
       <div className="price-hero">
         <div className="price-hero-main">
-          {hbisBid ? (
-            <>
-              <span className="price-hero-label">HBIS GROUP 페로실리콘 입찰가</span>
-              {(() => {
-                const raw = String(hbisBid);
-                // USD와 CNY 추출
-                const usdMatch = raw.match(/USD\s*[약]?\s*([\d,]+)/i);
-                const cnyMatch = raw.match(/(?:CNY|Yuan)\s*([\d,]+)/i);
-                const usd = usdMatch ? Number(usdMatch[1].replace(/,/g, '')).toLocaleString() : null;
-                const cny = cnyMatch ? Number(cnyMatch[1].replace(/,/g, '')).toLocaleString() : null;
-                if (usd || cny) {
-                  return (
-                    <span className="price-hero-value" style={{ fontSize: 20 }}>
-                      {usd && `USD ${usd}/톤`}
-                      {usd && cny && <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 400 }}> (CNY {cny}/톤 · 중국 내수가)</span>}
-                      {!usd && cny && `CNY ${cny}/톤`}
-                    </span>
-                  );
+          {(() => {
+            const m = china_price.fob_tianjin_monthly as any;
+            const isValid = (v: any) => v && !String(v).includes('미확인') && !String(v).includes('검색');
+            const validEntries = Object.entries(m || {})
+              .filter(([, v]) => isValid(v))
+              .sort(([a], [b]) => b.localeCompare(a));
+            const latestKey = validEntries[0]?.[0] ?? '';
+            const latestVal = validEntries[0]?.[1] as string ?? null;
+            const latestParts = latestKey ? latestKey.split('_') : [];
+            const yr = latestParts[0] ?? '';
+            const mo = latestParts[1] ? parseInt(latestParts[1], 10) : 0;
+            const numMatch = latestVal ? latestVal.match(/([\d,]+~[\d,]+)/) : null;
+            const priceRange = numMatch ? numMatch[1] : null;
+            return (
+              <>
+                <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
+                {priceRange
+                  ? <span className="price-hero-value">{priceRange} <small>USD/톤</small></span>
+                  : <span className="price-hero-na">가격 확인 중</span>
                 }
-                return <span className="price-hero-value" style={{ fontSize: 16 }}>{raw}</span>;
-              })()}
-              {hbisChange && (
-                <span className="price-hero-change" style={{ color: hbisChangeDown ? 'var(--down)' : 'var(--up)' }}>
-                  {String(hbisChange).replace(/Yuan/g, 'CNY')}
-                </span>
-              )}
-              <span className="fsi-hbis-note">※ HBIS Group(중국 2위 철강사) 월별 공식 입찰가 기준</span>
-            </>
-          ) : fobRange ? (
-            <>
-              <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
-              <span className="price-hero-value">{fobRange} <small>USD/톤</small></span>
-            </>
-          ) : ctxFobRange ? (
-            <>
-              <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
-              <span className="price-hero-value">{ctxFobRange} <small>USD/톤</small></span>
-            </>
-          ) : (
-            <>
-              <span className="price-hero-label">페로실리콘 75</span>
-              <span className="price-hero-na">가격 확인 중</span>
-            </>
-          )}
+                {yr && mo && <span className="price-hero-date">기준: {yr.slice(2)}년 {mo}월</span>}
+              </>
+            );
+          })()}
         </div>
-        {hbisMonth && (() => {
-          const parts = String(hbisMonth).split('-');
-          const yr = parts[0] ? parts[0].slice(2) + '년' : '';
-          const mo = parts[1] ? parseInt(parts[1]) + '월' : '';
-          return <span className="price-hero-date">기준: {yr} {mo}</span>;
-        })()}
       </div>
 
       {/* 중국 시장 맥락 & 전망 */}
@@ -329,231 +246,62 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
 }
 
 // ─── 탭 콘텐츠: 가탄제 ────────────────────────────────────────────────────────
-// 빈 문자열·null·undefined 모두 걸러내는 헬퍼
-function hasText(v: any): boolean {
-  return typeof v === 'string' && v.trim().length > 4;
-}
-
 function RecarburizerTab({ data }: { data: RecarburizerData }) {
-  const d = data as any;
-  const cp    = d.china_price      ?? {};
-  const rp    = d.russia_price     ?? {};
-  const gm    = d.global_market    ?? {};
-  const cprod = d.china_production ?? {};
-  const rprod = d.russia_production ?? {};
-  const af    = d.asia_flows;
-  const market_summary: string = d.market_summary ?? '';
-
-  // asia_flows 정규화 (신: { available, flows } / 구: 배열)
-  const flowAvailable: boolean = Array.isArray(af) ? af.length > 0 : (af?.available ?? false);
-  const flowList: any[] = Array.isArray(af) ? af : (af?.flows ?? []);
-
-  const chinaDown  = cp.change && String(cp.change).startsWith('-');
-  const russiaDown = rp.change && String(rp.change).startsWith('-');
-
-  // 중국·러시아 생산 섹션에 표시할 내용이 하나라도 있는지 확인
-  const hasChinaProd = hasText(cprod.production_status) || hasText(cprod.cbam_carbon)
-    || hasText(cprod.policy) || hasText(cprod.outlook)
-    || cprod.annual_output || cprod.annual_consumption || cprod.export_volume;
-  const hasRussiaProd = hasText(rprod.production_status) || hasText(rprod.sanctions_impact)
-    || hasText(rprod.war_impact) || hasText(rprod.outlook)
-    || rprod.annual_output || rprod.export_volume || hasText(rprod.main_importers);
-
-  // price_range_text 우선 표시 (숫자 자동 추출 제거 — 오추출 방지)
-  const chinaHint: string | null = null;
-  const russiaHint = hasText(rp.vs_china) ? rp.vs_china : null;
-
+  const { china_price, china_production, russia, asia_flows, market_summary } = data;
   return (
     <div className="tab-content">
-
-      {/* ══ 가격 박스 2개 나란히 ══ */}
-      <div className="recab-price-grid">
-
-        {/* 중국 무연탄 */}
-        <div className="recab-price-box">
-          <div className="recab-price-box-country">🇨🇳 중국 무연탄</div>
-          <div className="recab-price-box-main">
-            {cp.fob_qinhuangdao
-              ? <><span className="recab-price-val">USD {cp.fob_qinhuangdao}/MT</span></>
-              : cp.domestic_shanxi
-                ? <><span className="recab-price-val">{cp.domestic_shanxi}</span><span className="recab-price-unit"> CNY/MT</span></>
-                : hasText(cp.price_range_text)
-                  ? <span className="recab-price-val">{cp.price_range_text}</span>
-                  : <span className="recab-price-na">—</span>
-            }
-          </div>
-          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && (
-            <>
-              {hasText(cp.price_range_source) && (
-                <div className="recab-price-ref">({cp.price_range_source})</div>
-              )}
-              {hasText(cp.price_range_note) && (
-                <div className="recab-price-note">※ {cp.price_range_note}</div>
-              )}
-            </>
+      <div className="price-hero">
+        <div className="price-hero-main">
+          <span className="price-hero-label">중국 무연탄 현물가</span>
+          {china_price.anthracite_shanxi
+            ? <span className="price-hero-value">{china_price.anthracite_shanxi} <small>CNY/톤</small></span>
+            : <span className="price-hero-na">가격 확인 중</span>
+          }
+          {china_price.change && (
+            <span className="price-hero-change"
+              style={{ color: String(china_price.change).startsWith('-') ? 'var(--down)' : 'var(--up)' }}>
+              {china_price.change}
+            </span>
           )}
-          {!cp.fob_qinhuangdao && !cp.domestic_shanxi && !hasText(cp.price_range_text) && chinaHint && (
-            <div className="recab-price-ref">※ 시장 보도 참고가</div>
-          )}
-          {cp.change && (
-            <div className="recab-price-change" style={{ color: chinaDown ? 'var(--down)' : 'var(--up)' }}>
-              {cp.change}
-            </div>
-          )}
-          <div className="recab-price-tags">
-            {cp.fob_qinhuangdao && <span className="recab-tag">FOB 친황다오</span>}
-            {cp.cif_korea        && <span className="recab-tag">CIF 한국 {cp.cif_korea}</span>}
-            {cp.domestic_shanxi && cp.fob_qinhuangdao && <span className="recab-tag">산시 {cp.domestic_shanxi} CNY</span>}
-            {cp.calcined_cac_fob && <span className="recab-tag">CAC {cp.calcined_cac_fob}</span>}
-            {cp.date             && <span className="recab-tag-date">{cp.date}</span>}
-          </div>
         </div>
-
-        {/* 러시아 안트라사이트 */}
-        <div className="recab-price-box recab-price-box--russia">
-          <div className="recab-price-box-country">🇷🇺 러시아 안트라사이트</div>
-          <div className="recab-price-box-main">
-            {rp.fob_murmansk
-              ? <><span className="recab-price-val">USD {rp.fob_murmansk}/MT</span></>
-              : hasText(rp.price_range_text)
-                ? <span className="recab-price-val">{rp.price_range_text}</span>
-                : <span className="recab-price-na">—</span>
-            }
-          </div>
-          {!rp.fob_murmansk && (
-            <>
-              {hasText(rp.price_range_source) && (
-                <div className="recab-price-ref recab-price-ref--russia">({rp.price_range_source})</div>
-              )}
-              {hasText(rp.price_range_note) && (
-                <div className="recab-price-note recab-price-note--russia">※ {rp.price_range_note}</div>
-              )}
-            </>
-          )}
-          {!rp.fob_murmansk && !hasText(rp.price_range_text) && russiaHint && (
-            <div className="recab-price-ref recab-price-ref--russia">{russiaHint}</div>
-          )}
-          {rp.change && (
-            <div className="recab-price-change" style={{ color: russiaDown ? 'var(--down)' : 'var(--up)' }}>
-              {rp.change}
-            </div>
-          )}
-          <div className="recab-price-tags">
-            {rp.fob_murmansk && <span className="recab-tag">FOB 무르만스크</span>}
-            {rp.cif_korea    && <span className="recab-tag">CIF 한국 {rp.cif_korea}</span>}
-            {rp.date         && <span className="recab-tag-date">{rp.date}</span>}
-          </div>
+        <div className="price-hero-sub">
+          {china_price.anthracite_guizhou && <span>귀저우: {china_price.anthracite_guizhou} CNY/톤</span>}
+          {china_price.calcined_anthracite && <span>하소: {china_price.calcined_anthracite} CNY/톤</span>}
+          {china_price.date && <span>기준: {china_price.date}</span>}
         </div>
       </div>
 
-      {/* ══ 전세계 시장 상황 ══ */}
-      {(hasText(gm.headline) || hasText(gm.current_level) || hasText(gm.key_drivers)) && (
-        <SectionCard title="전세계 시장 상황" accent="MKT">
-          {hasText(gm.headline) && (
-            <div className="recab-headline-box">
-              <span className="recab-headline-text">{gm.headline}</span>
-            </div>
-          )}
-          {hasText(gm.current_level) && (
-            <div style={{ marginBottom: 8 }}>
-              <span className="recab-sub-label">현재 가격 수준</span>
-              <TextBlock text={gm.current_level} />
-            </div>
-          )}
-          {hasText(gm.key_drivers) && (
-            <div style={{ marginBottom: 8 }}>
-              <span className="recab-sub-label">주요 가격 동인</span>
-              <TextBlock text={gm.key_drivers} />
-            </div>
-          )}
-          {hasText(gm.outlook) && (
-            <div className="outlook-box">
-              <span className="outlook-label">단기 전망</span>
-              <p className="outlook-text">{gm.outlook}</p>
-            </div>
-          )}
-        </SectionCard>
-      )}
+      <SectionCard title="가격 맥락" accent="CTX"><TextBlock text={china_price.price_context} /></SectionCard>
 
-      {/* ══ 중국 생산 현황 ══ */}
-      {hasChinaProd && (
-        <SectionCard title="중국 생산 현황" accent="CHN">
-          {(cprod.annual_output || cprod.annual_consumption || cprod.export_volume || cprod.import_volume) && (
-            <div className="recab-stat-grid">
-              {cprod.annual_output      && <div className="recab-stat-cell"><span className="recab-stat-label">연간 생산량</span><span className="recab-stat-val">{cprod.annual_output}</span></div>}
-              {cprod.annual_consumption && <div className="recab-stat-cell"><span className="recab-stat-label">연간 소비량</span><span className="recab-stat-val">{cprod.annual_consumption}</span></div>}
-              {cprod.export_volume      && <div className="recab-stat-cell"><span className="recab-stat-label">수출량</span><span className="recab-stat-val">{cprod.export_volume}</span></div>}
-              {cprod.import_volume      && <div className="recab-stat-cell"><span className="recab-stat-label">수입량</span><span className="recab-stat-val">{cprod.import_volume}</span></div>}
-            </div>
-          )}
-          {hasText(cprod.production_status) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">생산·채굴 현황</span><TextBlock text={cprod.production_status} /></div>}
-          {hasText(cprod.cbam_carbon)       && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">CBAM · 탄소배출권</span><TextBlock text={cprod.cbam_carbon} /></div>}
-          {hasText(cprod.policy)            && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 정책</span><TextBlock text={cprod.policy} /></div>}
-          {hasText(cprod.outlook) && (
-            <div className="outlook-box">
-              <span className="outlook-label">생산·수출 전망</span>
-              <p className="outlook-text">{cprod.outlook}</p>
-            </div>
-          )}
-        </SectionCard>
-      )}
+      <SectionCard title="중국 생산 현황" accent="PROD">
+        <InfoRow label="채굴 현황" value={china_production.mining_status} />
+        <InfoRow label="가공 현황" value={china_production.processing_status} />
+        <InfoRow label="정책 영향" value={china_production.policy_impact} />
+      </SectionCard>
 
-      {/* ══ 러시아 생산 현황 ══ */}
-      {hasRussiaProd && (
-        <SectionCard title="러시아 생산 현황" accent="RUS">
-          {(rprod.annual_output || rprod.export_volume) && (
-            <div className="recab-stat-grid">
-              {rprod.annual_output  && <div className="recab-stat-cell"><span className="recab-stat-label">연간 생산량</span><span className="recab-stat-val">{rprod.annual_output}</span></div>}
-              {rprod.export_volume  && <div className="recab-stat-cell"><span className="recab-stat-label">수출량</span><span className="recab-stat-val">{rprod.export_volume}</span></div>}
-            </div>
-          )}
-          {hasText(rprod.main_importers)    && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">주요 수입국</span><div className="country-price-tag">{rprod.main_importers}</div></div>}
-          {hasText(rprod.production_status) && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">생산·채굴 현황</span><TextBlock text={rprod.production_status} /></div>}
-          {hasText(rprod.war_impact)        && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">전쟁 영향</span><TextBlock text={rprod.war_impact} /></div>}
-          {hasText(rprod.sanctions_impact)  && <div style={{ marginBottom: 8 }}><span className="recab-sub-label">제재 및 수출 루트</span><TextBlock text={rprod.sanctions_impact} /></div>}
-          {hasText(rprod.outlook) && (
-            <div className="outlook-box">
-              <span className="outlook-label">생산·수출 전망</span>
-              <p className="outlook-text">{rprod.outlook}</p>
-            </div>
-          )}
-        </SectionCard>
-      )}
+      <SectionCard title="러시아 안트라사이트" accent="RUS">
+        <InfoRow label="수출 현황" value={russia.export_volume} />
+        <InfoRow label="제재 영향" value={russia.sanctions_impact} />
+        <InfoRow label="가격 경쟁력" value={russia.price_competitiveness} />
+      </SectionCard>
 
-      {/* ══ 아시아 물동량 흐름 (데이터 있을 때만) ══ */}
-      {flowAvailable && flowList.length > 0 && (
-        <SectionCard title="아시아 물동량 흐름" accent="FLOW">
-          <div className="flow-table">
-            <div className="flow-table-header">
-              <span>수입국</span><span>주요 공급국</span><span>물량 추이</span><span>단가 동향</span>
-            </div>
-            {flowList.map((f: any) => (
-              <div key={f.importer} className="flow-table-row">
-                <span className="flow-importer">{f.importer}</span>
-                <span>{f.main_sources}</span>
-                <span>{f.volume_trend}</span>
-                <span>{f.price_trend}</span>
-              </div>
-            ))}
+      <SectionCard title="아시아 물동량 흐름" accent="FLOW">
+        <div className="flow-table">
+          <div className="flow-table-header">
+            <span>수입국</span><span>주요 공급국</span><span>물량 추이</span><span>단가 동향</span>
           </div>
-        </SectionCard>
-      )}
-
-      {/* ══ 시장 종합 의견 ══ */}
-      {hasText(market_summary) && (
-        <SectionCard title="시장 종합 의견" accent="SUM">
-          <TextBlock text={market_summary} />
-        </SectionCard>
-      )}
-
-      {/* ══ 모든 내용이 비어있을 때 fallback ══ */}
-      {!hasChinaProd && !hasRussiaProd && !hasText(gm.headline) && !hasText(market_summary) && (
-        <div className="recab-empty-state">
-          <div className="recab-empty-icon">◍</div>
-          <p className="recab-empty-text">가탄제 시황 데이터를 수집하지 못했습니다.</p>
-          <p className="recab-empty-sub">잠시 후 다시 시도해 주세요.</p>
+          {asia_flows.map((f) => (
+            <div key={f.importer} className="flow-table-row">
+              <span className="flow-importer">{f.importer}</span>
+              <span>{f.main_sources}</span>
+              <span>{f.volume_trend}</span>
+              <span>{f.price_trend}</span>
+            </div>
+          ))}
         </div>
-      )}
+      </SectionCard>
+
+      <SectionCard title="시장 종합 및 전망" accent="SUM"><TextBlock text={market_summary} /></SectionCard>
     </div>
   );
 }
@@ -561,19 +309,16 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
 // ─── 탭 콘텐츠: 시황 종합 ─────────────────────────────────────────────────────
 function SummaryTab({ data }: { data: SummaryData }) {
   const { one_liner, key_signals, risk_signals, week_ahead } = data;
-  // one_liner에서 따옴표 제거
-  const cleanOneLiner = (one_liner ?? '').replace(/^["'"']+|["'"']+$/g, '').trim();
-
   return (
     <div className="tab-content">
       <div className="one-liner-card">
         <div className="one-liner-label">TODAY</div>
-        <div className="one-liner-text">{cleanOneLiner || '시장 데이터 수집 중'}</div>
+        <div className="one-liner-text">"{one_liner}"</div>
       </div>
 
       <SectionCard title="품목별 핵심 시그널" accent="SIGNAL">
-        {(key_signals ?? []).map((s, i) => (
-          <div key={s.commodity ?? i} className="signal-row">
+        {key_signals.map((s) => (
+          <div key={s.commodity} className="signal-row">
             <div className="signal-meta">
               <span className="signal-commodity">{s.commodity}</span>
               <span className="signal-dir" style={{ color: directionColor(s.direction) }}>
@@ -583,13 +328,13 @@ function SummaryTab({ data }: { data: SummaryData }) {
                 {urgencyBadge(s.urgency)}
               </span>
             </div>
-            {s.signal && <p className="signal-text">{s.signal}</p>}
+            <p className="signal-text">{s.signal}</p>
           </div>
         ))}
       </SectionCard>
 
       <SectionCard title="주요 리스크 신호" accent="RISK">
-        {(risk_signals ?? []).map((r, i) => (
+        {risk_signals.map((r, i) => (
           <div key={i} className="risk-row">
             <div className="risk-header">
               <span className="risk-name">{r.risk}</span>
@@ -597,17 +342,15 @@ function SummaryTab({ data }: { data: SummaryData }) {
                 {r.probability === 'HIGH' ? '고' : r.probability === 'MEDIUM' ? '중' : '저'}위험
               </span>
             </div>
-            {r.affected && <p className="risk-affected">영향: {r.affected}</p>}
-            {r.impact && <p className="risk-impact">{r.impact}</p>}
+            <p className="risk-affected">영향: {r.affected}</p>
+            <p className="risk-impact">{r.impact}</p>
           </div>
         ))}
       </SectionCard>
 
-      {week_ahead && (
-        <SectionCard title="이번 주 주목 변수" accent="WATCH">
-          <div className="watch-text">{week_ahead}</div>
-        </SectionCard>
-      )}
+      <SectionCard title="이번 주 주목 변수" accent="WATCH">
+        <div className="watch-text">{week_ahead}</div>
+      </SectionCard>
     </div>
   );
 }
@@ -664,228 +407,6 @@ export default function App() {
   const meta = tabData as (AluminumData | null);
   const ageMin = meta?._age_min ?? null;
 
-  // KST 오늘 날짜 (UTC+9)
-  const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-  // 리포트 생성 — 없는 탭 데이터 먼저 fetch 후 생성
-  async function generateReport(newTab?: Window | null) {
-    const tabs: TabId[] = ['aluminum', 'ferrosilicon', 'recarburizer', 'summary'];
-    const currentData = { ...data };
-
-    // 로드 안 된 탭 먼저 fetch
-    const missing = tabs.filter(t => !currentData[t] && !loading[t]);
-    if (missing.length > 0) {
-      await Promise.all(missing.map(async (tab) => {
-        try {
-          const res = await fetch(`${API_BASE}?tab=${tab}`);
-          const json = await res.json();
-          if (!json.error) currentData[tab] = json;
-        } catch {}
-      }));
-      setData(currentData);
-    }
-
-    const al  = currentData['aluminum']     as any;
-    const fsi = currentData['ferrosilicon'] as any;
-    const rec = currentData['recarburizer'] as any;
-    const sum = currentData['summary']      as any;
-
-    const html = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Noto Sans KR', sans-serif; font-size: 11pt; color: #1a1a1a; background: #fff; }
-  .page { max-width: 780px; margin: 0 auto; padding: 40px 48px; }
-
-  /* 헤더 */
-  .rpt-header { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 16px; border-bottom: 3px solid #1fa83c; margin-bottom: 28px; }
-  .rpt-company { font-size: 13pt; font-weight: 700; color: #1fa83c; letter-spacing: -0.3px; }
-  .rpt-title { font-size: 20pt; font-weight: 700; color: #1a1a1a; letter-spacing: -0.5px; margin-top: 4px; }
-  .rpt-date { font-size: 10pt; color: #666; text-align: right; }
-
-  /* 섹션 */
-  .rpt-section { margin-bottom: 28px; break-inside: avoid; }
-  .rpt-section-title { font-size: 12pt; font-weight: 700; color: #fff; background: #1fa83c; padding: 6px 14px; border-radius: 3px; margin-bottom: 12px; display: inline-block; }
-  .rpt-section-body { padding: 0 4px; }
-
-  /* 가격 하이라이트 */
-  .rpt-price-box { background: #f2fbf4; border: 1.5px solid #c2eacc; border-radius: 6px; padding: 14px 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 24px; }
-  .rpt-price-label { font-size: 9pt; color: #4a6652; font-weight: 500; min-width: 120px; }
-  .rpt-price-value { font-size: 16pt; font-weight: 700; color: #177a2c; }
-  .rpt-price-change { font-size: 10pt; font-weight: 600; margin-left: 8px; }
-  .up { color: #1fa83c; }
-  .down { color: #d93b3b; }
-
-  /* 텍스트 */
-  .rpt-text { font-size: 10pt; line-height: 1.8; color: #333; margin-bottom: 8px; }
-  .rpt-sub-title { font-size: 10pt; font-weight: 700; color: #1fa83c; margin: 10px 0 4px; }
-
-  /* 테이블 */
-  .rpt-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 9.5pt; }
-  .rpt-table th { background: #1fa83c; color: #fff; padding: 6px 10px; text-align: left; font-weight: 600; }
-  .rpt-table td { padding: 6px 10px; border-bottom: 1px solid #e0eedf; }
-  .rpt-table tr:nth-child(even) td { background: #f7fdf8; }
-
-  /* 시그널 */
-  .rpt-signal-row { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e8f3ea; }
-  .rpt-signal-row:last-child { border-bottom: none; }
-  .rpt-signal-name { font-weight: 700; min-width: 120px; font-size: 10pt; color: #177a2c; }
-  .rpt-signal-text { font-size: 10pt; color: #333; line-height: 1.6; flex: 1; }
-  .badge { font-size: 8pt; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
-  .badge-high { background: #fdf2f2; color: #c0392b; border: 1px solid #c0392b; }
-  .badge-medium { background: #fef9f0; color: #e67e22; border: 1px solid #e67e22; }
-  .badge-low { background: #f2fbf4; color: #4a6652; border: 1px solid #c2eacc; }
-
-  /* 푸터 */
-  .rpt-footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #c2eacc; display: flex; justify-content: space-between; font-size: 8.5pt; color: #999; }
-
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .page { padding: 20px 28px; }
-  }
-  .watermark-wrap {
-    position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none; z-index: 0;
-  }
-  .watermark-wrap img {
-    width: 300px; opacity: 0.04; filter: grayscale(100%);
-  }
-  .page { position: relative; z-index: 1; }
-</style>
-</head>
-<body>
-<div class="watermark-wrap">
-  <img src="${window.location.origin}/logo.png" alt="" />
-</div>
-<div class="page">
-
-  <div class="rpt-header">
-    <div>
-      <div class="rpt-company">(주)한국에이원</div>
-      <div class="rpt-title">오늘의 원자재 시황 브리핑</div>
-    </div>
-    <div class="rpt-date">기준일: ${todayKST}</div>
-  </div>
-
-  ${sum ? `
-  <div class="rpt-section">
-    <div class="rpt-section-title">▪ 시황 종합</div>
-    <div class="rpt-section-body">
-      <p class="rpt-text" style="font-weight:600; font-size:11pt; color:#177a2c; margin-bottom:12px;">${sum.one_liner ?? ''}</p>
-      ${(sum.key_signals ?? []).map((s: any) => `
-        <div class="rpt-signal-row">
-          <span class="rpt-signal-name">${s.commodity}</span>
-          <span class="rpt-signal-text">${s.signal ?? ''}</span>
-          <span class="badge badge-${(s.urgency ?? 'low').toLowerCase()}">${s.urgency === 'HIGH' ? '고위험' : s.urgency === 'MEDIUM' ? '주의' : '참고'}</span>
-        </div>
-      `).join('')}
-    </div>
-  </div>
-  ` : ''}
-
-  ${al ? `
-  <div class="rpt-section">
-    <div class="rpt-section-title">▪ LME 알루미늄</div>
-    <div class="rpt-section-body">
-      <div class="rpt-price-box">
-        <span class="rpt-price-label">Cash Settlement</span>
-        <span class="rpt-price-value">${al.lme?.price ? Number(al.lme.price).toLocaleString() : '-'} USD/톤</span>
-        ${al.lme?.change ? `<span class="rpt-price-change ${String(al.lme.change).startsWith('-') ? 'down' : 'up'}">전일 대비 ${al.lme.change} USD/톤 ${al.lme.change_pct ? `(${al.lme.change_pct})` : ''}</span>` : ''}
-        ${al.lme?.date ? `<span style="font-size:9pt;color:#999;margin-left:auto">기준: ${al.lme.date}</span>` : ''}
-      </div>
-      ${al.lme?.move_reason ? `<div class="rpt-sub-title">가격 변동 이유</div><p class="rpt-text">${al.lme.move_reason}</p>` : ''}
-      ${al.lme?.market_status ? `<div class="rpt-sub-title">시장 현황</div><p class="rpt-text">${al.lme.market_status}</p>` : ''}
-      ${al.lme?.outlook ? `<div class="rpt-sub-title">가격 전망</div><p class="rpt-text">${al.lme.outlook}</p>` : ''}
-      ${al.scrap?.weekly_summary ? `<div class="rpt-sub-title">스크랩 주간 시황</div><p class="rpt-text">${al.scrap.weekly_summary}</p>` : ''}
-      ${al.scrap?.regions?.length ? `
-        <table class="rpt-table" style="margin-top:10px">
-          <thead><tr><th>지역</th><th>주요 등급</th><th>가격 범위</th></tr></thead>
-          <tbody>
-            ${al.scrap.regions.map((r: any) => `
-              <tr>
-                <td style="font-weight:600">${r.region}</td>
-                <td style="font-size:9pt;color:#555">${r.key_grades ?? ''}</td>
-                <td style="font-family:monospace">${r.price_range ?? '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      ` : ''}
-    </div>
-  </div>
-  ` : ''}
-
-  ${fsi ? `
-  <div class="rpt-section">
-    <div class="rpt-section-title">▪ 페로실리콘 75</div>
-    <div class="rpt-section-body">
-      ${fsi.china_price?.hbis_bid_price ? `
-        <div class="rpt-price-box">
-          <span class="rpt-price-label">HBIS Group 입찰가</span>
-          <span class="rpt-price-value" style="font-size:13pt">${String(fsi.china_price.hbis_bid_price).replace(/Yuan/g,'CNY')}</span>
-          ${fsi.china_price?.hbis_bid_change ? `<span class="rpt-price-change ${String(fsi.china_price.hbis_bid_change).startsWith('-') ? 'down' : 'up'}">${String(fsi.china_price.hbis_bid_change).replace(/Yuan/g,'CNY')}</span>` : ''}
-        </div>
-      ` : ''}
-      ${fsi.china_price?.china_context ? `<div class="rpt-sub-title">중국 시장 현황</div><p class="rpt-text">${fsi.china_price.china_context}</p>` : ''}
-      ${fsi.china_price?.china_outlook ? `<div class="rpt-sub-title">단기 전망</div><p class="rpt-text">${fsi.china_price.china_outlook}</p>` : ''}
-      ${fsi.market_summary ? `<div class="rpt-sub-title">시장 종합</div><p class="rpt-text">${fsi.market_summary}</p>` : ''}
-    </div>
-  </div>
-  ` : ''}
-
-  ${rec ? `
-  <div class="rpt-section">
-    <div class="rpt-section-title">▪ 가탄제 (안트라사이트)</div>
-    <div class="rpt-section-body">
-      <div class="rpt-price-box" style="flex-wrap:wrap; gap:16px;">
-        <div>
-          <div class="rpt-price-label">🇨🇳 중국 무연탄</div>
-          <div class="rpt-price-value" style="font-size:13pt">${rec.china_price?.fob_qinhuangdao ? `${rec.china_price.fob_qinhuangdao} USD/MT` : rec.china_price?.price_range_text ?? '-'}</div>
-          ${rec.china_price?.price_range_source ? `<div style="font-size:8.5pt;color:#666">(${rec.china_price.price_range_source})</div>` : ''}
-        </div>
-        <div>
-          <div class="rpt-price-label">🇷🇺 러시아 안트라사이트</div>
-          <div class="rpt-price-value" style="font-size:13pt">${rec.russia_price?.fob_murmansk ? `${rec.russia_price.fob_murmansk} USD/MT` : rec.russia_price?.price_range_text ?? '-'}</div>
-          ${rec.russia_price?.price_range_source ? `<div style="font-size:8.5pt;color:#666">(${rec.russia_price.price_range_source})</div>` : ''}
-        </div>
-      </div>
-      ${rec.global_market?.key_drivers ? `<div class="rpt-sub-title">전세계 시장 상황</div><p class="rpt-text">${rec.global_market.key_drivers}</p>` : ''}
-      ${rec.market_summary ? `<div class="rpt-sub-title">시장 종합</div><p class="rpt-text">${rec.market_summary}</p>` : ''}
-    </div>
-  </div>
-  ` : ''}
-
-  <div class="rpt-footer">
-    <span>(주)한국에이원 내부 참고용 자료</span>
-    <span>LME(westmetall.com) · scrapmonster.com · dokindokin.com · tradingeconomics.com · mysteel.net · Perplexity AI</span>
-  </div>
-
-</div>
-</body>
-</html>`;
-
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-
-    // iOS Safari는 Blob 다운로드 미지원 → 미리 열린 탭에 삽입
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS && newTab) {
-      newTab.location.href = url;
-    } else if (isIOS) {
-      window.open(url, '_blank');
-    } else {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `한국에이원_원자재시황_${todayKST}.html`;
-      a.click();
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-  }
-
   return (
     <>
       <style>{CSS}</style>
@@ -899,35 +420,29 @@ export default function App() {
             </div>
           </div>
           <div className="header-actions">
-            <button className="report-btn" onClick={async () => {
-              // iOS: async 함수 내 window.open은 팝업 차단됨 → 미리 탭 열기
-              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-              let newTab: Window | null = null;
-              if (isIOS) newTab = window.open('', '_blank');
-              await generateReport(newTab);
-            }}>📄 리포트</button>
-            <span className="cache-badge">{todayKST}</span>
+            {ageMin !== null && (
+              <span className="cache-badge">
+                {new Date().toISOString().slice(0, 10)}
+              </span>
+            )}
           </div>
         </header>
 
-        <div className="app-body">
-          <main className="app-main">
-            <Watermark />
-            {renderContent()}
-          </main>
+        <main className="app-main">
+          {renderContent()}
+        </main>
 
-          <nav className="bottom-nav">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <span className="nav-label">{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
+        <nav className="bottom-nav">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <span className="nav-label">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     </>
   );
@@ -1003,7 +518,7 @@ const CSS = `
     box-shadow: var(--shadow-sm);
   }
 
-  .header-brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+  .header-brand { display: flex; align-items: center; gap: 10px; }
 
   .brand-logo { height: 38px; width: auto; object-fit: contain; }
 
@@ -1017,55 +532,25 @@ const CSS = `
     border-radius: 4px; flex-shrink: 0;
   }
 
-  .brand-name { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; white-space: nowrap; }
-  .brand-sub  { font-size: 10px; color: var(--green-primary); font-weight: 500; white-space: nowrap; }
+  .brand-name { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .brand-sub  { font-size: 11px; color: var(--green-primary); font-weight: 500; }
 
-  .header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .header-actions { display: flex; align-items: center; }
 
   .cache-badge {
     font-family: var(--mono);
-    font-size: 9px;
+    font-size: 10px;
     color: var(--text3);
     background: var(--green-subtle);
     border: 1px solid var(--border);
-    padding: 3px 6px;
+    padding: 3px 8px;
     border-radius: 20px;
-    white-space: nowrap;
   }
 
   /* ── 메인 ── */
-  .app-body { display: flex; flex-direction: row; flex: 1; }
+  .app-body { display: flex; flex-direction: column; flex: 1; }
   .app-main { flex: 1; overflow-y: auto; padding: 14px 14px 84px; }
   .tab-content { display: flex; flex-direction: column; gap: 10px; }
-
-  /* 모바일에서 nav 하단 고정 */
-  @media (max-width: 767px) {
-    .app-body { flex-direction: column; }
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      width: 100%; max-width: 100%;
-      flex-direction: row;
-      min-height: auto;
-      padding: 0;
-    }
-  }
-
-  .report-btn {
-    font-family: var(--sans); font-size: 10px; font-weight: 600;
-    color: var(--green-primary); background: var(--green-subtle);
-    border: 1.5px solid var(--green-mid); border-radius: 4px;
-    padding: 4px 8px; cursor: pointer;
-    transition: background 0.15s; white-space: nowrap; flex-shrink: 0;
-  }
-  .report-btn:hover { background: var(--green-light); }
-
-  .lme-verify-row { margin-top: 4px; }
-  .lme-verify-badge {
-    font-family: var(--mono); font-size: 9px;
-    padding: 2px 7px; border-radius: 3px; display: inline-block;
-  }
-  .lme-verify-ok   { background: #e8f7ec; border: 1px solid var(--green-mid); color: var(--green-dark); }
-  .lme-verify-warn { background: #fef9f0; border: 1px solid #e67e22; color: #a05c00; }
 
   /* ── 가격 히어로 ── */
   .price-hero {
@@ -1097,11 +582,6 @@ const CSS = `
   .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text2); }
 
 
-
-  .fsi-hbis-note {
-    font-family: var(--mono); font-size: 9px; color: var(--text3);
-    margin-top: 2px; display: block;
-  }
 
   .fob-price-tag {
     font-family: var(--mono); font-size: 11px; font-weight: 600;
@@ -1223,8 +703,6 @@ const CSS = `
   .one-liner-card {
     background: var(--green-primary);
     padding: 20px 18px; border-radius: 6px; box-shadow: var(--shadow);
-    grid-column: 1 / -1 !important;
-    width: 100%;
   }
   .one-liner-label { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.6); letter-spacing: 3px; margin-bottom: 8px; }
   .one-liner-text  { font-size: 15px; font-weight: 600; color: #ffffff; line-height: 1.7; }
@@ -1257,34 +735,6 @@ const CSS = `
 
   /* ── 주목 변수 ── */
   .watch-text { font-size: 13px; color: var(--text); line-height: 1.9; white-space: pre-line; }
-
-  /* ── 스켈레톤 ── */
-  @keyframes shimmer {
-    0%   { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
-  }
-  .skeleton {
-    border-radius: 4px;
-    background: linear-gradient(90deg, #e8f0ea 25%, #d4e8da 50%, #e8f0ea 75%);
-    background-size: 800px 100%;
-    animation: shimmer 1.4s infinite linear;
-    display: block;
-  }
-
-  /* ── 워터마크 ── */
-  .watermark {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    z-index: 5;
-    user-select: none;
-  }
-  .watermark-img {
-    width: 220px;
-    opacity: 0.045;
-    filter: grayscale(100%);
-  }
 
   /* ── 로딩 / 에러 ── */
   .loading-state, .error-state {
@@ -1349,166 +799,6 @@ const CSS = `
   .region-driver { font-size: 12px; color: var(--text); line-height: 1.75; }
   .region-flow-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
 
-  .recab-empty-state {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 48px 20px; gap: 10px; color: var(--text3);
-  }
-  .recab-empty-icon { font-size: 32px; opacity: 0.4; }
-  .recab-empty-text { font-size: 14px; font-weight: 600; color: var(--text2); }
-  .recab-empty-sub  { font-family: var(--mono); font-size: 11px; color: var(--text3); }
-
-  .recab-price-note {
-    font-size: 10px; color: var(--text3); line-height: 1.5;
-    font-family: var(--sans); margin-top: 2px;
-  }
-  .recab-price-note--russia { color: #7a78a8; }
-
-  .recab-price-range-text {
-    font-size: 11px; color: var(--text2); line-height: 1.5;
-    font-family: var(--sans); margin-top: 4px;
-    background: var(--green-subtle); border: 1px solid var(--border);
-    border-radius: 4px; padding: 6px 8px;
-  }
-
-  .recab-price-ref {
-    font-size: 10px; color: var(--text3); line-height: 1.5;
-    font-family: var(--sans); margin-top: 2px;
-  }
-  .recab-price-ref--russia {
-    font-size: 10px; color: #7a78a8; line-height: 1.5;
-    font-family: var(--sans); margin-top: 2px;
-  }
-
-  /* ── 가탄제 가격 2박스 ── */
-  .recab-price-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-    margin-bottom: 12px;
-  }
-  .recab-price-box {
-    background: #ffffff;
-    border: 1.5px solid var(--green-mid);
-    border-radius: 8px;
-    padding: 14px 12px 12px;
-    display: flex; flex-direction: column; gap: 4px;
-    box-shadow: var(--shadow);
-  }
-  .recab-price-box--russia {
-    border-color: #d0cfe8;
-    background: #fafafe;
-  }
-  .recab-price-box-country {
-    font-family: var(--mono); font-size: 10px; font-weight: 600;
-    color: var(--text3); letter-spacing: 0.5px; margin-bottom: 2px;
-  }
-  .recab-price-box-main {
-    display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px;
-  }
-  .recab-price-val {
-    font-family: var(--mono); font-size: 20px; font-weight: 700;
-    color: var(--green-dark); line-height: 1.2;
-  }
-  .recab-price-unit {
-    font-family: var(--mono); font-size: 11px; color: var(--text3);
-  }
-  .recab-price-na {
-    font-family: var(--mono); font-size: 13px; color: var(--text3);
-  }
-  .recab-price-change {
-    font-family: var(--mono); font-size: 11px; font-weight: 600;
-  }
-  .recab-price-tags {
-    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;
-  }
-  .recab-tag {
-    font-family: var(--mono); font-size: 9px;
-    background: var(--green-subtle); border: 1px solid var(--green-mid);
-    color: var(--green-dark); padding: 2px 6px; border-radius: 3px;
-  }
-  .recab-tag--diff {
-    background: #f0eeff; border-color: #c8c4e8; color: #5548a0;
-  }
-  .recab-tag-date {
-    font-family: var(--mono); font-size: 9px; color: var(--text3);
-    padding: 2px 4px;
-  }
-
-  /* ── 가탄제 서브라벨 ── */
-  .recab-sub-label {
-    display: block;
-    font-family: var(--mono); font-size: 9px; font-weight: 600;
-    color: var(--green-primary); letter-spacing: 1.2px; text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-
-  /* ── 가탄제 헤드라인 박스 ── */
-  .recab-headline-box {
-    background: var(--green-primary);
-    border-radius: 5px; padding: 12px 14px; margin-bottom: 12px;
-  }
-  .recab-headline-text {
-    font-size: 13px; font-weight: 600; color: #ffffff; line-height: 1.65;
-  }
-
-  /* ── 가탄제 통계 그리드 ── */
-  .recab-stat-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    margin-bottom: 12px;
-  }
-  .recab-stat-cell {
-    background: var(--green-subtle); border: 1px solid var(--border);
-    border-radius: 5px; padding: 9px 10px;
-    display: flex; flex-direction: column; gap: 3px;
-  }
-  .recab-stat-label {
-    font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.3px;
-  }
-  .recab-stat-val {
-    font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green-dark);
-    line-height: 1.4;
-  }
-
-  /* ── 가탄제 전용 (구 스타일 유지) ── */
-  .recab-region-row {
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border2);
-    display: flex; flex-direction: column; gap: 4px;
-  }
-  .recab-region-row:last-child { border-bottom: none; }
-
-  .recab-region-header {
-    display: flex; align-items: center; gap: 8px;
-    padding-bottom: 4px;
-    border-bottom: 2px solid var(--green-mid);
-    margin-bottom: 2px;
-  }
-
-  .recab-util-badge {
-    font-family: var(--mono); font-size: 10px; font-weight: 600;
-    color: var(--green-primary); border: 1px solid var(--green-mid);
-    background: var(--green-subtle); padding: 1px 7px; border-radius: 10px;
-  }
-
-  .recab-proc-box {
-    background: var(--green-subtle);
-    border-left: 3px solid var(--green-primary);
-    padding: 10px 12px;
-    border-radius: 0 4px 4px 0;
-    display: flex; flex-direction: column; gap: 4px;
-    margin-top: 4px;
-  }
-
-  .recab-kr-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    margin-bottom: 10px;
-  }
-  .recab-kr-cell {
-    background: var(--green-subtle); border: 1px solid var(--border);
-    border-radius: 4px; padding: 8px 10px;
-    display: flex; flex-direction: column; gap: 3px;
-  }
-  .recab-kr-label { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.5px; }
-  .recab-kr-value { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--green-dark); }
-
   /* ── 바텀 네비 ── */
   .bottom-nav {
     display: flex;
@@ -1547,82 +837,5 @@ const CSS = `
     .production-grid { grid-template-columns: 1fr; }
     .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
   }
-
-  /* ── PC 반응형 (768px 이상) ── */
-  @media (min-width: 768px) {
-    .app {
-      max-width: 100%;
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .app-body {
-      flex-direction: row;
-      flex: 1;
-      height: calc(100dvh - 72px);
-      overflow: hidden;
-    }
-
-    /* 헤더 */
-    .app-header { padding: 14px 32px; }
-    .brand-logo { height: 44px; }
-    .brand-name { font-size: 18px; }
-    .brand-sub  { font-size: 13px; }
-    .report-btn { font-size: 13px; padding: 6px 16px; }
-    .cache-badge { font-size: 12px; }
-
-    /* 사이드 탭바 — PC에서 왼쪽 */
-    .bottom-nav {
-      order: -1;
-      position: relative;
-      bottom: auto; left: auto; transform: none;
-      width: 160px; min-width: 160px; max-width: 160px;
-      height: 100%;
-      flex-direction: column;
-      border-top: none;
-      border-right: 2px solid var(--green-primary);
-      box-shadow: 2px 0 8px rgba(31,168,60,0.06);
-      padding: 20px 0;
-      background: var(--surface);
-      align-items: stretch;
-      overflow-y: auto;
-    }
-    .nav-tab {
-      flex: none; padding: 14px 20px;
-      align-items: flex-start; justify-content: flex-start;
-      border-radius: 0;
-    }
-    .nav-tab::after {
-      top: 20%; bottom: 20%; left: -2px; right: auto;
-      width: 3px; height: auto;
-      transform: scaleY(0); border-radius: 0 3px 3px 0;
-    }
-    .nav-tab.active::after { transform: scaleY(1); }
-    .nav-label { font-size: 15px; }
-
-    /* 메인 콘텐츠 — 1컬럼, 적절한 최대 너비 */
-    .app-main {
-      flex: 1; overflow-y: auto; height: 100%;
-      padding: 28px 48px 48px;
-      max-width: 820px;
-    }
-
-    /* 1컬럼 유지 — 빈 공간 없음 */
-    .tab-content {
-      display: flex; flex-direction: column; gap: 14px;
-    }
-
-    .price-hero-value { font-size: 32px; }
-    .section-card { font-size: 14px; }
-    .text-block { font-size: 13px; line-height: 1.8; }
-  }
-
-  /* ── 와이드 PC (1200px 이상) ── */
-  @media (min-width: 1200px) {
-    .app-main { max-width: 900px; padding: 32px 64px 64px; }
-    .bottom-nav { width: 180px; min-width: 180px; max-width: 180px; }
-    .nav-label { font-size: 16px; }
-  }
-`; 
+`;
 
