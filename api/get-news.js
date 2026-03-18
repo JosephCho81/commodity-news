@@ -805,19 +805,18 @@ export default async function handler(req, res) {
 
     if (token && !force) {
       try {
-        const cached = await getFromFirestore(token, 'commodity_cache', tab);
-        if (cached?.data && cached?.cached_at) {
-          const cachedDateKST = new Date(Number(cached.cached_at) + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-          const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-          if (cachedDateKST === todayKST) {
-            const ageMin = Math.round((Date.now() - Number(cached.cached_at)) / 60000);
-            console.log(`[Cache] HIT: ${tab}, 저장일: ${cachedDateKST}, age: ${ageMin}분`);
-            const parsed = JSON.parse(cached.data);
-            return res.status(200).json({ ...parsed, _cached: true, _age_min: ageMin });
-          } else {
-            console.log(`[Cache] 날짜 변경 감지: 캐시=${cachedDateKST}, 오늘=${todayKST} → 갱신`);
-          }
+        const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const docId = `${tab}_${todayKST}`;
+        const cached = await getFromFirestore(token, 'commodity_cache', docId);
+        if (cached?.data) {
+          const ageMin = cached.cached_at
+            ? Math.round((Date.now() - Number(cached.cached_at)) / 60000)
+            : 0;
+          console.log(`[Cache] HIT: ${docId}, age: ${ageMin}분`);
+          const parsed = JSON.parse(cached.data);
+          return res.status(200).json({ ...parsed, _cached: true, _age_min: ageMin });
         }
+        console.log(`[Cache] MISS: ${docId} → Perplexity 호출`);
       } catch (e) {
         console.warn('[Firestore] 캐시 읽기 실패:', e.message);
       }
@@ -841,10 +840,20 @@ export default async function handler(req, res) {
     let summaryContext = '';
     if (tab === 'summary' && token) {
       try {
+        const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
+
+        // 오늘 데이터 우선, 없으면 어제 데이터 fallback
+        const readTab = async (tabName) => {
+          const todayDoc = await getFromFirestore(token, 'commodity_cache', `${tabName}_${todayKST}`).catch(() => null);
+          if (todayDoc?.data) return todayDoc;
+          return getFromFirestore(token, 'commodity_cache', `${tabName}_${yesterdayKST}`).catch(() => null);
+        };
+
         const [alData, fsiData, recData] = await Promise.all([
-          getFromFirestore(token, 'commodity_cache', 'aluminum'),
-          getFromFirestore(token, 'commodity_cache', 'ferrosilicon'),
-          getFromFirestore(token, 'commodity_cache', 'recarburizer'),
+          readTab('aluminum'),
+          readTab('ferrosilicon'),
+          readTab('recarburizer'),
         ]);
         summaryContext = '\n\n【오늘 수집된 각 탭 실제 데이터 — 반드시 아래 내용을 기반으로 시그널 작성】\n';
         if (alData?.data) {
@@ -946,14 +955,34 @@ export default async function handler(req, res) {
       parsed.lme = { ...parsed.lme, source: 'perplexity' };
     }
 
-    // ── 3. Firestore 캐시 저장 (tab명으로 덮어쓰기 — 최신 1개 유지) ────────
+    // ── 3. Firestore 날짜별 저장 + 전날 문서 삭제 ───────────────────────
     if (token) {
       try {
-        await saveToFirestore(token, 'commodity_cache', tab, {
+        const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const docId = `${tab}_${todayKST}`;
+        await saveToFirestore(token, 'commodity_cache', docId, {
           data: JSON.stringify(parsed),
           cached_at: String(Date.now()),
           tab,
+          date: todayKST,
         });
+        console.log(`[Firestore] ✅ 저장 성공: commodity_cache/${docId}`);
+
+        // 전날 문서 삭제
+        const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
+        const yesterdayDocId = `${tab}_${yesterdayKST}`;
+        try {
+          const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/commodity_cache/${yesterdayDocId}`;
+          const delRes = await fetch(url, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (delRes.ok || delRes.status === 404) {
+            console.log(`[Firestore] 전날 문서 삭제: ${yesterdayDocId}`);
+          }
+        } catch (e) {
+          console.warn('[Firestore] 전날 문서 삭제 실패 (무시):', e.message);
+        }
       } catch (e) {
         console.warn('[Firestore] 캐시 저장 실패:', e.message);
       }
