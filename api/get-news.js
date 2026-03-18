@@ -549,7 +549,12 @@ const PROMPTS = {
 【절대 규칙】
 1. null 및 빈 문자열 금지. 모든 문자열 필드는 반드시 내용 작성.
 2. 수치가 없으면 최신 뉴스·업계 동향·구조적 배경으로 서술. "확인된 수치 없음" 절대 금지.
-3. hbis_bid_price: HBIS Group 월별 입찰가 검색. 검색어: "HBIS ferrosilicon bidding price 2026". 반드시 최신값 기재.
+3. hbis_bid_price: 반드시 아래 순서로 검색해서 기재. "미확인" 절대 금지.
+   - 검색1: "HBIS ferrosilicon bidding price 2026"
+   - 검색2: "河钢 硅铁 招标价 2026"
+   - 검색3: "HBIS Group ferrosilicon tender price"
+   - 검색4: mysteel.net "HBIS ferrosilicon"
+   - 못 찾으면 가장 최근에 알려진 값(예: 2026년 1월 CNY 5,760/톤) 기재. 절대 미확인 금지.
 4. fob_tianjin_monthly: mysteel, Metal Bulletin 검색. 없으면 미확인.
 5. market_summary: 반드시 3~4문장.
 6. 각주 번호 절대 금지. 한국어 작성.
@@ -557,7 +562,6 @@ const PROMPTS = {
    - USD가 있으면: "USD X,XXX/톤 (CNY X,XXX/톤)" 형식
    - CNY만 있으면: "CNY X,XXX/톤" 형식
    - 천단위 콤마 필수. "Yuan" 사용 금지, 반드시 "CNY" 사용.
-   - 예: "USD 819/톤 (CNY 5,850/톤)", "CNY 5,532/톤"
 
 {
   "china_price": {
