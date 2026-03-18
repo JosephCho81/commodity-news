@@ -668,7 +668,7 @@ export default function App() {
   const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   // 리포트 생성 — 없는 탭 데이터 먼저 fetch 후 생성
-  async function generateReport() {
+  async function generateReport(newTab?: Window | null) {
     const tabs: TabId[] = ['aluminum', 'ferrosilicon', 'recarburizer', 'summary'];
     const currentData = { ...data };
 
@@ -870,11 +870,20 @@ export default function App() {
 
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `한국에이원_원자재시황_${todayKST}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    // iOS Safari는 Blob 다운로드 미지원 → 미리 열린 탭에 삽입
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS && newTab) {
+      newTab.location.href = url;
+    } else if (isIOS) {
+      window.open(url, '_blank');
+    } else {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `한국에이원_원자재시황_${todayKST}.html`;
+      a.click();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
   return (
@@ -890,27 +899,35 @@ export default function App() {
             </div>
           </div>
           <div className="header-actions">
-            <button className="report-btn" onClick={() => generateReport()}>📄 리포트</button>
+            <button className="report-btn" onClick={async () => {
+              // iOS: async 함수 내 window.open은 팝업 차단됨 → 미리 탭 열기
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+              let newTab: Window | null = null;
+              if (isIOS) newTab = window.open('', '_blank');
+              await generateReport(newTab);
+            }}>📄 리포트</button>
             <span className="cache-badge">{todayKST}</span>
           </div>
         </header>
 
-        <main className="app-main">
-          <Watermark />
-          {renderContent()}
-        </main>
+        <div className="app-body">
+          <main className="app-main">
+            <Watermark />
+            {renderContent()}
+          </main>
 
-        <nav className="bottom-nav">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className="nav-label">{tab.label}</span>
-            </button>
-          ))}
-        </nav>
+          <nav className="bottom-nav">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span className="nav-label">{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
     </>
   );
@@ -1016,6 +1033,7 @@ const CSS = `
   }
 
   /* ── 메인 ── */
+  .app-body { display: flex; flex-direction: column; flex: 1; }
   .app-main { flex: 1; overflow-y: auto; padding: 14px 14px 84px; }
   .tab-content { display: flex; flex-direction: column; gap: 10px; }
 
@@ -1513,6 +1531,108 @@ const CSS = `
   @media (max-width: 360px) {
     .production-grid { grid-template-columns: 1fr; }
     .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
+  }
+
+  /* ── PC 반응형 (768px 이상) ── */
+  @media (min-width: 768px) {
+    .app {
+      max-width: 100%;
+      min-height: 100dvh;
+    }
+
+    /* 헤더 */
+    .app-header {
+      padding: 14px 40px;
+    }
+    .brand-logo { height: 44px; }
+    .brand-name { font-size: 18px; }
+    .brand-sub  { font-size: 13px; }
+    .report-btn { font-size: 13px; padding: 6px 16px; }
+    .cache-badge { font-size: 12px; }
+
+    /* 전체 레이아웃: 사이드탭 + 콘텐츠 */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* 사이드 탭바 */
+    .bottom-nav {
+      position: sticky;
+      top: 0;
+      left: 0;
+      bottom: auto;
+      transform: none;
+      width: 180px;
+      max-width: 180px;
+      min-height: calc(100dvh - 72px);
+      flex-direction: column;
+      border-top: none;
+      border-right: 2px solid var(--green-primary);
+      box-shadow: 2px 0 12px rgba(31,168,60,0.08);
+      padding: 16px 0;
+      background: var(--surface);
+      align-items: stretch;
+    }
+
+    .nav-tab {
+      flex: none;
+      padding: 16px 20px;
+      align-items: flex-start;
+      justify-content: flex-start;
+      border-radius: 0;
+    }
+    .nav-tab::after {
+      top: 15%; bottom: 15%;
+      left: -2px; right: auto;
+      width: 3px; height: auto;
+      transform: scaleY(0);
+      border-radius: 0 3px 3px 0;
+    }
+    .nav-tab.active::after { transform: scaleY(1); }
+    .nav-label { font-size: 15px; }
+
+    /* 메인 콘텐츠 */
+    .app-main {
+      flex: 1;
+      padding: 24px 40px 40px;
+      overflow-y: auto;
+      max-width: 860px;
+    }
+
+    /* 콘텐츠 2컬럼 그리드 */
+    .tab-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* 가격 히어로는 항상 전체 너비 */
+    .price-hero {
+      grid-column: 1 / -1;
+    }
+
+    /* 가탄제 가격 그리드 전체 너비 */
+    .recab-price-grid {
+      grid-column: 1 / -1;
+    }
+
+    /* 시황종합 시그널은 전체 너비 */
+    .section-card:first-of-type {
+      grid-column: 1 / -1;
+    }
+
+    .price-hero-value { font-size: 32px; }
+    .section-card { font-size: 14px; }
+  }
+
+  /* ── 와이드 PC (1200px 이상) ── */
+  @media (min-width: 1200px) {
+    .app-main { max-width: 1100px; }
+    .bottom-nav { width: 200px; max-width: 200px; }
+    .nav-label { font-size: 16px; }
   }
 `;
 
