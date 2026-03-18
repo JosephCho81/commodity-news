@@ -712,6 +712,7 @@ const PROMPTS = {
 - direction: 반드시 UP, DOWN, NEUTRAL 중 하나.
 - urgency: 반드시 HIGH, MEDIUM, LOW 중 하나.
 - week_ahead: 이번 주 주목 변수 3가지를 줄바꿈(\\n)으로 구분해서 작성.
+- 모든 숫자 가격은 천단위 콤마 필수. 예: 3,426 USD/톤, 5,850 CNY/톤, 440,000 JPY/톤.
 
 {
   "date": "${new Date().toISOString().slice(0,10)}",
