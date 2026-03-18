@@ -484,7 +484,8 @@ const PROMPTS = {
 【지침】
 - LME 가격은 별도로 주입되므로 price/change/date 필드는 null로 두세요.
 - 단, lme_verified 필드: LME 공식 사이트(lme.com) 또는 주요 금융 뉴스(Reuters, Bloomberg, Metal Bulletin)에서 오늘 또는 최근 LME 알루미늄 Cash Settlement 가격을 검색해서, 주입된 가격(아래 컨텍스트)과 ±10 USD/톤 이내로 일치하면 true, 불일치 또는 확인 불가면 false로 기재.
-- 스크랩 가격은 scrapmonster.com 기준으로 작성하세요.
+- 스크랩 가격: scrapmonster.com → isri.org → Metal Bulletin → 업계 보도 순으로 검색. 반드시 실제 가격 기재.
+- price_range 필드: 확인된 가격 기재. 못 찾으면 최근 시장 보도 기준 추정 범위를 "추정: Zorba $X~$Y/톤" 형식으로 기재. 절대 null 금지.
 - [1][2] 각주 번호 절대 금지.
 - 텍스트는 한국어로 작성하세요.
 
@@ -496,47 +497,47 @@ const PROMPTS = {
     "date": null,
     "lme_verified": "true 또는 false — LME 공식/주요 뉴스 교차 검증 결과",
     "lme_verify_source": "검증에 사용한 소스 (예: Reuters, Bloomberg, lme.com) 또는 '확인 불가'",
-    "move_reason": "오늘 LME 알루미늄 가격 변동 이유 — 달러 인덱스, LME 재고 증감, 중국 수요, 중동 공급 차질, 미국 관세 등 실제 요인 2~3문장",
-    "market_status": "현재 시장 상황 — LME 재고 톤수, 글로벌 수요 동향, 중국 생산/수출 현황 2~3문장",
-    "outlook": "가격 전망 — 단기 상승/하락 압력 요인과 방향성 2~3문장. tradingeconomics.com 등 시장 전문가 전망 포함"
+    "move_reason": "오늘 LME 알루미늄 가격 변동 이유 — 달러 인덱스, LME 재고 증감, 중국 수요, 중동 공급 차질, 미국 관세 등 실제 요인 2~3문장. 반드시 작성.",
+    "market_status": "현재 시장 상황 — LME 재고 톤수, 글로벌 수요 동향, 중국 생산/수출 현황 2~3문장. 반드시 작성.",
+    "outlook": "가격 전망 — 단기 상승/하락 압력 요인과 방향성 2~3문장. 반드시 작성."
   },
   "scrap": {
-    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩 시장 전반 요약 3~4문장. 수급 변화, 주요 이슈 포함",
-    "us_premium": "미국 P1020A 프리미엄 최신 분기 발표치 (USc/lb, 분기 명시)",
-    "eu_premium": "유럽 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 분기 명시)",
-    "japan_premium": "일본 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 분기 명시)",
+    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩 시장 전반 요약 3~4문장. 반드시 작성.",
+    "us_premium": "미국 P1020A 프리미엄 최신 분기 발표치 (USc/lb, 분기 명시). 없으면 null",
+    "eu_premium": "유럽 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 분기 명시). 없으면 null",
+    "japan_premium": "일본 P1020A 프리미엄 최신 분기 발표치 (USD/톤, 분기 명시). 없으면 null",
     "regions": [
       {
         "region": "미국",
         "key_grades": "Zorba, 6063 Extrusions, UBC, Old Sheet, 5052",
-        "price_range": "scrapmonster.com 기준 주요 품목 가격 (USD/톤). 예: Zorba $1,740/톤, 6063 $2,182/톤, UBC $1,896/톤",
-        "price_driver": "미국 스크랩 가격 변동 이유: 관세 영향, 중국 수입 수요, 달러 강세/약세, 국내 공급량 변화 2~3문장",
-        "flow": "주요 수출 방향 및 물동량 특이사항",
-        "outlook": "미국 스크랩 단기 가격 전망 1~2문장"
+        "price_range": "주요 품목 가격 (USD/톤). scrapmonster 또는 업계 보도 기준. 못 찾으면 추정 범위 기재. 예: Zorba $1,740/톤, 6063 $2,182/톤, UBC $1,896/톤. 절대 null 금지.",
+        "price_driver": "미국 스크랩 가격 변동 이유: 관세 영향, 중국 수입 수요, 달러 강세/약세, 국내 공급량 변화 2~3문장. 반드시 작성.",
+        "flow": "주요 수출 방향 및 물동량 특이사항. 반드시 작성.",
+        "outlook": "미국 스크랩 단기 가격 전망 1~2문장. 반드시 작성."
       },
       {
         "region": "유럽",
         "key_grades": "Aluminum Cuttings, UBC, Old Cast, Mixed Turnings",
-        "price_range": "scrapmonster.com 기준 주요 품목 가격 (USD/톤). 예: Cuttings $1,350/톤, UBC $1,250/톤",
-        "price_driver": "유럽 스크랩 수급: 자동차 해체, 건설경기, 에너지 비용, 아시아 수출 경쟁 2~3문장",
-        "flow": "아시아·터키 수출 동향",
-        "outlook": "유럽 스크랩 단기 가격 전망 1~2문장"
+        "price_range": "주요 품목 가격 (USD/톤). 못 찾으면 추정 범위 기재. 예: Cuttings $1,350/톤, UBC $1,250/톤. 절대 null 금지.",
+        "price_driver": "유럽 스크랩 수급: 자동차 해체, 건설경기, 에너지 비용, 아시아 수출 경쟁 2~3문장. 반드시 작성.",
+        "flow": "아시아·터키 수출 동향. 반드시 작성.",
+        "outlook": "유럽 스크랩 단기 가격 전망 1~2문장. 반드시 작성."
       },
       {
         "region": "중국",
         "key_grades": "6063 Extrusions, Old Cast, Old Sheet, UBC, Zorba",
-        "price_range": "scrapmonster.com 기준 주요 품목 가격 (CNY/톤). 예: 6063 19,500 CNY/톤, Old Cast 19,300 CNY/톤",
-        "price_driver": "중국 내 스크랩 수급: 국내 소비 vs 수입 경쟁, 환경 규제, 제련소 가동률 변화 2~3문장",
-        "flow": "주요 수입국 및 물동량 방향",
-        "outlook": "중국 스크랩 단기 가격 전망 1~2문장"
+        "price_range": "주요 품목 가격 (CNY/톤). 못 찾으면 추정 범위 기재. 예: 6063 19,500 CNY/톤, Old Cast 19,300 CNY/톤. 절대 null 금지.",
+        "price_driver": "중국 내 스크랩 수급: 국내 소비 vs 수입 경쟁, 환경 규제, 제련소 가동률 변화 2~3문장. 반드시 작성.",
+        "flow": "주요 수입국 및 물동량 방향. 반드시 작성.",
+        "outlook": "중국 스크랩 단기 가격 전망 1~2문장. 반드시 작성."
       },
       {
         "region": "일본",
         "key_grades": "6063 Extrusion Clean, 6063 Extrusion w/attach, Cast Aluminum A, UBC Pressed, UBC Loose, Aluminum Radiator",
-        "price_range": "dokindokin.com 오사카 기준 주요 품목 가격 (JPY/톤). 예: アルミ上 440,000円/톤, UBC프레스 300,000円/톤, アルミガラA 280,000円/톤",
-        "price_driver": "일본 스크랩 가격 변동 이유: 엔화 환율 (LME 연동), 국내 건설경기·자동차 해체 물량, 한국·동남아 수입 수요, 계절적 발생량 변화 2~3문장",
-        "flow": "한국·동남아·인도 수출 현황 및 물동량 특이사항",
-        "outlook": "일본 스크랩 단기 가격 전망: 엔화 방향성, LME 연동 영향, 수출 수요 전망 1~2문장"
+        "price_range": "dokindokin.com 오사카 기준 주요 품목 가격 (JPY/톤). 별도 주입 데이터 있으면 그대로 사용. 절대 null 금지.",
+        "price_driver": "일본 스크랩 가격 변동 이유: 엔화 환율, 국내 건설경기·자동차 해체 물량, 한국·동남아 수입 수요 2~3문장. 반드시 작성.",
+        "flow": "한국·동남아·인도 수출 현황 및 물동량 특이사항. 반드시 작성.",
+        "outlook": "일본 스크랩 단기 가격 전망 1~2문장. 반드시 작성."
       }
     ]
   },
