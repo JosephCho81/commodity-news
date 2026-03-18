@@ -211,18 +211,25 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
   const { china_price, china_production, non_china, market_summary, non_china_context, korea_import } = data as any;
 
   // HBIS 입찰가 우선, 없으면 FOB 월별 가격 fallback
-  const hbisBid = china_price.hbis_bid_price ?? null;
+  const hbisBidRaw = china_price.hbis_bid_price ?? null;
+  const hbisBid = hbisBidRaw && !String(hbisBidRaw).includes('미확인') ? hbisBidRaw : null;
   const hbisMonth = china_price.hbis_bid_month ?? null;
   const hbisChange = china_price.hbis_bid_change ?? null;
   const hbisChangeDown = hbisChange && String(hbisChange).startsWith('-');
 
-  // FOB fallback
+  // FOB fallback — fob_tianjin_monthly
   const m = china_price.fob_tianjin_monthly as any;
   const isValid = (v: any) => v && !String(v).includes('미확인') && !String(v).includes('검색');
   const validEntries = Object.entries(m || {}).filter(([, v]) => isValid(v)).sort(([a], [b]) => b.localeCompare(a));
   const fobLatestVal = validEntries[0]?.[1] as string ?? null;
   const numMatch = fobLatestVal ? fobLatestVal.match(/([\d,]+~[\d,]+)/) : null;
   const fobRange = numMatch ? numMatch[1] : null;
+
+  // FOB fallback2 — china_context 텍스트에서 USD X,XXX~X,XXX 패턴 추출
+  const ctxFobMatch = china_price.china_context
+    ? String(china_price.china_context).match(/USD\s*([\d,]+~[\d,]+)/)
+    : null;
+  const ctxFobRange = ctxFobMatch ? ctxFobMatch[1] : null;
 
   return (
     <div className="tab-content">
@@ -260,6 +267,11 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
             <>
               <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
               <span className="price-hero-value">{fobRange} <small>USD/톤</small></span>
+            </>
+          ) : ctxFobRange ? (
+            <>
+              <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
+              <span className="price-hero-value">{ctxFobRange} <small>USD/톤</small></span>
             </>
           ) : (
             <>
