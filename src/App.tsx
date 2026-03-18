@@ -1003,7 +1003,7 @@ const CSS = `
     box-shadow: var(--shadow-sm);
   }
 
-  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .header-brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 
   .brand-logo { height: 38px; width: auto; object-fit: contain; }
 
@@ -1017,19 +1017,20 @@ const CSS = `
     border-radius: 4px; flex-shrink: 0;
   }
 
-  .brand-name { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-  .brand-sub  { font-size: 11px; color: var(--green-primary); font-weight: 500; }
+  .brand-name { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; white-space: nowrap; }
+  .brand-sub  { font-size: 10px; color: var(--green-primary); font-weight: 500; white-space: nowrap; }
 
-  .header-actions { display: flex; align-items: center; }
+  .header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
   .cache-badge {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text3);
     background: var(--green-subtle);
     border: 1px solid var(--border);
-    padding: 3px 8px;
+    padding: 3px 6px;
     border-radius: 20px;
+    white-space: nowrap;
   }
 
   /* ── 메인 ── */
@@ -1050,11 +1051,11 @@ const CSS = `
   }
 
   .report-btn {
-    font-family: var(--sans); font-size: 11px; font-weight: 600;
+    font-family: var(--sans); font-size: 10px; font-weight: 600;
     color: var(--green-primary); background: var(--green-subtle);
     border: 1.5px solid var(--green-mid); border-radius: 4px;
-    padding: 4px 10px; cursor: pointer; margin-right: 8px;
-    transition: background 0.15s;
+    padding: 4px 8px; cursor: pointer;
+    transition: background 0.15s; white-space: nowrap; flex-shrink: 0;
   }
   .report-btn:hover { background: var(--green-light); }
 
