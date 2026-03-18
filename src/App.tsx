@@ -82,7 +82,8 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function TextBlock({ text }: { text: string }) {
+function TextBlock({ text }: { text: string | null | undefined }) {
+  if (!text || String(text).trim().length === 0) return null;
   return <p className="text-block">{text}</p>;
 }
 
