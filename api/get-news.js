@@ -625,6 +625,7 @@ const PROMPTS = {
 - 가격을 찾으면 반드시 해당 필드에 숫자로 기재. 텍스트 설명 안에만 넣고 필드를 null로 두는 것 금지.
 - 끝까지 못 찾은 경우에만 null 허용.
 - 【핵심】 이 보고서는 반드시 무연탄(Anthracite)만 다룹니다. 유연탄(Bituminous coal), 열탄(Thermal coal), 원료탄(Coking coal), 갈탄(Lignite) 관련 내용은 절대 포함 금지. 가탄제(Recarburizer) 원료인 무연탄만 작성하세요.
+- "검색 결과에서 확인되지 않았다", "구체적 정보가 제시되지 않았다", "데이터 부재" 등의 문구 절대 금지. 정보가 없으면 업계 구조적 현황과 알려진 사실로 채울 것.
 
 【중국 무연탄(Anthracite) 가격 검색 — 순서대로 시도】
 1. 검색: "China anthracite FOB Qinhuangdao price 2026"
