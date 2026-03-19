@@ -65,14 +65,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 정적 파일: Cache First → 없으면 네트워크
+  // 정적 파일: Network First → 실패 시 캐시
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
+    fetch(event.request)
+      .then((response) => {
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
