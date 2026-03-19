@@ -545,7 +545,7 @@ export default function App() {
 
   const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  async function generateReport(newTab?: Window | null) {
+  async function generateReport() {
     const tabs: TabId[] = ['aluminum', 'ferrosilicon', 'recarburizer', 'summary'];
     const currentData = { ...data };
     const missing = tabs.filter(t => !currentData[t] && !loading[t]);
@@ -608,15 +608,18 @@ ${rec ? `<div class="rpt-section"><div class="rpt-section-title">▪ 가탄제 (
 </div></body></html>`;
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
     const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile && newTab) {
-      newTab.location.href = url;
-    } else if (isMobile) {
-      window.location.href = url;
+    if (isMobile) {
+      a.target = '_blank';
+      a.rel = 'noopener';
     } else {
-      const a = document.createElement('a');
-      a.href = url; a.download = `한국에이원_원자재시황_${todayKST}.html`; a.click();
+      a.download = `한국에이원_원자재시황_${todayKST}.html`;
     }
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
@@ -634,10 +637,7 @@ ${rec ? `<div class="rpt-section"><div class="rpt-section-title">▪ 가탄제 (
           </div>
           <div className="header-actions">
             <button className="report-btn" onClick={async () => {
-              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-              let newTab: Window | null = null;
-              if (isIOS) newTab = window.open('', '_blank');
-              await generateReport(newTab);
+              await generateReport();
             }}>📄 리포트</button>
             <span className="cache-badge">{todayKST}</span>
           </div>
