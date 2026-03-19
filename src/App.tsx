@@ -543,6 +543,81 @@ export default function App() {
   const meta = tabData as (AluminumData | null);
   const ageMin = meta?._age_min ?? null;
 
+  const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  async function generateReport(newTab?: Window | null) {
+    const tabs: TabId[] = ['aluminum', 'ferrosilicon', 'recarburizer', 'summary'];
+    const currentData = { ...data };
+    const missing = tabs.filter(t => !currentData[t] && !loading[t]);
+    if (missing.length > 0) {
+      await Promise.all(missing.map(async (tab) => {
+        try {
+          const res = await fetch(`${API_BASE}?tab=${tab}`);
+          const json = await res.json();
+          if (!json.error) currentData[tab] = json;
+        } catch {}
+      }));
+      setData(currentData);
+    }
+    const al  = currentData['aluminum']     as any;
+    const fsi = currentData['ferrosilicon'] as any;
+    const rec = currentData['recarburizer'] as any;
+    const sum = currentData['summary']      as any;
+    const html = `<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:'Noto Sans KR',sans-serif;font-size:11pt;color:#1a1a1a;background:#fff}
+  .page{max-width:780px;margin:0 auto;padding:40px 48px;position:relative;z-index:1}
+  .rpt-header{display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:16px;border-bottom:3px solid #1fa83c;margin-bottom:28px}
+  .rpt-company{font-size:13pt;font-weight:700;color:#1fa83c}.rpt-title{font-size:20pt;font-weight:700;color:#1a1a1a;margin-top:4px}
+  .rpt-date{font-size:10pt;color:#666;text-align:right}
+  .rpt-section{margin-bottom:28px;break-inside:avoid}
+  .rpt-section-title{font-size:12pt;font-weight:700;color:#fff;background:#1fa83c;padding:6px 14px;border-radius:3px;margin-bottom:12px;display:inline-block}
+  .rpt-price-box{background:#f2fbf4;border:1.5px solid #c2eacc;border-radius:6px;padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .rpt-price-label{font-size:9pt;color:#4a6652;font-weight:500;min-width:120px}
+  .rpt-price-value{font-size:16pt;font-weight:700;color:#177a2c}
+  .rpt-price-change{font-size:10pt;font-weight:600;margin-left:8px}
+  .up{color:#1fa83c}.down{color:#d93b3b}
+  .rpt-text{font-size:10pt;line-height:1.8;color:#333;margin-bottom:8px}
+  .rpt-sub-title{font-size:10pt;font-weight:700;color:#1fa83c;margin:10px 0 4px}
+  .rpt-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9.5pt}
+  .rpt-table th{background:#1fa83c;color:#fff;padding:6px 10px;text-align:left;font-weight:600}
+  .rpt-table td{padding:6px 10px;border-bottom:1px solid #e0eedf}
+  .rpt-signal-row{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid #e8f3ea}
+  .rpt-signal-row:last-child{border-bottom:none}
+  .rpt-signal-name{font-weight:700;min-width:120px;font-size:10pt;color:#177a2c}
+  .rpt-signal-text{font-size:10pt;color:#333;line-height:1.6;flex:1}
+  .badge{font-size:8pt;padding:1px 7px;border-radius:10px;font-weight:600}
+  .badge-high{background:#fdf2f2;color:#c0392b;border:1px solid #c0392b}
+  .badge-medium{background:#fef9f0;color:#e67e22;border:1px solid #e67e22}
+  .badge-low{background:#f2fbf4;color:#4a6652;border:1px solid #c2eacc}
+  .rpt-footer{margin-top:36px;padding-top:12px;border-top:1px solid #c2eacc;display:flex;justify-content:space-between;font-size:8.5pt;color:#999}
+  .watermark-wrap{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:0}
+  .watermark-wrap img{width:300px;opacity:0.04;filter:grayscale(100%)}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:20px 28px}}
+</style></head><body>
+<div class="watermark-wrap"><img src="${window.location.origin}/logo.png" alt=""/></div>
+<div class="page">
+<div class="rpt-header"><div><div class="rpt-company">(주)한국에이원</div><div class="rpt-title">오늘의 원자재 시황 브리핑</div></div><div class="rpt-date">기준일: ${todayKST}</div></div>
+${sum ? `<div class="rpt-section"><div class="rpt-section-title">▪ 시황 종합</div><div class="rpt-section-body"><p class="rpt-text" style="font-weight:600;font-size:11pt;color:#177a2c;margin-bottom:12px">${sum.one_liner??''}</p>${(sum.key_signals??[]).map((s:any)=>`<div class="rpt-signal-row"><span class="rpt-signal-name">${s.commodity}</span><span class="rpt-signal-text">${s.signal??''}</span><span class="badge badge-${(s.urgency??'low').toLowerCase()}">${s.urgency==='HIGH'?'고위험':s.urgency==='MEDIUM'?'주의':'참고'}</span></div>`).join('')}</div></div>`:''}
+${al ? `<div class="rpt-section"><div class="rpt-section-title">▪ LME 알루미늄</div><div class="rpt-section-body"><div class="rpt-price-box"><span class="rpt-price-label">Cash Settlement</span><span class="rpt-price-value">${al.lme?.price?Number(al.lme.price).toLocaleString():'-'} USD/톤</span>${al.lme?.change?`<span class="rpt-price-change ${String(al.lme.change).startsWith('-')?'down':'up'}">전일 대비 ${al.lme.change} USD/톤 ${al.lme.change_pct?`(${al.lme.change_pct})`:''}</span>`:''}</div>${al.lme?.move_reason?`<div class="rpt-sub-title">가격 변동 이유</div><p class="rpt-text">${al.lme.move_reason}</p>`:''} ${al.lme?.market_status?`<div class="rpt-sub-title">시장 현황</div><p class="rpt-text">${al.lme.market_status}</p>`:''} ${al.lme?.outlook?`<div class="rpt-sub-title">가격 전망</div><p class="rpt-text">${al.lme.outlook}</p>`:''} ${al.scrap?.weekly_summary?`<div class="rpt-sub-title">스크랩 주간 시황</div><p class="rpt-text">${al.scrap.weekly_summary}</p>`:''}</div></div>`:''}
+${fsi ? `<div class="rpt-section"><div class="rpt-section-title">▪ 페로실리콘 75</div><div class="rpt-section-body">${fsi.china_price?.hbis_bid_price?`<div class="rpt-price-box"><span class="rpt-price-label">HBIS Group 입찰가</span><span class="rpt-price-value" style="font-size:13pt">${String(fsi.china_price.hbis_bid_price).replace(/Yuan/g,'CNY')}</span></div>`:''} ${fsi.china_price?.china_context?`<div class="rpt-sub-title">중국 시장 현황</div><p class="rpt-text">${fsi.china_price.china_context}</p>`:''} ${fsi.market_summary?`<div class="rpt-sub-title">시장 종합</div><p class="rpt-text">${fsi.market_summary}</p>`:''}</div></div>`:''}
+${rec ? `<div class="rpt-section"><div class="rpt-section-title">▪ 가탄제 (안트라사이트)</div><div class="rpt-section-body"><div class="rpt-price-box"><div><div class="rpt-price-label">🇨🇳 중국 무연탄</div><div class="rpt-price-value" style="font-size:13pt">${rec.china_price?.fob_qinhuangdao?`${rec.china_price.fob_qinhuangdao} USD/MT`:rec.china_price?.price_range_text??'-'}</div></div><div><div class="rpt-price-label">🇷🇺 러시아 안트라사이트</div><div class="rpt-price-value" style="font-size:13pt">${rec.russia_price?.fob_murmansk?`${rec.russia_price.fob_murmansk} USD/MT`:rec.russia_price?.price_range_text??'-'}</div></div></div>${rec.market_summary?`<div class="rpt-sub-title">시장 종합</div><p class="rpt-text">${rec.market_summary}</p>`:''}</div></div>`:''}
+<div class="rpt-footer"><span>(주)한국에이원 내부 참고용 자료</span><span>LME(westmetall.com) · scrapmonster.com · dokindokin.com · mysteel.net · Perplexity AI</span></div>
+</div></body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS && newTab) { newTab.location.href = url; }
+    else if (isIOS) { window.open(url, '_blank'); }
+    else {
+      const a = document.createElement('a');
+      a.href = url; a.download = `한국에이원_원자재시황_${todayKST}.html`; a.click();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
   return (
     <>
       <style>{CSS}</style>
@@ -556,11 +631,13 @@ export default function App() {
             </div>
           </div>
           <div className="header-actions">
-            {ageMin !== null && (
-              <span className="cache-badge">
-                {new Date().toISOString().slice(0, 10)}
-              </span>
-            )}
+            <button className="report-btn" onClick={async () => {
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+              let newTab: Window | null = null;
+              if (isIOS) newTab = window.open('', '_blank');
+              await generateReport(newTab);
+            }}>📄 리포트</button>
+            <span className="cache-badge">{todayKST}</span>
           </div>
         </header>
 
@@ -654,33 +731,43 @@ const CSS = `
     box-shadow: var(--shadow-sm);
   }
 
-  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .header-brand { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 
-  .brand-logo { height: 38px; width: auto; object-fit: contain; }
+  .brand-logo { height: 34px; width: auto; object-fit: contain; flex-shrink: 0; }
 
   .brand-logo-fallback {
-    height: 38px; width: 38px;
+    height: 34px; width: 34px;
     background: var(--green-primary);
     color: #fff;
     font-family: var(--mono);
-    font-size: 14px; font-weight: 600;
+    font-size: 13px; font-weight: 600;
     display: flex; align-items: center; justify-content: center;
     border-radius: 4px; flex-shrink: 0;
   }
 
-  .brand-name { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-  .brand-sub  { font-size: 11px; color: var(--green-primary); font-weight: 500; }
+  .brand-name { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; white-space: nowrap; }
+  .brand-sub  { font-size: 10px; color: var(--green-primary); font-weight: 500; white-space: nowrap; }
 
-  .header-actions { display: flex; align-items: center; }
+  .header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+  .report-btn {
+    font-family: var(--sans); font-size: 10px; font-weight: 600;
+    color: var(--green-primary); background: var(--green-subtle);
+    border: 1.5px solid var(--green-mid); border-radius: 4px;
+    padding: 4px 8px; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .report-btn:hover { background: var(--green-light); }
 
   .cache-badge {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text3);
     background: var(--green-subtle);
     border: 1px solid var(--border);
-    padding: 3px 8px;
+    padding: 3px 6px;
     border-radius: 20px;
+    white-space: nowrap;
   }
 
   /* ── 메인 ── */
