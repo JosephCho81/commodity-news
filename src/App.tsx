@@ -608,9 +608,9 @@ ${rec ? `<div class="rpt-section"><div class="rpt-section-title">▪ 가탄제 (
 </div></body></html>`;
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS && newTab) { newTab.location.href = url; }
-    else if (isIOS) { window.open(url, '_blank'); }
+    const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile && newTab) { newTab.location.href = url; }
+    else if (isMobile) { window.open(url, '_blank'); }
     else {
       const a = document.createElement('a');
       a.href = url; a.download = `한국에이원_원자재시황_${todayKST}.html`; a.click();
@@ -632,9 +632,9 @@ ${rec ? `<div class="rpt-section"><div class="rpt-section-title">▪ 가탄제 (
           </div>
           <div className="header-actions">
             <button className="report-btn" onClick={async () => {
-              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+              const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
               let newTab: Window | null = null;
-              if (isIOS) newTab = window.open('', '_blank');
+              if (isMobile) newTab = window.open('', '_blank');
               await generateReport(newTab);
             }}>📄 리포트</button>
             <span className="cache-badge">{todayKST}</span>
