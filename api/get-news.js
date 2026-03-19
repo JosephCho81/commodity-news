@@ -624,21 +624,20 @@ const PROMPTS = {
 - 가격 필드는 숫자만 입력하세요. 단위·설명 금지. 예: "135" (O), "135 USD/톤" (X), "약 135" (X)
 - 가격을 찾으면 반드시 해당 필드에 숫자로 기재. 텍스트 설명 안에만 넣고 필드를 null로 두는 것 금지.
 - 끝까지 못 찾은 경우에만 null 허용.
+- 【핵심】 이 보고서는 반드시 무연탄(Anthracite)만 다룹니다. 유연탄(Bituminous coal), 열탄(Thermal coal), 원료탄(Coking coal), 갈탄(Lignite) 관련 내용은 절대 포함 금지. 가탄제(Recarburizer) 원료인 무연탄만 작성하세요.
 
-【중국 무연탄 가격 검색 — 순서대로 시도】
+【중국 무연탄(Anthracite) 가격 검색 — 순서대로 시도】
 1. 검색: "China anthracite FOB Qinhuangdao price 2026"
-2. 검색: "칭황다오 무연탄 수출가 2026" 또는 "친황다오 석탄 FOB"
-3. 검색: "anthracite coal price per ton March 2026"
-4. coalspot.com, steelorbis.com, sunsirs.com 무연탄 시세
-5. 뉴스·보도에서 인용된 가격 수치 (예: "135 USD/톤" 같은 구체적 수치)
+2. 검색: "칭황다오 무연탄 수출가 2026" 또는 "친황다오 무연탄 FOB"
+3. 검색: "anthracite coal price per ton 2026"
+4. coalspot.com, steelorbis.com, sunsirs.com 무연탄(anthracite) 시세
 → 찾은 가격을 fob_qinhuangdao 또는 domestic_shanxi 필드에 숫자로 기재
 → 참고 범위: FOB 100~180 USD/톤, 국내 현물 700~1000 CNY/톤
 
-【러시아 안트라사이트 가격 검색 — 순서대로 시도】
+【러시아 무연탄(Anthracite) 가격 검색 — 순서대로 시도】
 1. 검색: "Russia anthracite export price 2026"
 2. 검색: "Russian anthracite FOB price USD per ton"
-3. 검색: "SUEK anthracite price" 또는 "러시아 안트라사이트 수출가"
-4. 인도·한국 수입 단가 보도에서 러시아산 가격 인용 수치
+3. 검색: "SUEK anthracite price" 또는 "러시아 무연탄 수출가"
 → 찾은 가격을 fob_murmansk 필드에 숫자로 기재
 → 참고 범위: FOB 80~150 USD/톤
 
@@ -648,57 +647,57 @@ const PROMPTS = {
     "cif_korea": "숫자만. 예: 148 (못 찾으면 null)",
     "domestic_shanxi": "숫자만 CNY/톤. 예: 850 (못 찾으면 null)",
     "calcined_cac_fob": "숫자만 USD/톤. 못 찾으면 null",
-    "price_range_text": "fob_qinhuangdao를 못 찾은 경우 반드시 작성. 형식 엄수: '숫자~숫자 USD/MT' 만 작성. 예: '130~150 USD/MT'. 단위·설명·약·기준 등 추가 텍스트 금지. fob_qinhuangdao가 있으면 null",
-    "price_range_source": "가격 기준 출처 한 줄. 예: 'FOB 친황다오 기준' (못 찾으면 'FOB 친황다오 기준' 으로 기재)",
-    "price_range_note": "최근 무연탄 시장 특이사항 한 줄. 예: '최근 열탄 동향 참조' (반드시 작성)",
+    "price_range_text": "fob_qinhuangdao를 못 찾은 경우 반드시 작성. 형식 엄수: '숫자~숫자 USD/MT' 만 작성. 예: '130~150 USD/MT'. fob_qinhuangdao가 있으면 null",
+    "price_range_source": "가격 기준 출처 한 줄. 못 찾으면 'FOB 친황다오 기준' 으로 기재",
+    "price_range_note": "최근 무연탄(Anthracite) 시장 특이사항 한 줄. 반드시 작성.",
     "date": "가격 기준일 (YYYY-MM-DD)",
     "change": "예: -2 USD/톤 또는 -1.5% (못 찾으면 null)"
   },
   "russia_price": {
     "fob_murmansk": "숫자만. 예: 110 (못 찾으면 null)",
     "cif_korea": "숫자만. 예: 125 (못 찾으면 null)",
-    "price_range_text": "fob_murmansk를 못 찾은 경우 반드시 작성. 형식 엄수: '숫자~숫자 USD/MT' 만 작성. 예: '100~120 USD/MT'. 단위·설명·약·기준 등 추가 텍스트 금지. fob_murmansk가 있으면 null",
-    "price_range_source": "가격 기준 출처 한 줄. 예: 'FOB 무르만스크 기준' (못 찾으면 'FOB 무르만스크 기준' 으로 기재)",
-    "price_range_note": "러시아 무연탄 시장 특이사항 한 줄. 반드시 '공급 제약 지속' 포함하여 작성",
+    "price_range_text": "fob_murmansk를 못 찾은 경우 반드시 작성. 형식 엄수: '숫자~숫자 USD/MT' 만 작성. 예: '100~120 USD/MT'. fob_murmansk가 있으면 null",
+    "price_range_source": "가격 기준 출처 한 줄. 못 찾으면 'FOB 무르만스크 기준' 으로 기재",
+    "price_range_note": "러시아 무연탄(Anthracite) 시장 특이사항 한 줄. 반드시 작성.",
     "date": "가격 기준일 (YYYY-MM-DD)",
     "change": "전주/전월 대비 변동 (못 찾으면 null)",
-    "vs_china": "러시아산 vs 중국산 가격 격차 한 줄 요약 — 반드시 작성"
+    "vs_china": "러시아산 vs 중국산 무연탄 가격 격차 한 줄 요약 — 반드시 작성"
   },
   "global_market": {
-    "headline": "현재 전세계 무연탄·석탄 시장 최대 이슈 — 반드시 1문장으로 작성 (예: 러·우 전쟁 장기화로 유럽 에너지 수급 재편, 중국 내수 수요 강세 지속)",
-    "current_level": "현재 무연탄 가격 수준 — 2022년 에너지 위기 피크 대비 현재 위치, 최근 1년 추이를 2문장으로 작성",
-    "key_drivers": "현재 가격에 영향을 주는 주요 요인들을 3~4문장으로 작성. 러·우 전쟁, 미·중 무역분쟁, 유럽 탈탄소, 중국 수요, 인도 수요, 계절성 중 해당되는 것 포함",
-    "outlook": "향후 1~3개월 가격 방향성과 근거를 2문장으로 작성"
+    "headline": "현재 전세계 무연탄(Anthracite) 시장 최대 이슈 — 반드시 1문장으로 작성. 유연탄·열탄 내용 포함 금지.",
+    "current_level": "현재 무연탄(Anthracite) 가격 수준 — 최근 추이를 2문장으로 작성. 무연탄만 서술.",
+    "key_drivers": "무연탄(Anthracite) 가격에 영향을 주는 주요 요인 3~4문장. 가탄제 수요(제강·주조업), 러·우 전쟁, 중국 생산 규제, 인도 수요 중 해당되는 것 포함. 유연탄·열탄 내용 포함 금지.",
+    "outlook": "향후 1~3개월 무연탄(Anthracite) 가격 방향성과 근거를 2문장으로 작성."
   },
   "china_production": {
-    "annual_output": "중국 무연탄 연간 생산량 — 최근 확인된 수치 (예: 2024년 약 X억 톤, 못 찾으면 null)",
-    "annual_consumption": "중국 석탄 연간 소비량 (최근 수치, 못 찾으면 null)",
-    "export_volume": "중국 무연탄 연간/월별 수출량 및 주요 수출국 (못 찾으면 null)",
-    "import_volume": "중국 석탄 수입량 및 주요 수입국 (못 찾으면 null)",
-    "production_status": "현재 중국 무연탄 생산 현황을 3문장으로 작성. 산시·내몽골·귀저우 산지 상황, 안전규제, 계절적 요인 포함. 반드시 작성.",
-    "cbam_carbon": "CBAM(EU 탄소국경조정제도)과 중국 탄소배출권 거래시장(CEA)이 중국 석탄 수출·생산에 미치는 영향을 2~3문장으로 작성. 반드시 작성.",
-    "policy": "최근 중국 석탄 관련 주요 정책(생산 쿼터, 환경규제, 수출세 등)과 영향을 2문장으로 작성. 반드시 작성.",
-    "outlook": "향후 6~12개월 중국 생산·소비·수출 전망을 2~3문장으로 작성. 반드시 작성."
+    "annual_output": "중국 무연탄(Anthracite) 연간 생산량 — 최근 확인된 수치. 못 찾으면 null",
+    "annual_consumption": "중국 무연탄(Anthracite) 연간 소비량. 못 찾으면 null",
+    "export_volume": "중국 무연탄(Anthracite) 수출량 및 주요 수출국. 못 찾으면 null",
+    "import_volume": "중국 무연탄(Anthracite) 수입량 및 주요 수입국. 못 찾으면 null",
+    "production_status": "현재 중국 무연탄(Anthracite) 생산 현황 3문장. 산시·내몽골·귀저우 산지 상황, 안전규제, 계절적 요인 포함. 유연탄 내용 포함 금지. 반드시 작성.",
+    "cbam_carbon": "CBAM과 중국 탄소배출권(CEA)이 중국 무연탄 수출·생산에 미치는 영향 2~3문장. 반드시 작성.",
+    "policy": "최근 중국 무연탄(Anthracite) 관련 주요 정책과 영향 2문장. 반드시 작성.",
+    "outlook": "향후 6~12개월 중국 무연탄 생산·수출 전망 2~3문장. 반드시 작성."
   },
   "russia_production": {
-    "annual_output": "러시아 무연탄 연간 생산량 (최근 수치, 못 찾으면 null)",
-    "export_volume": "러시아 석탄 연간/월별 수출량 및 주요 수출국 (못 찾으면 null)",
-    "main_importers": "러시아 석탄 주요 수입국과 비중을 한 줄로 작성 (예: 인도 30%, 중국 25%, 한국 10%, 터키 8%). 반드시 작성.",
-    "production_status": "현재 러시아 무연탄 생산 현황을 2~3문장으로 작성. 쿠즈바스·사하·시베리아 탄전 상황 포함. 반드시 작성.",
-    "sanctions_impact": "2022년 이후 서방 제재가 러시아 석탄 수출에 미친 영향을 3~4문장으로 작성. 아시아 피벗, 루블·위안화 결제, 항만·철도 물류 변화 포함. 반드시 작성.",
-    "war_impact": "러시아-우크라이나 전쟁이 석탄 생산·수출에 미친 영향과 최근 변화를 2~3문장으로 작성. 반드시 작성.",
-    "outlook": "향후 6~12개월 러시아 생산·수출 전망과 주요 리스크를 2문장으로 작성. 반드시 작성."
+    "annual_output": "러시아 무연탄(Anthracite) 연간 생산량. 못 찾으면 null",
+    "export_volume": "러시아 무연탄(Anthracite) 수출량 및 주요 수출국. 못 찾으면 null",
+    "main_importers": "러시아 무연탄 주요 수입국과 비중 한 줄. 예: 인도 30%, 중국 25%, 한국 10%, 터키 8%. 반드시 작성.",
+    "production_status": "현재 러시아 무연탄(Anthracite) 생산 현황 2~3문장. 쿠즈바스·사하·시베리아 탄전 상황 포함. 반드시 작성.",
+    "sanctions_impact": "서방 제재가 러시아 무연탄 수출에 미친 영향 3~4문장. 아시아 피벗, 항만·철도 물류 변화 포함. 반드시 작성.",
+    "war_impact": "러시아-우크라이나 전쟁이 무연탄 생산·수출에 미친 영향 2~3문장. 반드시 작성.",
+    "outlook": "향후 6~12개월 러시아 무연탄 생산·수출 전망 2문장. 반드시 작성."
   },
   "asia_flows": {
     "available": true,
     "flows": [
-      { "importer": "한국", "main_sources": "중국/러시아/기타 비중 (확인된 수준에서 작성)", "volume_trend": "전년 대비 물량 동향", "price_trend": "수입 단가 동향" },
-      { "importer": "인도", "main_sources": "주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" },
-      { "importer": "중국(수입)", "main_sources": "주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" },
-      { "importer": "일본/동남아", "main_sources": "주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" }
+      { "importer": "한국", "main_sources": "무연탄 기준 중국/러시아/기타 비중", "volume_trend": "전년 대비 무연탄 수입 물량 동향", "price_trend": "수입 단가 동향" },
+      { "importer": "인도", "main_sources": "무연탄 주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" },
+      { "importer": "중국(수입)", "main_sources": "무연탄 주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" },
+      { "importer": "일본/동남아", "main_sources": "무연탄 주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" }
     ]
   },
-  "market_summary": "전세계 무연탄·가탄제 시장 종합 — 중국·러시아 공급 구도, 지정학적 리스크, 아시아 수요 방향, 단기 가격 전망을 4~5문장으로 반드시 작성.",
+  "market_summary": "전세계 무연탄(Anthracite)·가탄제 시장 종합 — 중국·러시아 공급 구도, 지정학적 리스크, 아시아 가탄제 수요 방향, 단기 가격 전망을 4~5문장으로 반드시 작성. 유연탄·열탄 내용 포함 금지.",
   "updated_at": "${new Date().toISOString()}"
 }`,
 
