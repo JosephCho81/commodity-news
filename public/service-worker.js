@@ -1,5 +1,5 @@
 // service-worker.js — 오프라인 캐시
-const CACHE_NAME = 'a1-commodity-v1';
+const CACHE_NAME = 'a1-commodity-v3';
 
 // 앱 shell (정적 파일)
 const STATIC_ASSETS = [
