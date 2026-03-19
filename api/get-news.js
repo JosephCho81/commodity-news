@@ -624,23 +624,32 @@ const PROMPTS = {
 - 가격 필드는 숫자만 입력하세요. 단위·설명 금지. 예: "135" (O), "135 USD/톤" (X), "약 135" (X)
 - 가격을 찾으면 반드시 해당 필드에 숫자로 기재. 텍스트 설명 안에만 넣고 필드를 null로 두는 것 금지.
 - 끝까지 못 찾은 경우에만 null 허용.
-- 【핵심】 이 보고서는 반드시 무연탄(Anthracite)만 다룹니다. 유연탄(Bituminous coal), 열탄(Thermal coal), 원료탄(Coking coal), 갈탄(Lignite) 관련 내용은 절대 포함 금지. 가탄제(Recarburizer) 원료인 무연탄만 작성하세요.
-- "검색 결과에서 확인되지 않았다", "구체적 정보가 제시되지 않았다", "데이터 부재" 등의 문구 절대 금지. 정보가 없으면 업계 구조적 현황과 알려진 사실로 채울 것.
+- 【핵심】 이 보고서는 반드시 무연탄(Anthracite)만 다룹니다. 유연탄(Bituminous coal), 열탄(Thermal coal), 원료탄(Coking coal), 갈탄(Lignite) 관련 내용은 절대 포함 금지.
+- 【금지 문구】 아래 표현은 어떤 필드에도 절대 사용 금지:
+  "검색 결과에서 확인되지 않았다", "구체적 정보가 제시되지 않았다", "데이터 부재",
+  "추가 정보가 필요합니다", "파악하기 어렵습니다", "확인할 수 없습니다",
+  "제공된 검색 결과로는", "신뢰할 수 있는 전망을 제시하기 어렵습니다"
+  → 이런 표현 대신 반드시 업계 구조적 현황, 알려진 사실, 시장 논리 기반으로 작성할 것.
 
-【중국 무연탄(Anthracite) 가격 검색 — 순서대로 시도】
-1. 검색: "China anthracite FOB Qinhuangdao price 2026"
-2. 검색: "칭황다오 무연탄 수출가 2026" 또는 "친황다오 무연탄 FOB"
-3. 검색: "anthracite coal price per ton 2026"
-4. coalspot.com, steelorbis.com, sunsirs.com 무연탄(anthracite) 시세
-→ 찾은 가격을 fob_qinhuangdao 또는 domestic_shanxi 필드에 숫자로 기재
-→ 참고 범위: FOB 100~180 USD/톤, 국내 현물 700~1000 CNY/톤
+【검색 소스 — 아래 소스들을 적극 활용하세요】
+- 가격 데이터: coalspot.com, steelorbis.com, sunsirs.com, metalbulletin.com, argusmedia.com
+- 시장 뉴스: Reuters, Bloomberg, S&P Global Commodity Insights, Fastmarkets
+- 중국 무연탄 업체: Jincheng Anthracite Mining Group(晋城无烟煤矿业集团), Lu'an Group(潞安集团), Yangquan Coal(阳泉煤业)
+- 러시아 무연탄 업체: SUEK(시베리아석탄에너지), Raspadskaya, Mechel
+- 업계 기관: World Coal Association(worldcoal.org), IEA coal reports, China National Coal Association
+- 한국 수입: KITA(한국무역협회), 한국에너지공단
 
-【러시아 무연탄(Anthracite) 가격 검색 — 순서대로 시도】
-1. 검색: "Russia anthracite export price 2026"
-2. 검색: "Russian anthracite FOB price USD per ton"
-3. 검색: "SUEK anthracite price" 또는 "러시아 무연탄 수출가"
-→ 찾은 가격을 fob_murmansk 필드에 숫자로 기재
-→ 참고 범위: FOB 80~150 USD/톤
+【중국 무연탄(Anthracite) 가격 검색】
+1. "China anthracite FOB Qinhuangdao price 2026"
+2. "Jincheng Lu'an anthracite export price 2026"
+3. sunsirs.com 무연탄 시세
+→ fob_qinhuangdao 또는 domestic_shanxi 필드에 숫자 기재. 참고 범위: FOB 100~180 USD/톤
+
+【러시아 무연탄(Anthracite) 가격 검색】
+1. "SUEK anthracite export price 2026"
+2. "Russia anthracite FOB Murmansk price 2026"
+3. "Russian anthracite Korea import price 2026"
+→ fob_murmansk 필드에 숫자 기재. 참고 범위: FOB 80~150 USD/톤
 
 {
   "china_price": {
