@@ -852,11 +852,16 @@ export default async function handler(req, res) {
         const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
         const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
 
-        // 오늘 데이터 우선, 없으면 어제 데이터 fallback
+        // 오늘 우선, 없으면 최근 7일 fallback
         const readTab = async (tabName) => {
-          const todayDoc = await getFromFirestore(token, 'commodity_cache', `${tabName}_${todayKST}`).catch(() => null);
-          if (todayDoc?.data) return todayDoc;
-          return getFromFirestore(token, 'commodity_cache', `${tabName}_${yesterdayKST}`).catch(() => null);
+          for (let i = 0; i <= 7; i++) {
+            try {
+              const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
+              const doc = await getFromFirestore(token, 'commodity_cache', `${tabName}_${d}`).catch(() => null);
+              if (doc?.data) return doc;
+            } catch (e) { /* 다음 날짜 시도 */ }
+          }
+          return null;
         };
 
         const [alData, fsiData, recData] = await Promise.all([
