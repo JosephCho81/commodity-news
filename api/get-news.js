@@ -980,7 +980,7 @@ export default async function handler(req, res) {
       parsed.lme = { ...parsed.lme, source: 'perplexity' };
     }
 
-    // ── 3. Firestore 날짜별 저장 + 전날 문서 삭제 ───────────────────────
+    // ── 3. Firestore 날짜별 저장 (7일 보관, 전날 삭제 안 함) ─────────────
     if (token) {
       try {
         const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -992,22 +992,6 @@ export default async function handler(req, res) {
           date: todayKST,
         });
         console.log(`[Firestore] ✅ 저장 성공: commodity_cache/${docId}`);
-
-        // 전날 문서 삭제
-        const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
-        const yesterdayDocId = `${tab}_${yesterdayKST}`;
-        try {
-          const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/commodity_cache/${yesterdayDocId}`;
-          const delRes = await fetch(url, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (delRes.ok || delRes.status === 404) {
-            console.log(`[Firestore] 전날 문서 삭제: ${yesterdayDocId}`);
-          }
-        } catch (e) {
-          console.warn('[Firestore] 전날 문서 삭제 실패 (무시):', e.message);
-        }
       } catch (e) {
         console.warn('[Firestore] 캐시 저장 실패:', e.message);
       }
@@ -1017,24 +1001,23 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('[Handler] 예외:', err.message);
 
-    // Perplexity 실패 시 어제 데이터 fallback
+    // Perplexity 실패 시 최근 7일 fallback (가장 최신 데이터 반환)
     if (token) {
-      try {
-        const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
-        const yesterdayDocId = `${tab}_${yesterdayKST}`;
-        const fallback = await getFromFirestore(token, 'commodity_cache', yesterdayDocId);
-        if (fallback?.data) {
-          console.log(`[Fallback] 어제 데이터 반환: ${yesterdayDocId}`);
-          const parsed = JSON.parse(fallback.data);
-          return res.status(200).json({
-            ...parsed,
-            _cached: true,
-            _fallback: true,
-            _age_min: Math.round((Date.now() - Number(fallback.cached_at || 0)) / 60000),
-          });
-        }
-      } catch (e) {
-        console.warn('[Fallback] 어제 데이터도 없음:', e.message);
+      for (let i = 1; i <= 7; i++) {
+        try {
+          const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
+          const fallback = await getFromFirestore(token, 'commodity_cache', `${tab}_${d}`);
+          if (fallback?.data) {
+            console.log(`[Fallback] ${i}일 전 데이터 반환: ${tab}_${d}`);
+            const parsed = JSON.parse(fallback.data);
+            return res.status(200).json({
+              ...parsed,
+              _cached: true,
+              _fallback: true,
+              _age_min: Math.round((Date.now() - Number(fallback.cached_at || 0)) / 60000),
+            });
+          }
+        } catch (e) { /* 없으면 다음 날짜 시도 */ }
       }
     }
 
