@@ -82,8 +82,12 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function TextBlock({ text }: { text: string }) {
-  return <p className="text-block">{text}</p>;
+function TextBlock({ text }: { text: string | null | undefined }) {
+  if (!text || String(text).trim().length === 0) return null;
+  const cleaned = String(text)
+    .replace(/Yuan/g, 'CNY')
+    .replace(/\/톤/g, '/MT');
+  return <p className="text-block">{cleaned}</p>;
 }
 
 function LoadingState() {
@@ -116,12 +120,12 @@ function AluminumTab({ data }: { data: AluminumData }) {
         <div className="price-hero-main">
           <span className="price-hero-label">LME 알루미늄 공식가</span>
           {priceValid
-            ? <span className="price-hero-value">{formatNum(lme.price)} <small>USD/톤</small></span>
+            ? <span className="price-hero-value">{formatNum(lme.price)} <small>USD/MT</small></span>
             : <span className="price-hero-na">가격 확인 중</span>
           }
           {lme.change && priceValid && (
             <span className="price-hero-change" style={{ color: isUp ? 'var(--up)' : 'var(--down)' }}>
-              전일 대비 {isUp ? '+' : ''}{formatNum(lme.change)} USD/톤
+              전일 대비 {isUp ? '+' : ''}{formatNum(lme.change)} USD/MT
               {lme.change_pct ? ` (${lme.change_pct})` : ''}
             </span>
           )}
@@ -209,9 +213,9 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
                 if (usd || cny) {
                   return (
                     <span className="price-hero-value" style={{ fontSize: 20 }}>
-                      {usd && `USD ${usd}/톤`}
-                      {usd && cny && <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 400 }}> (CNY {cny}/톤 · 중국 내수가)</span>}
-                      {!usd && cny && `CNY ${cny}/톤`}
+                      {usd && `USD ${usd}/MT`}
+                      {usd && cny && <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 400 }}> (CNY {cny}/MT · 중국 내수가)</span>}
+                      {!usd && cny && `CNY ${cny}/MT`}
                     </span>
                   );
                 }
@@ -219,7 +223,7 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
               })()}
               {hbisChange && (
                 <span className="price-hero-change" style={{ color: hbisChangeDown ? 'var(--down)' : 'var(--up)' }}>
-                  {String(hbisChange).replace(/Yuan/g, 'CNY')}
+                  {String(hbisChange).replace(/Yuan/g, 'CNY').replace(/\/톤/g, '/MT')}
                 </span>
               )}
               <span className="fsi-hbis-note">※ HBIS Group(중국 2위 철강사) 월별 공식 입찰가 기준</span>
@@ -227,12 +231,12 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           ) : fobRange ? (
             <>
               <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
-              <span className="price-hero-value">{fobRange} <small>USD/톤</small></span>
+              <span className="price-hero-value">{fobRange} <small>USD/MT</small></span>
             </>
           ) : ctxFobRange ? (
             <>
               <span className="price-hero-label">페로실리콘 75 FOB 천진항</span>
-              <span className="price-hero-value">{ctxFobRange} <small>USD/톤</small></span>
+              <span className="price-hero-value">{ctxFobRange} <small>USD/MT</small></span>
             </>
           ) : (
             <>
@@ -700,20 +704,20 @@ const CSS = `
   .price-hero-main { display: flex; flex-direction: column; gap: 3px; }
 
   .price-hero-label {
-    font-size: 10px; font-family: var(--mono);
+    font-size: 10px; font-family: var(--sans);
     color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
   }
 
   .price-hero-value {
-    font-size: 24px; font-family: var(--mono);
-    font-weight: 500; color: #1a2e1f; letter-spacing: -0.5px; line-height: 1.2;
+    font-size: 24px; font-family: var(--sans);
+    font-weight: 500; color: var(--text); letter-spacing: -0.5px; line-height: 1.2;
   }
   .price-hero-value small { font-size: 13px; color: var(--text2); font-weight: 400; margin-left: 4px; }
 
-  .price-hero-na { font-size: 18px; font-family: var(--mono); color: var(--text3); }
+  .price-hero-na { font-size: 18px; font-family: var(--sans); color: var(--text3); }
 
-  .price-hero-change { font-family: var(--mono); font-size: 12px; font-weight: 500; }
-  .price-hero-date   { font-family: var(--mono); font-size: 10px; color: var(--text2); }
+  .price-hero-change { font-family: var(--sans); font-size: 12px; font-weight: 500; }
+  .price-hero-date   { font-family: var(--sans); font-size: 10px; color: var(--text2); }
 
 
 
@@ -977,10 +981,10 @@ const CSS = `
   .recab-price-box--russia { border-color: #d0cfe8; background: #fafafe; }
   .recab-price-box-country { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.5px; margin-bottom: 2px; }
   .recab-price-box-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px; }
-  .recab-price-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--green-dark); line-height: 1.2; }
-  .recab-price-unit { font-family: var(--mono); font-size: 11px; color: var(--text3); }
-  .recab-price-na { font-family: var(--mono); font-size: 13px; color: var(--text3); }
-  .recab-price-change { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+  .recab-price-val { font-family: var(--sans); font-size: 20px; font-weight: 500; color: var(--text); line-height: 1.2; }
+  .recab-price-unit { font-family: var(--sans); font-size: 11px; color: var(--text2); }
+  .recab-price-na { font-family: var(--sans); font-size: 13px; color: var(--text3); }
+  .recab-price-change { font-family: var(--sans); font-size: 11px; font-weight: 500; }
   .recab-price-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
   .recab-tag { font-family: var(--mono); font-size: 9px; background: var(--green-subtle); border: 1px solid var(--green-mid); color: var(--green-dark); padding: 2px 6px; border-radius: 3px; }
   .recab-tag-date { font-family: var(--mono); font-size: 9px; color: var(--text3); padding: 2px 4px; }
