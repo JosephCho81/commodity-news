@@ -522,7 +522,7 @@ export default function App() {
     if (!data[activeTab] && !loading[activeTab]) {
       fetchTab(activeTab);
     }
-  }, [activeTab]);
+  }, [activeTab, fetchTab]);
 
   const tabData = data[activeTab] as never;
   const isLoading = loading[activeTab];
@@ -1002,4 +1002,3 @@ const CSS = `
     .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
   }
 `;
-
