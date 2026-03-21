@@ -15,12 +15,6 @@ function formatNum(val: string | null | undefined) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function formatAge(min: number) {
-  if (min < 1) return '방금';
-  if (min < 60) return `${min}분 전`;
-  return `${Math.floor(min / 60)}시간 전`;
-}
-
 function directionColor(d: string | null | undefined) {
   if (d === 'UP') return 'var(--up)';
   if (d === 'DOWN') return 'var(--down)';
@@ -68,16 +62,6 @@ function SectionCard({ title, accent, children }: {
         <span className="section-title">{title}</span>
       </div>
       <div className="section-body">{children}</div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
-  return (
-    <div className="info-row">
-      <span className="info-label">{label}</span>
-      <span className="info-value">{value}</span>
     </div>
   );
 }
@@ -544,9 +528,6 @@ export default function App() {
     }
   }
 
-  const meta = tabData as (AluminumData | null);
-  const ageMin = meta?._age_min ?? null;
-
   const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   return (
@@ -981,9 +962,9 @@ const CSS = `
   .recab-price-box { background: #fff; border: 1.5px solid var(--green-mid); border-radius: 8px; padding: 14px 12px 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow); }
   .recab-price-box--russia { border-color: #d0cfe8; background: #fafafe; }
   .recab-price-box-country { font-family: var(--sans); font-size: 10px; font-weight: 600; color: var(--text); letter-spacing: 0.5px; margin-bottom: 2px; }
-  .recab-price-box-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px; }
-  .recab-price-val { font-family: var(--sans); font-size: 20px; font-weight: 500; color: var(--text); line-height: 1.2; }
-  .recab-price-unit { font-family: var(--sans); font-size: 11px; color: var(--text2); }
+  .recab-price-box-main { display: flex; align-items: baseline; flex-wrap: nowrap; gap: 3px; }
+  .recab-price-val { font-family: var(--sans); font-size: 17px; font-weight: 500; color: var(--text); line-height: 1.2; white-space: nowrap; }
+  .recab-price-unit { font-family: var(--sans); font-size: 11px; color: var(--text2); white-space: nowrap; }
   .recab-price-na { font-family: var(--sans); font-size: 13px; color: var(--text3); }
   .recab-price-change { font-family: var(--sans); font-size: 11px; font-weight: 500; }
   .recab-price-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
