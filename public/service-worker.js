@@ -33,6 +33,9 @@ self.addEventListener('activate', (event) => {
 
 // fetch 인터셉트
 self.addEventListener('fetch', (event) => {
+  // http/https 요청만 처리 — chrome-extension 등 다른 스킴 무시
+  if (!event.request.url.startsWith('http')) return;
+
   const url = new URL(event.request.url);
 
   // API 요청 (/api/get-news): Network First → 실패 시 캐시
