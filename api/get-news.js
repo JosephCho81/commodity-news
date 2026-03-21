@@ -849,9 +849,6 @@ export default async function handler(req, res) {
     let summaryContext = '';
     if (tab === 'summary' && token) {
       try {
-        const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
-
         // 오늘 우선, 없으면 최근 7일 fallback
         const readTab = async (tabName) => {
           for (let i = 0; i <= 7; i++) {
@@ -947,18 +944,18 @@ export default async function handler(req, res) {
     } catch (e) {
       console.error('[JSON] 파싱 실패:', e.message, '| raw:', raw.slice(0, 300));
 
-      // JSON 파싱 실패 시 어제 데이터 fallback
+      // JSON 파싱 실패 시 최근 7일 fallback
       if (token) {
-        try {
-          const yesterdayKST = new Date(Date.now() + 9 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
-          const fallback = await getFromFirestore(token, 'commodity_cache', `${tab}_${yesterdayKST}`);
-          if (fallback?.data) {
-            console.log(`[Fallback] JSON 파싱 실패 → 어제 데이터 반환`);
-            const fallbackParsed = JSON.parse(fallback.data);
-            return res.status(200).json({ ...fallbackParsed, _cached: true, _fallback: true, _age_min: 0 });
-          }
-        } catch (fe) {
-          console.warn('[Fallback] 어제 데이터도 없음');
+        for (let i = 1; i <= 7; i++) {
+          try {
+            const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
+            const fallback = await getFromFirestore(token, 'commodity_cache', `${tab}_${d}`);
+            if (fallback?.data) {
+              console.log(`[Fallback] JSON 파싱 실패 → ${i}일 전 데이터 반환`);
+              const fallbackParsed = JSON.parse(fallback.data);
+              return res.status(200).json({ ...fallbackParsed, _cached: true, _fallback: true, _age_min: 0 });
+            }
+          } catch (fe) { /* 다음 날짜 시도 */ }
         }
       }
 
@@ -985,18 +982,48 @@ export default async function handler(req, res) {
       parsed.lme = { ...parsed.lme, source: 'perplexity' };
     }
 
-    // ── 3. Firestore 날짜별 저장 (7일 보관, 전날 삭제 안 함) ─────────────
+    // ── 3. Firestore 날짜별 저장 (7일 보관, 빈 데이터 저장 방지) ──────────
     if (token) {
       try {
-        const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        const docId = `${tab}_${todayKST}`;
-        await saveToFirestore(token, 'commodity_cache', docId, {
-          data: JSON.stringify(parsed),
-          cached_at: String(Date.now()),
-          tab,
-          date: todayKST,
-        });
-        console.log(`[Firestore] ✅ 저장 성공: commodity_cache/${docId}`);
+        // 탭별 핵심 필드 유효성 검사 — 빈 데이터는 저장 안 함
+        const isValidData = (() => {
+          if (tab === 'aluminum')     return !!(parsed.lme?.price || parsed.lme?.market_status);
+          if (tab === 'ferrosilicon') return !!(parsed.china_price?.china_context || parsed.market_summary);
+          if (tab === 'recarburizer') return !!(
+            parsed.china_price?.price_range_text || parsed.china_price?.fob_qinhuangdao ||
+            parsed.global_market?.headline || parsed.market_summary
+          );
+          if (tab === 'summary')      return !!(parsed.one_liner && parsed.key_signals?.length > 0);
+          return true;
+        })();
+
+        if (!isValidData) {
+          console.warn(`[Firestore] 유효성 검사 실패 — 빈 데이터 저장 건너뜀: ${tab}`);
+          // 빈 데이터 대신 최근 7일 fallback 반환
+          for (let i = 1; i <= 7; i++) {
+            try {
+              const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
+              const fallback = await getFromFirestore(token, 'commodity_cache', `${tab}_${d}`);
+              if (fallback?.data) {
+                console.log(`[Fallback] 유효성 실패 → ${i}일 전 데이터 반환: ${tab}_${d}`);
+                const fallbackParsed = JSON.parse(fallback.data);
+                return res.status(200).json({ ...fallbackParsed, _cached: true, _fallback: true, _age_min: Math.round((Date.now() - Number(fallback.cached_at || 0)) / 60000) });
+              }
+            } catch (e) { /* 다음 날짜 시도 */ }
+          }
+          // fallback도 없으면 빈 데이터 그대로 반환
+          return res.status(200).json({ ...parsed, _cached: false, _age_min: 0 });
+        } else {
+          const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          const docId = `${tab}_${todayKST}`;
+          await saveToFirestore(token, 'commodity_cache', docId, {
+            data: JSON.stringify(parsed),
+            cached_at: String(Date.now()),
+            tab,
+            date: todayKST,
+          });
+          console.log(`[Firestore] ✅ 저장 성공: commodity_cache/${docId}`);
+        }
       } catch (e) {
         console.warn('[Firestore] 캐시 저장 실패:', e.message);
       }
