@@ -844,11 +844,12 @@ const CSS = `
 
   /* ── ONE-LINER ── */
   .one-liner-card {
-    background: var(--green-primary);
+    background: var(--green-light);
+    border: 1.5px solid var(--green-mid);
     padding: 20px 18px; border-radius: 6px; box-shadow: var(--shadow);
   }
-  .one-liner-label { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.6); letter-spacing: 3px; margin-bottom: 8px; }
-  .one-liner-text  { font-size: 15px; font-weight: 600; color: #ffffff; line-height: 1.7; }
+  .one-liner-label { font-family: var(--mono); font-size: 9px; color: var(--green-primary); letter-spacing: 3px; margin-bottom: 8px; }
+  .one-liner-text  { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.7; }
 
   /* ── 시그널 ── */
   .signal-row { border-bottom: 1px solid var(--border2); padding: 10px 0; display: flex; flex-direction: column; gap: 4px; }
@@ -979,7 +980,7 @@ const CSS = `
   .recab-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .recab-price-box { background: #fff; border: 1.5px solid var(--green-mid); border-radius: 8px; padding: 14px 12px 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow); }
   .recab-price-box--russia { border-color: #d0cfe8; background: #fafafe; }
-  .recab-price-box-country { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.5px; margin-bottom: 2px; }
+  .recab-price-box-country { font-family: var(--sans); font-size: 10px; font-weight: 600; color: var(--text); letter-spacing: 0.5px; margin-bottom: 2px; }
   .recab-price-box-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px; }
   .recab-price-val { font-family: var(--sans); font-size: 20px; font-weight: 500; color: var(--text); line-height: 1.2; }
   .recab-price-unit { font-family: var(--sans); font-size: 11px; color: var(--text2); }
