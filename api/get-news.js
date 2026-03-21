@@ -437,6 +437,7 @@ async function fetchJapanScrapPrices() {
 async function callPerplexity(prompt) {
   const res = await fetch('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
+    signal: AbortSignal.timeout(55000), // 55초 타임아웃 (maxDuration 60초보다 여유있게)
     headers: {
       Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
       'Content-Type': 'application/json',
@@ -476,10 +477,13 @@ function parseJSON(raw) {
   return JSON.parse(clean);
 }
 
+// ─── KST 날짜 헬퍼 ──────────────────────────────────────────────────────────
+const getKSTDate = () => new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
 // ─── 탭별 프롬프트 ──────────────────────────────────────────────────────────
 const PROMPTS = {
 
-  aluminum: `오늘 날짜(${new Date().toISOString().slice(0,10)}) 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
+  aluminum: `오늘 날짜(${getKSTDate()}) 기준 알루미늄 시장 인텔리전스를 JSON으로 반환하세요.
 
 【지침】
 - LME 가격은 별도로 주입되므로 price/change/date 필드는 null로 두세요.
@@ -565,7 +569,7 @@ const PROMPTS = {
 
 {
   "china_price": {
-    "hbis_bid_price": "HBIS Group 최신 월별 입찰가. Yuan/톤 및 USD/톤 병기. 예: 2026년 1월 Yuan 5760/톤 USD 805/톤",
+    "hbis_bid_price": "HBIS Group 최신 월별 입찰가. CNY/톤 및 USD/톤 병기. 예: 2026년 1월 CNY 5,760/톤 USD 805/톤",
     "hbis_bid_month": "HBIS 입찰가 기준 연월. 예: 2026-01",
     "hbis_bid_change": "전월 대비 변동. 없으면 null",
     "fob_tianjin_monthly": {
@@ -769,14 +773,6 @@ const PROMPTS = {
   "week_ahead": "① 첫 번째 주목 변수\\n② 두 번째 주목 변수\\n③ 세 번째 주목 변수 — 반드시 3가지 작성",
   "updated_at": "${new Date().toISOString()}"
 }`,
-};
-
-// ─── 캐시 TTL (분) — 하루 1회 업데이트 컨셉
-const CACHE_TTL = {
-  aluminum: 1440,
-  ferrosilicon: 1440,
-  recarburizer: 1440,
-  summary: 1440,
 };
 
 // ─── 메인 핸들러 ────────────────────────────────────────────────────────────
