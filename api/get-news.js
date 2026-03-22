@@ -579,7 +579,7 @@ const PROMPTS = {
     "date": null,
     "lme_verified": "true 또는 false — LME 공식/주요 뉴스 교차 검증 결과",
     "lme_verify_source": "검증에 사용한 소스 (예: Reuters, Bloomberg, lme.com) 또는 '확인 불가'",
-    "move_reason": "오늘 하루 LME 알루미늄 가격 변동 이유를 2~3문장으로 작성. 오늘 날짜 기준 전일 대비 상승/하락 원인을 구체적 수치와 함께 설명. 수치 없이 막연한 서술 금지. 반드시 작성.",
+    "move_reason": "오늘 하루 LME 알루미늄 가격 변동 이유를 2~3문장으로 작성. 반드시 아래 【LME 실시간 수집 데이터】의 price와 change 수치를 그대로 사용할 것 — 이 숫자와 다른 LME 가격을 절대 사용하지 말 것. 전일 대비 상승/하락 원인을 구체적 수치와 함께 설명. 수치 없이 막연한 서술 금지. 반드시 작성.",
     "market_status": "현재 시장 상황을 2~3문장으로 작성. LME 재고 톤수(숫자 명시), 최근 N일간 가격 추세(기간과 등락폭 수치 명시), 중국/글로벌 수요 현황 포함. 기간과 수치 없는 서술 금지. 반드시 작성.",
     "outlook": "향후 1~2주 가격 방향성을 2~3문장으로 작성. 상승/하락 근거를 구체적 요인과 함께 설명. 시장 전문가 전망치 있으면 출처와 함께 인용. 막연한 상승 가능성만 쓰지 말고 반드시 근거 명시."
   },
@@ -716,6 +716,7 @@ const PROMPTS = {
 【검색 소스 — 아래 소스들을 적극 활용하세요】
 - 가격 데이터: coalspot.com, steelorbis.com, sunsirs.com, metalbulletin.com, argusmedia.com
 - 시장 뉴스: Reuters, Bloomberg, S&P Global Commodity Insights, Fastmarkets
+- 지정학 뉴스: Reuters "Iran war coal", Bloomberg "Asia coal LNG switching 2026", IEA energy security 2026 — 미-이란 전쟁(Operation Epic Fury, 2026-02-28~) 관련 최신 뉴스 반드시 검색
 - 중국 무연탄 업체: Jincheng Anthracite Mining Group(晋城无烟煤矿业集团), Lu'an Group(潞安集团), Yangquan Coal(阳泉煤业)
 - 러시아 무연탄 업체: SUEK(시베리아석탄에너지), Raspadskaya, Mechel
 - 업계 기관: World Coal Association(worldcoal.org), IEA coal reports, China National Coal Association
@@ -758,7 +759,7 @@ const PROMPTS = {
   "global_market": {
     "headline": "현재 전세계 무연탄(Anthracite) 시장 최대 이슈 — 반드시 1문장으로 작성. 유연탄·열탄 내용 포함 금지.",
     "current_level": "현재 무연탄(Anthracite) 가격 수준 — 최근 추이를 2문장으로 작성. 무연탄만 서술.",
-    "key_drivers": "무연탄(Anthracite) 가격에 영향을 주는 주요 요인 3~4문장. 가탄제 수요(제강·주조업), 러·우 전쟁, 중국 생산 규제, 인도 수요 중 해당되는 것 포함. 유연탄·열탄 내용 포함 금지.",
+    "key_drivers": "무연탄(Anthracite) 가격에 영향을 주는 주요 요인 3~4문장. 가탄제 수요(제강·주조업), 러·우 전쟁, 중국 생산 규제, 인도 수요 중 해당되는 것 포함. 【필수】 미-이란 전쟁(2026년 2월 28일 발발)으로 인한 LNG 공급 차질 → 아시아 가스-석탄 전환(gas-to-coal switching) 수요 증가 동향, 석탄 가격 변동이 무연탄 시장에 미치는 영향을 반드시 포함할 것. 유연탄·열탄 내용 포함 금지.",
     "outlook": "향후 1~3개월 무연탄(Anthracite) 가격 방향성과 근거를 2문장으로 작성."
   },
   "china_production": {
@@ -789,7 +790,7 @@ const PROMPTS = {
       { "importer": "일본/동남아", "main_sources": "무연탄 주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" }
     ]
   },
-  "market_summary": "전세계 무연탄(Anthracite)·가탄제 시장 종합 — 중국·러시아 공급 구도, 지정학적 리스크, 아시아 가탄제 수요 방향, 단기 가격 전망을 4~5문장으로 반드시 작성. 유연탄·열탄 내용 포함 금지.",
+  "market_summary": "전세계 무연탄(Anthracite)·가탄제 시장 종합 — 중국·러시아 공급 구도, 지정학적 리스크, 아시아 가탄제 수요 방향, 단기 가격 전망을 4~5문장으로 반드시 작성. 【필수】 2026년 2월 28일 발발한 미-이란 전쟁으로 인한 호르무즈 해협 봉쇄·카타르 LNG 공급 차질 → 아시아 가스-석탄 전환 수요 급증이 무연탄 시장에 미치는 실질적 영향을 반드시 포함할 것. 유연탄·열탄 내용 포함 금지.",
   "updated_at": "${new Date().toISOString()}"
 }`,
 
@@ -976,7 +977,16 @@ export default async function handler(req, res) {
     // ── 3. Perplexity 호출 — 스크랩/전망 데이터 컨텍스트 주입 ────────────
     let prompt = PROMPTS[tab];
     if (tab === 'aluminum') {
-      let context = '\n\n【실시간 수집 데이터 — 반드시 아래 수치를 본문에 반영하세요】\n';
+      let context = '\n\n【LME 실시간 수집 데이터 — move_reason/market_status 작성 시 반드시 아래 LME 공식 가격만 사용. 다른 출처의 LME 가격 절대 금지】\n';
+      // LME 가격을 컨텍스트 최상단에 명시 — Perplexity가 다른 숫자 사용 방지
+      if (lmeData) {
+        context += `\n[LME Cash Settlement 공식 가격 — westmetall.com 파싱값, 이 숫자만 사용할 것]\n`;
+        context += `현재가: ${lmeData.price} USD/MT\n`;
+        if (lmeData.change !== null) context += `전일 대비: ${parseFloat(lmeData.change) >= 0 ? '+' : ''}${lmeData.change} USD/MT\n`;
+        if (lmeData.change_pct) context += `등락률: ${lmeData.change_pct}\n`;
+        context += `기준일: ${lmeData.date}\n`;
+        context += `[주의] move_reason 작성 시 반드시 위 ${lmeData.price} USD/MT 숫자를 사용. 절대로 다른 수치 사용 금지.\n`;
+      }
       if (outlookText) context += `\n[가격 전망 참고 텍스트]\n${outlookText}\n`;
       if (scrapPrices?.us && Object.keys(scrapPrices.us).length > 0) {
         context += `\n[미국 알루미늄 스크랩 실제 가격 (USD/톤, scrapmonster.com 기준, USD/lb에서 환산)]\n`;
