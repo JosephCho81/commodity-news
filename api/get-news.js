@@ -571,6 +571,16 @@ const PROMPTS = {
 - [1][2] 각주 번호 절대 금지.
 - 텍스트는 한국어로 작성하세요.
 
+【지정학·거시경제 리스크 — 매일 자율 검색 필수】
+오늘 날짜 기준 아래 키워드로 최신 뉴스를 검색하고, 알루미늄 가격·공급·수요에 실질적 영향을 주는 이슈를 move_reason / market_status / outlook / scrap 각 해당 필드에 자연스럽게 반영하세요. 영향이 없는 이슈는 생략 가능.
+검색 키워드:
+- "aluminum geopolitical supply risk [오늘 날짜]"
+- "Middle East energy disruption aluminum 2026"
+- "global trade tariff aluminum metal 2026"
+- "China aluminum production policy 2026"
+- "LME aluminum demand outlook latest"
+→ 검색 결과에서 현재 진행 중인 분쟁, 제재, 관세, 에너지 공급 차질, 주요국 경기 변화 중 알루미늄 시장과 관련성이 높은 것만 골라 반영할 것.
+
 {
   "lme": {
     "price": null,
@@ -579,9 +589,9 @@ const PROMPTS = {
     "date": null,
     "lme_verified": "true 또는 false — LME 공식/주요 뉴스 교차 검증 결과",
     "lme_verify_source": "검증에 사용한 소스 (예: Reuters, Bloomberg, lme.com) 또는 '확인 불가'",
-    "move_reason": "오늘 하루 LME 알루미늄 가격 변동 이유를 2~3문장으로 작성. 반드시 아래 【LME 실시간 수집 데이터】의 price와 change 수치를 그대로 사용할 것 — 이 숫자와 다른 LME 가격을 절대 사용하지 말 것. 전일 대비 상승/하락 원인을 구체적 수치와 함께 설명. 수치 없이 막연한 서술 금지. 반드시 작성.",
-    "market_status": "현재 시장 상황을 2~3문장으로 작성. LME 재고 톤수(숫자 명시), 최근 N일간 가격 추세(기간과 등락폭 수치 명시), 중국/글로벌 수요 현황 포함. 기간과 수치 없는 서술 금지. 반드시 작성.",
-    "outlook": "향후 1~2주 가격 방향성을 2~3문장으로 작성. 상승/하락 근거를 구체적 요인과 함께 설명. 시장 전문가 전망치 있으면 출처와 함께 인용. 막연한 상승 가능성만 쓰지 말고 반드시 근거 명시."
+    "move_reason": "오늘 하루 LME 알루미늄 가격 변동 이유를 2~3문장으로 작성. 반드시 아래 【LME 실시간 수집 데이터】의 price와 change 수치를 그대로 사용할 것 (예: 3,329.00 USD/MT 형식으로 천단위 쉼표 포함) — 이 숫자와 다른 LME 가격을 절대 사용하지 말 것. 전일 대비 상승/하락 원인을 구체적 수치와 함께 설명. 수치 없이 막연한 서술 금지. 반드시 작성.",
+    "market_status": "현재 시장 상황을 2~3문장으로 작성. LME 재고 톤수(숫자 명시), 최근 N일간 가격 추세(기간과 등락폭 수치 명시), 중국/글로벌 수요 현황 포함. 현재 진행 중인 지정학 이슈(분쟁·제재·관세 등)가 알루미늄 공급·수요에 영향을 준다면 함께 서술. 기간과 수치 없는 서술 금지. 반드시 작성.",
+    "outlook": "향후 1~2주 가격 방향성을 2~3문장으로 작성. 상승/하락 근거를 구체적 요인과 함께 설명. 현재 진행 중인 지정학 리스크(분쟁·에너지 공급 차질·관세 등)가 단기 전망에 영향을 준다면 반드시 포함. 시장 전문가 전망치 있으면 출처와 함께 인용. 막연한 상승 가능성만 쓰지 말고 반드시 근거 명시."
   },
   "scrap": {
     "weekly_summary": "이번 주 글로벌 알루미늄 스크랩 시장 전반 요약 3~4문장. 반드시 작성.",
@@ -645,6 +655,16 @@ const PROMPTS = {
    - CNY만 있으면: "CNY X,XXX/톤" 형식
    - 천단위 콤마 필수. "Yuan" 사용 금지, 반드시 "CNY" 사용.
 
+【지정학·거시경제 리스크 — 매일 자율 검색 필수】
+오늘 날짜 기준 아래 키워드로 최신 뉴스를 검색하고, 페로실리콘 가격·수요에 실질적 영향을 주는 이슈를 china_context / non_china_context / market_summary 각 해당 필드에 반영하세요. 영향이 없는 이슈는 생략 가능.
+검색 키워드:
+- "ferrosilicon market geopolitical 2026"
+- "global steel demand outlook latest"
+- "energy cost steel production Europe 2026"
+- "China ferrosilicon export policy latest"
+- "trade war tariff steel silicon 2026"
+→ 현재 진행 중인 분쟁·에너지 위기·관세 등이 유럽 철강 수요 위축 또는 페로실리콘 제련 원가에 영향을 준다면 해당 필드에 반드시 반영할 것.
+
 {
   "china_price": {
     "hbis_bid_price": "HBIS Group 최신 월별 입찰가. CNY/톤 및 USD/톤 병기. 예: 2026년 1월 CNY 5,760/톤 USD 805/톤",
@@ -658,7 +678,7 @@ const PROMPTS = {
     "fesi75_ningxia": "닝샤 내수 현물가 CNY/톤. 최근 수치 또는 추정 범위",
     "date": "기준일 YYYY-MM-DD",
     "change": "전월 대비 변동",
-    "china_context": "HBIS 입찰가 기준 현재 수준, 전월 대비 변화, 한국·일본·EU 바이어 동향, 철강사 입찰 동향 3~4문장. 반드시 작성.",
+    "china_context": "HBIS 입찰가 기준 현재 수준, 전월 대비 변화, 한국·일본·EU 바이어 동향, 철강사 입찰 동향 3~4문장. 현재 진행 중인 지정학 리스크로 인한 에너지 비용 변화가 중국 페로실리콘 제련 원가에 영향을 준다면 포함할 것. 반드시 작성.",
     "china_outlook": "향후 1~3개월 가격 방향성과 근거 2문장. 반드시 작성."
   },
   "china_production": {
@@ -694,8 +714,8 @@ const PROMPTS = {
       "export_direction": "중국, 인도, 터키 우회 수출"
     }
   ],
-  "non_china_context": "EU CBAM, 카자흐스탄 증설, 러시아 제재, 중국산 점유율 현황 2~3문장. 반드시 작성.",
-  "market_summary": "HBIS 입찰가 기준 가격 수준, 중국 FOB 방향성, 비중국 공급 변화, 글로벌 철강 수요 전망, 단기 가격 방향성 3~4문장. 반드시 작성.",
+  "non_china_context": "EU CBAM, 카자흐스탄 증설, 러시아 제재, 중국산 점유율 현황 2~3문장. 현재 진행 중인 지정학 리스크로 인한 유럽 에너지 비용 급등 또는 글로벌 철강 수요 위축이 페로실리콘 수요에 영향을 준다면 반드시 포함. 반드시 작성.",
+  "market_summary": "HBIS 입찰가 기준 가격 수준, 중국 FOB 방향성, 비중국 공급 변화, 글로벌 철강 수요 전망, 단기 가격 방향성 3~4문장. 현재 진행 중인 지정학 리스크·에너지 공급 차질·관세 등이 페로실리콘 제련 원가 또는 글로벌 철강 수요에 영향을 준다면 반드시 포함할 것. 반드시 작성.",
   "updated_at": "응답 생성 시각 ISO 8601"
 }`,
 
@@ -716,7 +736,7 @@ const PROMPTS = {
 【검색 소스 — 아래 소스들을 적극 활용하세요】
 - 가격 데이터: coalspot.com, steelorbis.com, sunsirs.com, metalbulletin.com, argusmedia.com
 - 시장 뉴스: Reuters, Bloomberg, S&P Global Commodity Insights, Fastmarkets
-- 지정학 뉴스: Reuters "Iran war coal", Bloomberg "Asia coal LNG switching 2026", IEA energy security 2026 — 미-이란 전쟁(Operation Epic Fury, 2026-02-28~) 관련 최신 뉴스 반드시 검색
+- 지정학 뉴스: Reuters "coal geopolitical supply 2026", Bloomberg "Asia coal LNG switching 2026", IEA energy security 2026 — 현재 진행 중인 분쟁·에너지 공급 차질·LNG 대체 수요 관련 최신 뉴스 반드시 검색
 - 중국 무연탄 업체: Jincheng Anthracite Mining Group(晋城无烟煤矿业集团), Lu'an Group(潞安集团), Yangquan Coal(阳泉煤业)
 - 러시아 무연탄 업체: SUEK(시베리아석탄에너지), Raspadskaya, Mechel
 - 업계 기관: World Coal Association(worldcoal.org), IEA coal reports, China National Coal Association
@@ -759,7 +779,7 @@ const PROMPTS = {
   "global_market": {
     "headline": "현재 전세계 무연탄(Anthracite) 시장 최대 이슈 — 반드시 1문장으로 작성. 유연탄·열탄 내용 포함 금지.",
     "current_level": "현재 무연탄(Anthracite) 가격 수준 — 최근 추이를 2문장으로 작성. 무연탄만 서술.",
-    "key_drivers": "무연탄(Anthracite) 가격에 영향을 주는 주요 요인 3~4문장. 가탄제 수요(제강·주조업), 러·우 전쟁, 중국 생산 규제, 인도 수요 중 해당되는 것 포함. 【필수】 미-이란 전쟁(2026년 2월 28일 발발)으로 인한 LNG 공급 차질 → 아시아 가스-석탄 전환(gas-to-coal switching) 수요 증가 동향, 석탄 가격 변동이 무연탄 시장에 미치는 영향을 반드시 포함할 것. 유연탄·열탄 내용 포함 금지.",
+    "key_drivers": "무연탄(Anthracite) 가격에 영향을 주는 주요 요인 3~4문장. 가탄제 수요(제강·주조업), 러·우 전쟁, 중국 생산 규제, 인도 수요 중 해당되는 것 포함. 【필수】 현재 진행 중인 지정학 리스크로 인한 LNG 공급 차질 또는 에너지 대체 수요(가스→석탄 전환)가 무연탄 시장에 영향을 준다면 반드시 포함할 것 — 검색으로 오늘 날짜 기준 최신 동향 확인 후 작성. 유연탄·열탄 내용 포함 금지.",
     "outlook": "향후 1~3개월 무연탄(Anthracite) 가격 방향성과 근거를 2문장으로 작성."
   },
   "china_production": {
@@ -790,7 +810,7 @@ const PROMPTS = {
       { "importer": "일본/동남아", "main_sources": "무연탄 주요 공급국", "volume_trend": "물량 추이", "price_trend": "단가 동향" }
     ]
   },
-  "market_summary": "전세계 무연탄(Anthracite)·가탄제 시장 종합 — 중국·러시아 공급 구도, 지정학적 리스크, 아시아 가탄제 수요 방향, 단기 가격 전망을 4~5문장으로 반드시 작성. 【필수】 2026년 2월 28일 발발한 미-이란 전쟁으로 인한 호르무즈 해협 봉쇄·카타르 LNG 공급 차질 → 아시아 가스-석탄 전환 수요 급증이 무연탄 시장에 미치는 실질적 영향을 반드시 포함할 것. 유연탄·열탄 내용 포함 금지.",
+  "market_summary": "전세계 무연탄(Anthracite)·가탄제 시장 종합 — 중국·러시아 공급 구도, 지정학적 리스크, 아시아 가탄제 수요 방향, 단기 가격 전망을 4~5문장으로 반드시 작성. 【필수】 현재 진행 중인 지정학 리스크(분쟁·에너지 공급 차질·LNG 수급 변화 등)가 아시아 석탄 대체 수요 또는 무연탄 시장에 미치는 실질적 영향을 검색으로 확인 후 반드시 포함할 것. 유연탄·열탄 내용 포함 금지.",
   "updated_at": "${new Date().toISOString()}"
 }`,
 
@@ -981,11 +1001,14 @@ export default async function handler(req, res) {
       // LME 가격을 컨텍스트 최상단에 명시 — Perplexity가 다른 숫자 사용 방지
       if (lmeData) {
         context += `\n[LME Cash Settlement 공식 가격 — westmetall.com 파싱값, 이 숫자만 사용할 것]\n`;
-        context += `현재가: ${lmeData.price} USD/MT\n`;
-        if (lmeData.change !== null) context += `전일 대비: ${parseFloat(lmeData.change) >= 0 ? '+' : ''}${lmeData.change} USD/MT\n`;
+        const fmtPrice = (v) => parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const priceFormatted = fmtPrice(lmeData.price);
+        const changeFormatted = lmeData.change !== null ? `${parseFloat(lmeData.change) >= 0 ? '+' : ''}${fmtPrice(lmeData.change)}` : null;
+        context += `현재가: ${priceFormatted} USD/MT\n`;
+        if (changeFormatted !== null) context += `전일 대비: ${changeFormatted} USD/MT\n`;
         if (lmeData.change_pct) context += `등락률: ${lmeData.change_pct}\n`;
         context += `기준일: ${lmeData.date}\n`;
-        context += `[주의] move_reason 작성 시 반드시 위 ${lmeData.price} USD/MT 숫자를 사용. 절대로 다른 수치 사용 금지.\n`;
+        context += `[주의] move_reason 작성 시 반드시 위 ${priceFormatted} USD/MT 숫자를 사용 (천단위 쉼표 포함). 절대로 다른 수치 사용 금지.\n`;
       }
       if (outlookText) context += `\n[가격 전망 참고 텍스트]\n${outlookText}\n`;
       if (scrapPrices?.us && Object.keys(scrapPrices.us).length > 0) {
