@@ -52,6 +52,57 @@ function Logo() {
   );
 }
 
+// ─── 오늘의 핵심 이슈 카드 ────────────────────────────────────────────────────
+function KeyIssueCard({ issue }: { issue: any }) {
+  if (!issue || !issue.title) return null;
+  return (
+    <div className="key-issue-item">
+      <div className="key-issue-title">{issue.title}</div>
+      {issue.what && (
+        <div className="key-issue-row">
+          <span className="key-issue-label ki-what">무슨 일</span>
+          <span className="key-issue-text">{issue.what}</span>
+        </div>
+      )}
+      {issue.why && (
+        <div className="key-issue-row">
+          <span className="key-issue-label ki-why">원인</span>
+          <span className="key-issue-text">{issue.why}</span>
+        </div>
+      )}
+      {issue.impact && (
+        <div className="key-issue-row">
+          <span className="key-issue-label ki-impact">영향</span>
+          <span className="key-issue-text">{issue.impact}</span>
+        </div>
+      )}
+      {issue.outlook && (
+        <div className="key-issue-row">
+          <span className="key-issue-label ki-outlook">전망</span>
+          <span className="key-issue-text">{issue.outlook}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KeyIssuesSection({ issues }: { issues: any[] }) {
+  if (!Array.isArray(issues) || issues.length === 0) return null;
+  const valid = issues.filter(i => i && i.title &&
+    !String(i.title).includes('10자 이내') &&
+    !String(i.title).includes('예:'));
+  if (valid.length === 0) return null;
+  return (
+    <SectionCard title="오늘의 핵심 이슈" accent="KEY">
+      <div className="key-issues-list">
+        {valid.map((issue, idx) => (
+          <KeyIssueCard key={idx} issue={issue} />
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
 function SectionCard({ title, accent, children }: {
   title: string; accent?: string; children: React.ReactNode;
 }) {
@@ -114,7 +165,16 @@ function AluminumTab({ data }: { data: AluminumData }) {
             </span>
           )}
         </div>
-        {lme.date && <span className="price-hero-date">기준: {lme.date}</span>}
+        {lme.date && (
+          <span className="price-hero-date">
+            기준: {lme.date}
+            {(lme as any).holiday_note && (
+              <span className="price-hero-holiday">
+                {' · '}{(lme as any).holiday_note}
+              </span>
+            )}
+          </span>
+        )}
       </div>
 
       <SectionCard title="가격 변동 이유" accent="WHY">
@@ -126,6 +186,8 @@ function AluminumTab({ data }: { data: AluminumData }) {
       <SectionCard title="가격 전망" accent="NEXT">
         <TextBlock text={lme.outlook} />
       </SectionCard>
+
+      <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
 
       <SectionCard title="알루미늄 스크랩 주간 시황" accent="SCRAP">
         <TextBlock text={scrap.weekly_summary} />
@@ -273,6 +335,8 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
       <SectionCard title="시장 종합 및 전망" accent="SUM">
         <TextBlock text={market_summary} />
       </SectionCard>
+
+      <KeyIssuesSection issues={(data as any).key_issues ?? []} />
     </div>
   );
 }
@@ -422,6 +486,8 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <TextBlock text={market_summary} />
         </SectionCard>
       )}
+
+      <KeyIssuesSection issues={d.key_issues ?? []} />
     </div>
   );
 }
@@ -699,6 +765,7 @@ const CSS = `
 
   .price-hero-change { font-family: var(--sans); font-size: 12px; font-weight: 500; }
   .price-hero-date   { font-family: var(--sans); font-size: 10px; color: var(--text2); }
+  .price-hero-holiday { font-family: var(--sans); font-size: 10px; color: #e07b00; font-weight: 600; }
 
 
 
@@ -981,6 +1048,18 @@ const CSS = `
   .recab-stat-cell { background: var(--green-subtle); border: 1px solid var(--border); border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 3px; }
   .recab-stat-label { font-family: var(--mono); font-size: 9px; color: var(--text3); }
   .recab-stat-val { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green-dark); line-height: 1.4; }
+
+  /* ── 핵심 이슈 카드 ── */
+  .key-issues-list { display: flex; flex-direction: column; gap: 12px; }
+  .key-issue-item { border: 1px solid var(--border); border-left: 3px solid var(--green-primary); border-radius: 6px; padding: 12px 14px; background: var(--bg2); }
+  .key-issue-title { font-size: 13px; font-weight: 700; color: var(--green-dark); margin-bottom: 10px; }
+  .key-issue-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: flex-start; }
+  .key-issue-label { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-top: 2px; white-space: nowrap; }
+  .ki-what  { background: #e8f4fd; color: #1a6fa8; }
+  .ki-why   { background: #fff3e0; color: #b36200; }
+  .ki-impact { background: #fce8e8; color: #b32020; }
+  .ki-outlook { background: #e8f5e9; color: #2e7d32; }
+  .key-issue-text { font-size: 12px; color: var(--text1); line-height: 1.65; }
 
   /* ── 반응형 ── */
   @media (max-width: 360px) {
