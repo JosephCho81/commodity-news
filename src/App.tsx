@@ -151,6 +151,8 @@ function AluminumTab({ data }: { data: AluminumData }) {
 
   return (
     <div className="tab-content">
+      <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
+
       <div className="price-hero">
         <div className="price-hero-main">
           <span className="price-hero-label">LME 알루미늄 공식가</span>
@@ -180,9 +182,6 @@ function AluminumTab({ data }: { data: AluminumData }) {
       <SectionCard title="가격 변동 이유" accent="WHY">
         <TextBlock text={lme.move_reason} />
       </SectionCard>
-
-      <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
-
       <SectionCard title="시장 현황" accent="NOW">
         <TextBlock text={lme.market_status} />
       </SectionCard>
@@ -246,6 +245,8 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
 
   return (
     <div className="tab-content">
+      <KeyIssuesSection issues={(data as any).key_issues ?? []} />
+
       <div className="price-hero">
         <div className="price-hero-main">
           {hbisBid ? (
@@ -310,8 +311,6 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           </div>
         )}
       </SectionCard>
-
-      <KeyIssuesSection issues={(data as any).key_issues ?? []} />
 
       {/* 중국 생산 현황 */}
       <SectionCard title="중국 생산 현황" accent="PROD">
