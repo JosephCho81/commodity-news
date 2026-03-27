@@ -180,14 +180,15 @@ function AluminumTab({ data }: { data: AluminumData }) {
       <SectionCard title="가격 변동 이유" accent="WHY">
         <TextBlock text={lme.move_reason} />
       </SectionCard>
+
+      <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
+
       <SectionCard title="시장 현황" accent="NOW">
         <TextBlock text={lme.market_status} />
       </SectionCard>
       <SectionCard title="가격 전망" accent="NEXT">
         <TextBlock text={lme.outlook} />
       </SectionCard>
-
-      <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
 
       <SectionCard title="알루미늄 스크랩 주간 시황" accent="SCRAP">
         <TextBlock text={scrap.weekly_summary} />
@@ -310,6 +311,8 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
         )}
       </SectionCard>
 
+      <KeyIssuesSection issues={(data as any).key_issues ?? []} />
+
       {/* 중국 생산 현황 */}
       <SectionCard title="중국 생산 현황" accent="PROD">
         <TextBlock text={china_production.overall} />
@@ -335,8 +338,6 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
       <SectionCard title="시장 종합 및 전망" accent="SUM">
         <TextBlock text={market_summary} />
       </SectionCard>
-
-      <KeyIssuesSection issues={(data as any).key_issues ?? []} />
     </div>
   );
 }
@@ -435,6 +436,8 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
         </div>
       </div>
 
+      <KeyIssuesSection issues={d.key_issues ?? []} />
+
       {(hasText(gm.headline) || hasText(gm.current_level) || hasText(gm.key_drivers)) && (
         <SectionCard title="전세계 시장 상황" accent="MKT">
           {hasText(gm.headline) && <div className="recab-headline-box"><span className="recab-headline-text">{gm.headline}</span></div>}
@@ -486,8 +489,6 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <TextBlock text={market_summary} />
         </SectionCard>
       )}
-
-      <KeyIssuesSection issues={d.key_issues ?? []} />
     </div>
   );
 }
@@ -496,6 +497,7 @@ function RecarburizerTab({ data }: { data: RecarburizerData }) {
 function SummaryTab({ data }: { data: SummaryData }) {
   const { one_liner, key_signals, risk_signals, week_ahead } = data;
   const cleanOneLiner = (one_liner ?? '').replace(/^["'"']+|["'"']+$/g, '').trim();
+  const weekAheadList: any[] = Array.isArray(week_ahead) ? week_ahead : [];
 
   return (
     <div className="tab-content">
@@ -531,14 +533,49 @@ function SummaryTab({ data }: { data: SummaryData }) {
               </span>
             </div>
             {r.affected && <p className="risk-affected">영향: {r.affected}</p>}
-            {r.impact && <p className="risk-impact">{r.impact}</p>}
+            {(r as any).why && (
+              <div className="key-issue-row" style={{ marginTop: 6 }}>
+                <span className="key-issue-label ki-why">원인</span>
+                <span className="key-issue-text">{(r as any).why}</span>
+              </div>
+            )}
+            {r.impact && (
+              <div className="key-issue-row">
+                <span className="key-issue-label ki-impact">영향</span>
+                <span className="key-issue-text">{r.impact}</span>
+              </div>
+            )}
+            {(r as any).outlook && (
+              <div className="key-issue-row">
+                <span className="key-issue-label ki-outlook">전망</span>
+                <span className="key-issue-text">{(r as any).outlook}</span>
+              </div>
+            )}
           </div>
         ))}
       </SectionCard>
 
-      {week_ahead && (
+      {weekAheadList.length > 0 && (
         <SectionCard title="이번 주 주목 변수" accent="WATCH">
-          <div className="watch-text">{week_ahead}</div>
+          <div className="key-issues-list">
+            {weekAheadList.map((w, i) => (
+              <div key={i} className="key-issue-item">
+                <div className="key-issue-title">{w.variable}</div>
+                {w.why && (
+                  <div className="key-issue-row">
+                    <span className="key-issue-label ki-why">주목 이유</span>
+                    <span className="key-issue-text">{w.why}</span>
+                  </div>
+                )}
+                {w.expected && (
+                  <div className="key-issue-row">
+                    <span className="key-issue-label ki-outlook">예상</span>
+                    <span className="key-issue-text">{w.expected}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </SectionCard>
       )}
     </div>
