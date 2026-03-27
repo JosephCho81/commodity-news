@@ -151,8 +151,6 @@ function AluminumTab({ data }: { data: AluminumData }) {
 
   return (
     <div className="tab-content">
-      <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
-
       <div className="price-hero">
         <div className="price-hero-main">
           <span className="price-hero-label">LME 알루미늄 공식가</span>
@@ -178,6 +176,8 @@ function AluminumTab({ data }: { data: AluminumData }) {
           </span>
         )}
       </div>
+
+      <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
 
       <SectionCard title="가격 변동 이유" accent="WHY">
         <TextBlock text={lme.move_reason} />
@@ -245,8 +245,6 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
 
   return (
     <div className="tab-content">
-      <KeyIssuesSection issues={(data as any).key_issues ?? []} />
-
       <div className="price-hero">
         <div className="price-hero-main">
           {hbisBid ? (
@@ -300,6 +298,8 @@ function FerrosiliconTab({ data }: { data: FerrosiliconData }) {
           return <span className="price-hero-date">기준: {yr} {mo}</span>;
         })()}
       </div>
+
+      <KeyIssuesSection issues={(data as any).key_issues ?? []} />
 
       {/* 중국 시장 맥락 & 전망 */}
       <SectionCard title="중국 시장 현황 및 전망" accent="CTX">
@@ -500,27 +500,37 @@ function SummaryTab({ data }: { data: SummaryData }) {
 
   return (
     <div className="tab-content">
-      <div className="one-liner-card">
-        <div className="one-liner-label">TODAY</div>
-        <div className="one-liner-text">{cleanOneLiner || '시장 데이터 수집 중'}</div>
+      <div className="today-card">
+        <div className="today-header">
+          <span className="today-label">TODAY</span>
+          <span className="today-date">{new Date().toLocaleDateString('ko-KR', {month:'long', day:'numeric', weekday:'short'})}</span>
+        </div>
+        {cleanOneLiner ? (
+          <div className="today-summary">{cleanOneLiner}</div>
+        ) : (
+          <div className="today-summary">시장 데이터 수집 중</div>
+        )}
+        {(key_signals ?? []).length > 0 && (
+          <div className="today-signals">
+            {(key_signals ?? []).map((s, i) => (
+              <div key={i} className="today-signal-item">
+                <div className="today-signal-top">
+                  <span className="today-signal-name">{s.commodity}</span>
+                  <span className="today-signal-arrow" style={{ color: directionColor(s.direction) }}>
+                    {s.direction === 'UP' ? '▲' : s.direction === 'DOWN' ? '▼' : '—'}
+                  </span>
+                  <span className={`signal-urgency urgency-${(s.urgency ?? 'low').toLowerCase()}`}>
+                    {urgencyBadge(s.urgency)}
+                  </span>
+                </div>
+                {s.signal && <p className="today-signal-text">{s.signal}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <SectionCard title="품목별 핵심 시그널" accent="SIGNAL">
-        {(key_signals ?? []).map((s, i) => (
-          <div key={s.commodity ?? i} className="signal-row">
-            <div className="signal-meta">
-              <span className="signal-commodity">{s.commodity}</span>
-              <span className="signal-dir" style={{ color: directionColor(s.direction) }}>
-                {s.direction === 'UP' ? '▲' : s.direction === 'DOWN' ? '▼' : '—'}
-              </span>
-              <span className={`signal-urgency urgency-${(s.urgency ?? 'low').toLowerCase()}`}>
-                {urgencyBadge(s.urgency)}
-              </span>
-            </div>
-            {s.signal && <p className="signal-text">{s.signal}</p>}
-          </div>
-        ))}
-      </SectionCard>
+
 
       <SectionCard title="주요 리스크 신호" accent="RISK">
         {(risk_signals ?? []).map((r, i) => (
@@ -1084,6 +1094,19 @@ const CSS = `
   .recab-stat-cell { background: var(--green-subtle); border: 1px solid var(--border); border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 3px; }
   .recab-stat-label { font-family: var(--mono); font-size: 9px; color: var(--text3); }
   .recab-stat-val { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green-dark); line-height: 1.4; }
+
+  /* ── TODAY 카드 (시황 종합) ── */
+  .today-card { background: var(--green-primary); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .today-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .today-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 1px; }
+  .today-date { font-size: 11px; color: rgba(255,255,255,0.6); }
+  .today-summary { font-size: 13px; font-weight: 600; color: #fff; line-height: 1.6; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); }
+  .today-signals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .today-signal-item { background: rgba(255,255,255,0.12); border-radius: 6px; padding: 10px 12px; }
+  .today-signal-top { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+  .today-signal-name { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); flex: 1; }
+  .today-signal-arrow { font-size: 12px; font-weight: 700; }
+  .today-signal-text { font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.55; margin: 0; }
 
   /* ── 핵심 이슈 카드 ── */
   .key-issues-list { display: flex; flex-direction: column; gap: 12px; }
