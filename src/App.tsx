@@ -1088,25 +1088,25 @@ const CSS = `
   .recab-price-note { font-size: 10px; color: var(--text3); font-family: var(--sans); margin-top: 2px; }
   .recab-price-note--russia { color: #7a78a8; }
   .recab-sub-label { display: block; font-family: var(--mono); font-size: 9px; font-weight: 600; color: var(--green-primary); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 4px; }
-  .recab-headline-box { background: #1a5c2e; border-radius: 5px; padding: 12px 14px; margin-bottom: 12px; }
-  .recab-headline-text { font-size: 13px; font-weight: 600; color: #fff; line-height: 1.65; }
+  .recab-headline-box { background: #e8f5ec; border: 1px solid #c2eacc; border-radius: 5px; padding: 12px 14px; margin-bottom: 12px; }
+  .recab-headline-text { font-size: 13px; font-weight: 600; color: #1a3d28; line-height: 1.65; }
   .recab-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
   .recab-stat-cell { background: var(--green-subtle); border: 1px solid var(--border); border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 3px; }
   .recab-stat-label { font-family: var(--mono); font-size: 9px; color: var(--text3); }
   .recab-stat-val { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green-dark); line-height: 1.4; }
 
   /* ── TODAY 카드 (시황 종합) ── */
-  .today-card { background: #1a5c2e; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .today-card { background: #e8f5ec; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #c2eacc; }
   .today-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .today-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 1px; }
-  .today-date { font-size: 11px; color: rgba(255,255,255,0.6); }
-  .today-summary { font-size: 13px; font-weight: 600; color: #fff; line-height: 1.6; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); }
+  .today-label { font-size: 11px; font-weight: 700; color: #177a2c; letter-spacing: 1px; }
+  .today-date { font-size: 11px; color: #4a7a5a; }
+  .today-summary { font-size: 13px; font-weight: 600; color: #1a3d28; line-height: 1.6; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #c2eacc; }
   .today-signals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .today-signal-item { background: rgba(255,255,255,0.10); border-radius: 6px; padding: 10px 12px; }
+  .today-signal-item { background: #fff; border-radius: 6px; padding: 10px 12px; border: 1px solid #c2eacc; }
   .today-signal-top { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-  .today-signal-name { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); flex: 1; }
+  .today-signal-name { font-size: 11px; font-weight: 700; color: #1a3d28; flex: 1; }
   .today-signal-arrow { font-size: 12px; font-weight: 700; }
-  .today-signal-text { font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.55; margin: 0; }
+  .today-signal-text { font-size: 11px; color: #3a5a45; line-height: 1.55; margin: 0; }
 
   /* ── 핵심 이슈 카드 ── */
   .key-issues-list { display: flex; flex-direction: column; gap: 12px; }
