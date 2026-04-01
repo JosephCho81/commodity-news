@@ -526,6 +526,14 @@ body {
   background: #fdf2f2; color: #b32020; border: 1px solid #f5b0b0;
 }
 .maker-note { font-size: 12px; color: var(--text); line-height: 1.65; }
+.maker-detail-block { display: flex; flex-direction: column; gap: 5px; }
+.maker-info-row { display: flex; gap: 8px; align-items: flex-start; }
+.maker-info-label {
+  flex-shrink: 0; font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px; margin-top: 2px;
+  white-space: nowrap; font-family: var(--mono);
+}
+.maker-info-text { font-size: 12px; color: var(--text); line-height: 1.65; }
 .maker-impact-box {
   display: flex; gap: 8px; align-items: flex-start;
   background: var(--green-subtle); border-radius: 3px; padding: 6px 10px;

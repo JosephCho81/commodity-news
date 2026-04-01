@@ -136,14 +136,20 @@ export interface DomesticMaker {
   operating_rate: OperatingRate;
   production_cut: boolean;
   eaf_status: string;
-  note: string;
+  current_status: string;
+  reason: string;
+  impact: string;
+  outlook: string;
   raw_material_impact: string;
 }
 
 export interface OverseasMaker {
   country: string;
   makers: string;
-  status: string;
+  current_status: string;
+  reason: string;
+  impact: string;
+  outlook: string;
   raw_material_impact: string;
 }
 
@@ -165,6 +171,7 @@ export interface SteelmakerData extends ApiMeta {
   };
   raw_material_forecast: {
     summary: string;
+    deoxidizer: string;
     ferroalloy: string;
     recarburizer: string;
   };
