@@ -2,7 +2,7 @@
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 
-export async function callPerplexity(prompt) {
+export async function callPerplexity(prompt, { maxTokens = 3000 } = {}) {
   const res = await fetch('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
     signal: AbortSignal.timeout(55000), // 55초 타임아웃 (maxDuration 60초보다 여유있게)
@@ -20,7 +20,7 @@ export async function callPerplexity(prompt) {
         { role: 'user', content: prompt },
       ],
       temperature: 0.1,
-      max_tokens: 3000,
+      max_tokens: maxTokens,
     }),
   });
   if (!res.ok) {

@@ -267,7 +267,7 @@ export default async function handler(req, res) {
 
     // ── 6. Perplexity 호출 ────────────────────────────────────────────────
     console.log(`[Perplexity] 호출 시작: ${tab}`);
-    const raw = await callPerplexity(prompt);
+    const raw = await callPerplexity(prompt, { maxTokens: tab === 'steelmaker' ? 6000 : 3000 });
 
     let parsed;
     try {

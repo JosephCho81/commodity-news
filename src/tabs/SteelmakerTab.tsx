@@ -19,26 +19,40 @@ function InfoRow({ label, text, labelCls }: { label: string; text: string; label
   );
 }
 
+function RecentIssues({ text }: { text: string }) {
+  if (!text) return null;
+  const noNews = text.includes('최근 3일 내 주요 발표 없음');
+  return (
+    <div className={`maker-recent-issues ${noNews ? 'no-news' : 'has-news'}`}>
+      <span className="maker-recent-label">최근 이슈</span>
+      <span className="maker-recent-text">{text}</span>
+    </div>
+  );
+}
+
 // ─── 국내 제강사 행 ───────────────────────────────────────────────────────────
 
 function DomesticMakerRow({ maker }: { maker: DomesticMaker }) {
+  // backward compat: old API may return current_status/reason/impact/outlook
+  const m = maker as any;
   return (
     <div className="maker-row">
       <div className="maker-header">
         <span className="maker-name">{maker.name}</span>
       </div>
 
+      <RecentIssues text={maker.recent_issues ?? ''} />
+
       <div className="maker-detail-block">
-        <InfoRow label="최근 이슈" text={maker.recent_issues}    labelCls="ki-what"   />
-        <InfoRow label="생산 동향" text={maker.production_trend} labelCls="ki-why"    />
-        <InfoRow label="원가 요인" text={maker.cost_factors}     labelCls="ki-impact" />
-        <InfoRow label="수요·판매" text={maker.demand_sales}     labelCls="ki-outlook"/>
+        <InfoRow label="생산 동향" text={maker.production_trend ?? m.current_status ?? ''} labelCls="ki-what"   />
+        <InfoRow label="원가 요인" text={maker.cost_factors     ?? m.reason          ?? ''} labelCls="ki-why"    />
+        <InfoRow label="수요·판매" text={maker.demand_sales      ?? m.impact           ?? ''} labelCls="ki-impact" />
       </div>
 
-      {maker.raw_material_impact && (
+      {(maker.raw_material_impact || m.outlook) && (
         <div className="maker-impact-box">
           <span className="maker-impact-label">부원료 수요</span>
-          <span className="maker-impact-text">{maker.raw_material_impact}</span>
+          <span className="maker-impact-text">{maker.raw_material_impact ?? m.outlook}</span>
         </div>
       )}
     </div>
@@ -48,6 +62,7 @@ function DomesticMakerRow({ maker }: { maker: DomesticMaker }) {
 // ─── 해외 제강사 행 ───────────────────────────────────────────────────────────
 
 function OverseasMakerRow({ maker }: { maker: OverseasMaker }) {
+  const m = maker as any;
   return (
     <div className="country-row">
       <div className="country-header">
@@ -55,17 +70,18 @@ function OverseasMakerRow({ maker }: { maker: OverseasMaker }) {
         <span className="country-producer">{maker.makers}</span>
       </div>
 
+      <RecentIssues text={maker.recent_issues ?? ''} />
+
       <div className="maker-detail-block">
-        <InfoRow label="최근 이슈" text={maker.recent_issues}    labelCls="ki-what"   />
-        <InfoRow label="생산 동향" text={maker.production_trend} labelCls="ki-why"    />
-        <InfoRow label="원가 요인" text={maker.cost_factors}     labelCls="ki-impact" />
-        <InfoRow label="수요·판매" text={maker.demand_sales}     labelCls="ki-outlook"/>
+        <InfoRow label="생산 동향" text={maker.production_trend ?? m.current_status ?? m.status ?? ''} labelCls="ki-what"   />
+        <InfoRow label="원가 요인" text={maker.cost_factors     ?? m.reason                        ?? ''} labelCls="ki-why"    />
+        <InfoRow label="수요·판매" text={maker.demand_sales      ?? m.impact                        ?? ''} labelCls="ki-impact" />
       </div>
 
-      {maker.raw_material_impact && (
+      {(maker.raw_material_impact || m.outlook) && (
         <div className="maker-impact-box" style={{ marginTop: 4 }}>
           <span className="maker-impact-label">부원료 영향</span>
-          <span className="maker-impact-text">{maker.raw_material_impact}</span>
+          <span className="maker-impact-text">{maker.raw_material_impact ?? m.outlook}</span>
         </div>
       )}
     </div>
@@ -101,7 +117,7 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
     <div className="tab-content">
 
       {/* 국내 제강사 — 순서 고정: 동국제강, 포스코, 현대제철 */}
-      <SectionCard title="국내 제강사 운영 현황" accent="KR">
+      <SectionCard title="국내 제강사 동향" accent="KR">
         {['동국제강', '포스코', '현대제철'].map((name) => {
           const maker = domestic_makers.find((m) => m.name === name);
           return maker ? <DomesticMakerRow key={name} maker={maker} /> : null;

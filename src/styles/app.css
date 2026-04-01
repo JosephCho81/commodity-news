@@ -545,6 +545,26 @@ body {
 }
 .maker-impact-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
 
+.maker-recent-issues {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 6px 8px; border-radius: 4px; margin-bottom: 6px;
+}
+.maker-recent-issues.has-news {
+  background: #fffbe6; border: 1px solid #ffe58f;
+}
+.maker-recent-issues.no-news {
+  background: var(--green-subtle); border: 1px solid var(--border2);
+}
+.maker-recent-label {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 2px; white-space: nowrap; margin-top: 1px;
+}
+.has-news .maker-recent-label { color: #ad6800; background: #fff3b8; border: 1px solid #ffe58f; }
+.no-news  .maker-recent-label { color: var(--text3); background: #fff; border: 1px solid var(--border); }
+.maker-recent-text { font-size: 11px; line-height: 1.6; }
+.has-news .maker-recent-text { color: #5c3d00; }
+.no-news  .maker-recent-text { color: var(--text3); }
+
 .demand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .demand-cell {
   background: var(--green-subtle); border: 1px solid var(--border);
