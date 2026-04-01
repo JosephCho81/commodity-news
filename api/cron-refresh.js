@@ -4,7 +4,7 @@
 
 export const config = { maxDuration: 300 }; // 5분 (4개 탭 순차 호출)
 
-const TABS = ['aluminum', 'ferrosilicon', 'recarburizer', 'summary'];
+const TABS = ['steelmaker', 'aluminum', 'ferroalloy', 'recarburizer', 'summary'];
 
 export default async function handler(req, res) {
   // Vercel Cron 인증 헤더 검증

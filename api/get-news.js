@@ -9,16 +9,16 @@ import {
   saveToFirestore,
   getFromFirestore,
   fetchPrevDayData,
-} from './lib/firebase.js';
+} from './_lib/firebase.js';
 
-import { callPerplexity, parseJSON } from './lib/perplexity.js';
-import { fetchLmePrice, fetchAluminumOutlook, fetchScrapPrices, fetchJapanScrapPrices } from './lib/aluminum-data.js';
-import { fetchCNYUSDRate, cnyToUsd } from './lib/exchange-rate.js';
-import { getAluminumPrompt }    from './prompts/aluminum.js';
-import { getFerroalloyPrompt }  from './prompts/ferroalloy.js';
-import { getRecarburizerPrompt } from './prompts/recarburizer.js';
-import { getSteelmakerPrompt }  from './prompts/steelmaker.js';
-import { getSummaryPrompt }     from './prompts/summary.js';
+import { callPerplexity, parseJSON } from './_lib/perplexity.js';
+import { fetchLmePrice, fetchAluminumOutlook, fetchScrapPrices, fetchJapanScrapPrices } from './_lib/aluminum-data.js';
+import { fetchCNYUSDRate, cnyToUsd } from './_lib/exchange-rate.js';
+import { getAluminumPrompt }    from './_prompts/aluminum.js';
+import { getFerroalloyPrompt }  from './_prompts/ferroalloy.js';
+import { getRecarburizerPrompt } from './_prompts/recarburizer.js';
+import { getSteelmakerPrompt }  from './_prompts/steelmaker.js';
+import { getSummaryPrompt }     from './_prompts/summary.js';
 
 // ─── 환경변수 ───────────────────────────────────────────────────────────────
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;

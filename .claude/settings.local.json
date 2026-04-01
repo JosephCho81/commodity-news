@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(node:*)",
+      "Bash(ls C:/Users/Joseph/commodity-news/*.json)",
+      "Bash(ls C:/Users/Joseph/commodity-news/*.png)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vercel:*)",
+      "Bash(mv api/lib api/_lib)",
+      "Bash(mv api/prompts api/_prompts)"
+    ]
+  }
+}
