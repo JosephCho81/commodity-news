@@ -1,17 +1,7 @@
-import type { SteelmakerData, DomesticMaker, OverseasMaker, IndustryStatus, ShippingRoute, Direction, OperatingRate } from '../types';
+import type { SteelmakerData, DomesticMaker, OverseasMaker, IndustryStatus, Direction } from '../types';
 import { SectionCard, TextBlock } from '../components/ui';
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────────────
-
-function RateBadge({ rate }: { rate: OperatingRate }) {
-  const map: Record<OperatingRate, { label: string; cls: string }> = {
-    HIGH: { label: '가동 상', cls: 'rate-high' },
-    MID:  { label: '가동 중', cls: 'rate-mid'  },
-    LOW:  { label: '가동 하', cls: 'rate-low'  },
-  };
-  const { label, cls } = map[rate] ?? map.MID;
-  return <span className={`maker-rate-badge ${cls}`}>{label}</span>;
-}
 
 function DirArrow({ dir }: { dir: Direction }) {
   if (dir === 'UP')   return <span style={{ color: 'var(--up)',      fontWeight: 700 }}>▲</span>;
@@ -36,16 +26,13 @@ function DomesticMakerRow({ maker }: { maker: DomesticMaker }) {
     <div className="maker-row">
       <div className="maker-header">
         <span className="maker-name">{maker.name}</span>
-        <RateBadge rate={maker.operating_rate} />
-        {maker.production_cut && <span className="maker-cut-badge">감산</span>}
-        {maker.eaf_status && <span className="maker-eaf">{maker.eaf_status}</span>}
       </div>
 
       <div className="maker-detail-block">
-        <InfoRow label="현황" text={maker.current_status ?? (maker as any).note} labelCls="ki-what" />
-        <InfoRow label="원인" text={maker.reason} labelCls="ki-why" />
-        <InfoRow label="영향" text={maker.impact} labelCls="ki-impact" />
-        <InfoRow label="전망" text={maker.outlook} labelCls="ki-outlook" />
+        <InfoRow label="최근 이슈" text={maker.recent_issues}    labelCls="ki-what"   />
+        <InfoRow label="생산 동향" text={maker.production_trend} labelCls="ki-why"    />
+        <InfoRow label="원가 요인" text={maker.cost_factors}     labelCls="ki-impact" />
+        <InfoRow label="수요·판매" text={maker.demand_sales}     labelCls="ki-outlook"/>
       </div>
 
       {maker.raw_material_impact && (
@@ -69,10 +56,10 @@ function OverseasMakerRow({ maker }: { maker: OverseasMaker }) {
       </div>
 
       <div className="maker-detail-block">
-        <InfoRow label="현황" text={maker.current_status ?? (maker as any).status} labelCls="ki-what" />
-        <InfoRow label="원인" text={maker.reason} labelCls="ki-why" />
-        <InfoRow label="영향" text={maker.impact} labelCls="ki-impact" />
-        <InfoRow label="전망" text={maker.outlook} labelCls="ki-outlook" />
+        <InfoRow label="최근 이슈" text={maker.recent_issues}    labelCls="ki-what"   />
+        <InfoRow label="생산 동향" text={maker.production_trend} labelCls="ki-why"    />
+        <InfoRow label="원가 요인" text={maker.cost_factors}     labelCls="ki-impact" />
+        <InfoRow label="수요·판매" text={maker.demand_sales}     labelCls="ki-outlook"/>
       </div>
 
       {maker.raw_material_impact && (
@@ -100,19 +87,6 @@ function DemandCell({ label, industry }: { label: string; industry: IndustryStat
   );
 }
 
-// ─── 운임 행 ─────────────────────────────────────────────────────────────────
-
-function ShippingRow({ route }: { route: ShippingRoute }) {
-  return (
-    <div className="shipping-route-row">
-      <span className="shipping-route-name">{route.route}</span>
-      <span className="shipping-price-val">{route.price_feu ?? '—'}</span>
-      <DirArrow dir={route.direction} />
-      {route.note && <span className="shipping-note">{route.note}</span>}
-    </div>
-  );
-}
-
 // ─── 메인 탭 ────────────────────────────────────────────────────────────────
 
 export function SteelmakerTab({ data }: { data: SteelmakerData }) {
@@ -121,7 +95,6 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
     overseas_makers = [],
     demand_industries,
     raw_material_forecast,
-    shipping,
   } = data;
 
   return (
@@ -133,7 +106,6 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
           const maker = domestic_makers.find((m) => m.name === name);
           return maker ? <DomesticMakerRow key={name} maker={maker} /> : null;
         })}
-        {/* 혹시 이름이 다르게 온 경우 나머지 표시 */}
         {domestic_makers
           .filter((m) => !['동국제강', '포스코', '현대제철'].includes(m.name))
           .map((maker) => <DomesticMakerRow key={maker.name} maker={maker} />)}
@@ -182,25 +154,6 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
               </div>
             )}
           </div>
-        </SectionCard>
-      )}
-
-      {/* 해상 운임 */}
-      {shipping && (
-        <SectionCard title="해상 운임" accent="SEA">
-          <TextBlock text={shipping.current_issues} />
-          <div className="shipping-routes">
-            <div className="shipping-routes-header">
-              <span>항로 (부산 기준, 40ft FEU)</span>
-              <span>운임</span>
-            </div>
-            {(shipping.routes ?? []).map((r) => (
-              <ShippingRow key={r.route} route={r} />
-            ))}
-          </div>
-          {shipping.outlook && (
-            <p className="shipping-outlook">{shipping.outlook}</p>
-          )}
         </SectionCard>
       )}
 

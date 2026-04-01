@@ -6,6 +6,7 @@ export type Probability = 'HIGH' | 'MEDIUM' | 'LOW';
 export type OperatingRate = 'HIGH' | 'MID' | 'LOW';
 export type SteelSignal = 'DEMAND_STRONG' | 'DEMAND_WEAK' | 'SUPPLY_SHOCK' | 'MIXED';
 
+
 export interface ApiMeta {
   _cached?: boolean;
   _fallback?: boolean;
@@ -133,31 +134,21 @@ export interface IndustryStatus {
 
 export interface DomesticMaker {
   name: string;
-  operating_rate: OperatingRate;
-  production_cut: boolean;
-  eaf_status: string;
-  current_status: string;
-  reason: string;
-  impact: string;
-  outlook: string;
+  recent_issues: string;
+  production_trend: string;
+  cost_factors: string;
+  demand_sales: string;
   raw_material_impact: string;
 }
 
 export interface OverseasMaker {
   country: string;
   makers: string;
-  current_status: string;
-  reason: string;
-  impact: string;
-  outlook: string;
+  recent_issues: string;
+  production_trend: string;
+  cost_factors: string;
+  demand_sales: string;
   raw_material_impact: string;
-}
-
-export interface ShippingRoute {
-  route: string;
-  price_feu: string | null;
-  direction: Direction;
-  note?: string;
 }
 
 export interface SteelmakerData extends ApiMeta {
@@ -174,11 +165,6 @@ export interface SteelmakerData extends ApiMeta {
     deoxidizer: string;
     ferroalloy: string;
     recarburizer: string;
-  };
-  shipping: {
-    current_issues: string;
-    routes: ShippingRoute[];
-    outlook: string;
   };
 }
 
