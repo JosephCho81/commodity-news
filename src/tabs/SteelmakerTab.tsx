@@ -127,11 +127,16 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
   return (
     <div className="tab-content">
 
-      {/* 국내 제강사 */}
+      {/* 국내 제강사 — 순서 고정: 동국제강, 포스코, 현대제철 */}
       <SectionCard title="국내 제강사 운영 현황" accent="KR">
-        {domestic_makers.map((maker) => (
-          <DomesticMakerRow key={maker.name} maker={maker} />
-        ))}
+        {['동국제강', '포스코', '현대제철'].map((name) => {
+          const maker = domestic_makers.find((m) => m.name === name);
+          return maker ? <DomesticMakerRow key={name} maker={maker} /> : null;
+        })}
+        {/* 혹시 이름이 다르게 온 경우 나머지 표시 */}
+        {domestic_makers
+          .filter((m) => !['동국제강', '포스코', '현대제철'].includes(m.name))
+          .map((maker) => <DomesticMakerRow key={maker.name} maker={maker} />)}
       </SectionCard>
 
       {/* 해외 제강사 */}
