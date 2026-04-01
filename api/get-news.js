@@ -1,5 +1,5 @@
 // api/get-news.js — 비철금속 원자재 인텔리전스 API
-// 탭: aluminum | ferrosilicon | recarburizer | summary
+// 탭: steelmaker | aluminum | ferroalloy | recarburizer | summary
 
 export const config = { maxDuration: 60 };
 
@@ -13,10 +13,12 @@ import {
 
 import { callPerplexity, parseJSON } from './lib/perplexity.js';
 import { fetchLmePrice, fetchAluminumOutlook, fetchScrapPrices, fetchJapanScrapPrices } from './lib/aluminum-data.js';
-import { getAluminumPrompt } from './prompts/aluminum.js';
-import { getFerrosiliconPrompt } from './prompts/ferrosilicon.js';
+import { fetchCNYUSDRate, cnyToUsd } from './lib/exchange-rate.js';
+import { getAluminumPrompt }    from './prompts/aluminum.js';
+import { getFerroalloyPrompt }  from './prompts/ferroalloy.js';
 import { getRecarburizerPrompt } from './prompts/recarburizer.js';
-import { getSummaryPrompt } from './prompts/summary.js';
+import { getSteelmakerPrompt }  from './prompts/steelmaker.js';
+import { getSummaryPrompt }     from './prompts/summary.js';
 
 // ─── 환경변수 ───────────────────────────────────────────────────────────────
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
@@ -24,17 +26,35 @@ const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 // ─── KST 날짜 헬퍼 ──────────────────────────────────────────────────────────
 const getKSTDate = () => new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-// ─── 탭별 프롬프트 (요청 시점 날짜로 생성) ──────────────────────────────────
+// ─── 탭별 프롬프트 ──────────────────────────────────────────────────────────
 const PROMPTS = (() => {
   const date = getKSTDate();
   return {
+    steelmaker:   getSteelmakerPrompt(date),
     aluminum:     getAluminumPrompt(date),
-    ferrosilicon: getFerrosiliconPrompt(date),
+    ferroalloy:   getFerroalloyPrompt(date),
     recarburizer: getRecarburizerPrompt(date),
     summary:      getSummaryPrompt(date),
   };
-})()
+})();
 
+// ─── _latest fallback 헬퍼 ──────────────────────────────────────────────────
+async function readLatest(token, tab) {
+  if (!token) return null;
+  try {
+    const doc = await getFromFirestore(token, 'commodity_cache', `${tab}_latest`).catch(() => null);
+    if (doc?.data) return doc;
+  } catch (e) { /* silent */ }
+  return null;
+}
+
+async function saveWithLatest(token, tab, docId, saveData) {
+  await Promise.all([
+    saveToFirestore(token, 'commodity_cache', docId, saveData),
+    saveToFirestore(token, 'commodity_cache', `${tab}_latest`, saveData),
+  ]);
+  console.log(`[Firestore] ✅ 저장: commodity_cache/${docId} + ${tab}_latest`);
+}
 
 // ─── 메인 핸들러 ────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
@@ -51,14 +71,15 @@ export default async function handler(req, res) {
     req.query.force === 'true' && req.query.secret === process.env.ADMIN_SECRET;
 
   if (!PROMPTS[tab]) {
-    return res
-      .status(400)
-      .json({ error: `Unknown tab: ${tab}. Use: aluminum, ferrosilicon, recarburizer, summary` });
+    return res.status(400).json({
+      error: `Unknown tab: ${tab}. Use: steelmaker, aluminum, ferroalloy, recarburizer, summary`,
+    });
   }
 
+  let token = null;
+
   try {
-    // ── 1. Firestore 캐시 읽기 시도 ───────────────────────────────────────
-    let token = null;
+    // ── 1. Firestore 토큰 ─────────────────────────────────────────────────
     if (FIREBASE_ENABLED) {
       try {
         token = await getFirestoreToken();
@@ -69,9 +90,10 @@ export default async function handler(req, res) {
       console.log('[Firebase] 비활성 — Perplexity 직접 호출');
     }
 
+    // ── 2. 오늘 캐시 읽기 ─────────────────────────────────────────────────
     if (token && !force) {
       try {
-        const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const todayKST = getKSTDate();
         const docId = `${tab}_${todayKST}`;
         const cached = await getFromFirestore(token, 'commodity_cache', docId);
         if (cached?.data) {
@@ -79,8 +101,7 @@ export default async function handler(req, res) {
             ? Math.round((Date.now() - Number(cached.cached_at)) / 60000)
             : 0;
           console.log(`[Cache] HIT: ${docId}, age: ${ageMin}분`);
-          const parsed = JSON.parse(cached.data);
-          return res.status(200).json({ ...parsed, _cached: true, _age_min: ageMin });
+          return res.status(200).json({ ...JSON.parse(cached.data), _cached: true, _age_min: ageMin });
         }
         console.log(`[Cache] MISS: ${docId} → Perplexity 호출`);
       } catch (e) {
@@ -88,14 +109,11 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── 2. aluminum 탭 전용 데이터 직접 fetch ────────────────────────────
-    let lmeData = null;
-    let outlookText = null;
-    let scrapPrices = null;
-    let japanScrap = null;
-    let prevAluminum = null;
-    let prevFerrosilicon = null;
-    let prevRecarburizer = null;
+    // ── 3. 탭별 사전 데이터 fetch ─────────────────────────────────────────
+    let lmeData = null, outlookText = null, scrapPrices = null, japanScrap = null;
+    let prevAluminum = null, prevFerroalloy = null, prevRecarburizer = null, prevSteelmaker = null;
+    let exchangeRate = null;
+
     if (tab === 'aluminum') {
       [lmeData, outlookText, scrapPrices, japanScrap, prevAluminum] = await Promise.all([
         fetchLmePrice(),
@@ -105,35 +123,39 @@ export default async function handler(req, res) {
         fetchPrevDayData(token, 'aluminum'),
       ]);
     }
-    if (tab === 'ferrosilicon') {
-      prevFerrosilicon = await fetchPrevDayData(token, 'ferrosilicon');
+    if (tab === 'ferroalloy') {
+      [exchangeRate, prevFerroalloy] = await Promise.all([
+        fetchCNYUSDRate(token, { saveToFirestore, getFromFirestore }),
+        fetchPrevDayData(token, 'ferroalloy'),
+      ]);
     }
     if (tab === 'recarburizer') {
       prevRecarburizer = await fetchPrevDayData(token, 'recarburizer');
     }
+    if (tab === 'steelmaker') {
+      prevSteelmaker = await fetchPrevDayData(token, 'steelmaker');
+    }
 
-    // ── 2-1. summary 탭 전용: 각 탭 캐시 데이터 주입 ────────────────────
+    // ── 4. summary 탭: 각 탭 캐시 데이터 주입 ────────────────────────────
     let summaryContext = '';
     if (tab === 'summary' && token) {
       try {
-        // 오늘 우선, 없으면 최근 7일 fallback
         const readTab = async (tabName) => {
-          for (let i = 0; i <= 7; i++) {
-            try {
-              const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
-              const doc = await getFromFirestore(token, 'commodity_cache', `${tabName}_${d}`).catch(() => null);
-              if (doc?.data) return doc;
-            } catch (e) { /* 다음 날짜 시도 */ }
-          }
-          return null;
+          const todayKST = getKSTDate();
+          const today = await getFromFirestore(token, 'commodity_cache', `${tabName}_${todayKST}`).catch(() => null);
+          if (today?.data) return today;
+          return readLatest(token, tabName);
         };
 
-        const [alData, fsiData, recData] = await Promise.all([
+        const [alData, faData, recData, smData] = await Promise.all([
           readTab('aluminum'),
-          readTab('ferrosilicon'),
+          readTab('ferroalloy'),
           readTab('recarburizer'),
+          readTab('steelmaker'),
         ]);
+
         summaryContext = '\n\n【오늘 수집된 각 탭 실제 데이터 — 반드시 아래 내용을 기반으로 시그널 작성】\n';
+
         if (alData?.data) {
           const al = JSON.parse(alData.data);
           summaryContext += `\n[알루미늄]\n`;
@@ -143,131 +165,107 @@ export default async function handler(req, res) {
           summaryContext += `전망: ${al.lme?.outlook ?? ''}\n`;
           summaryContext += `스크랩: ${al.scrap?.weekly_summary ?? ''}\n`;
         }
-        if (fsiData?.data) {
-          const fsi = JSON.parse(fsiData.data);
-          summaryContext += `\n[페로실리콘]\n`;
-          const fobM = fsi.china_price?.fob_tianjin_monthly;
-          if (fobM) summaryContext += `FOB 천진항: ${JSON.stringify(fobM)}\n`;
-          summaryContext += `시장현황: ${fsi.china_price?.china_context ?? ''}\n`;
-          summaryContext += `전망: ${fsi.china_price?.china_outlook ?? ''}\n`;
-          summaryContext += `종합: ${fsi.market_summary ?? ''}\n`;
+
+        if (faData?.data) {
+          const fa = JSON.parse(faData.data);
+          summaryContext += `\n[합금철]\n`;
+          summaryContext += `FeSi: CNY ${fa.fesi?.price_cny ?? 'N/A'}/MT (USD ${fa.fesi?.price_usd ?? 'N/A'}/MT) ${fa.fesi?.direction ?? ''}\n`;
+          summaryContext += `FeMn: CNY ${fa.femn?.price_cny ?? 'N/A'}/MT (USD ${fa.femn?.price_usd ?? 'N/A'}/MT) ${fa.femn?.direction ?? ''}\n`;
+          summaryContext += `SiMn: CNY ${fa.simn?.price_cny ?? 'N/A'}/MT (USD ${fa.simn?.price_usd ?? 'N/A'}/MT) ${fa.simn?.direction ?? ''}\n`;
+          summaryContext += `종합: ${fa.market_summary ?? ''}\n`;
         }
+
         if (recData?.data) {
           const rec = JSON.parse(recData.data);
           summaryContext += `\n[가탄제]\n`;
-          summaryContext += `중국 무연탄: ${rec.china_price?.fob_qinhuangdao ?? rec.china_price?.price_range_text ?? 'N/A'} USD/MT\n`;
+          summaryContext += `중국: ${rec.china_price?.fob_qinhuangdao ?? rec.china_price?.price_range_text ?? 'N/A'} USD/MT\n`;
           summaryContext += `러시아: ${rec.russia_price?.fob_murmansk ?? rec.russia_price?.price_range_text ?? 'N/A'} USD/MT\n`;
-          summaryContext += `시장현황: ${rec.global_market?.headline ?? ''} ${rec.global_market?.key_drivers ?? ''}\n`;
           summaryContext += `종합: ${rec.market_summary ?? ''}\n`;
         }
+
+        if (smData?.data) {
+          const sm = JSON.parse(smData.data);
+          summaryContext += `\n[제강사]\n`;
+          summaryContext += `부원료 수요 전망: ${sm.raw_material_forecast?.summary ?? ''}\n`;
+        }
+
         console.log('[Summary] 탭 데이터 주입 완료');
       } catch (e) {
         console.warn('[Summary] 탭 데이터 주입 실패:', e.message);
       }
     }
 
-    // ── 3. Perplexity 호출 — 전일 데이터 + 실시간 데이터 컨텍스트 주입 ──────
+    // ── 5. 프롬프트 구성 ──────────────────────────────────────────────────
     let prompt = PROMPTS[tab];
 
-    // ── 3-0. 전일 캐시 → 비교 컨텍스트 주입 (aluminum / ferrosilicon / recarburizer) ──
+    // 전일 비교 컨텍스트 주입
     if (tab === 'aluminum' && prevAluminum) {
       const p = prevAluminum.data;
-      let prevCtx = `
-
-【전일 데이터 (${prevAluminum.date}) — 반드시 아래 수치와 오늘을 비교하여 달라진 것 서술】
-`;
-      prevCtx += `전일 LME: ${p.lme?.price ?? 'N/A'} USD/MT (변동: ${p.lme?.change ?? 'N/A'} USD)
-`;
-      prevCtx += `전일 LME 재고: 별도 확인 필요
-`;
-      prevCtx += `전일 move_reason 요약: ${p.lme?.today_summary ?? p.lme?.move_reason?.slice(0, 80) ?? 'N/A'}
-`;
-      prevCtx += `전일 스크랩 요약: ${p.scrap?.weekly_summary?.slice(0, 100) ?? 'N/A'}
-`;
-      prevCtx += `→ 오늘 위 수치 대비 달라진 것이 있으면 구체적으로 서술. 달라진 것 없으면 "전일 대비 보합" 명시.
-`;
-      prompt += prevCtx;
+      prompt += `\n\n【전일 데이터 (${prevAluminum.date}) — 반드시 아래 수치와 오늘을 비교하여 달라진 것 서술】\n`;
+      prompt += `전일 LME: ${p.lme?.price ?? 'N/A'} USD/MT (변동: ${p.lme?.change ?? 'N/A'} USD)\n`;
+      prompt += `전일 move_reason 요약: ${p.lme?.move_reason?.slice(0, 80) ?? 'N/A'}\n`;
+      prompt += `전일 스크랩 요약: ${p.scrap?.weekly_summary?.slice(0, 100) ?? 'N/A'}\n`;
+      prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전일 대비 보합" 명시.\n`;
     }
 
-    if (tab === 'ferrosilicon' && prevFerrosilicon) {
-      const p = prevFerrosilicon.data;
-      let prevCtx = `
-
-【전일 데이터 (${prevFerrosilicon.date}) — 반드시 아래 수치와 오늘을 비교하여 달라진 것 서술】
-`;
-      prevCtx += `전일 HBIS 입찰가: ${p.china_price?.hbis_bid_price ?? 'N/A'} (${p.china_price?.hbis_bid_month ?? ''})
-`;
-      prevCtx += `전일 닝샤 현물가: ${p.china_price?.fesi75_ningxia ?? 'N/A'}
-`;
-      prevCtx += `전일 market_summary 요약: ${p.market_summary?.slice(0, 100) ?? 'N/A'}
-`;
-      prevCtx += `→ 오늘 위 수치 대비 달라진 것이 있으면 구체적으로 서술. 달라진 것 없으면 "전일 대비 보합" 명시.
-`;
-      prompt += prevCtx;
+    if (tab === 'ferroalloy' && prevFerroalloy) {
+      const p = prevFerroalloy.data;
+      prompt += `\n\n【전일 데이터 (${prevFerroalloy.date}) — 반드시 아래 수치와 오늘을 비교】\n`;
+      prompt += `전일 FeSi: CNY ${p.fesi?.price_cny ?? 'N/A'}/MT\n`;
+      prompt += `전일 FeMn: CNY ${p.femn?.price_cny ?? 'N/A'}/MT\n`;
+      prompt += `전일 SiMn: CNY ${p.simn?.price_cny ?? 'N/A'}/MT\n`;
+      prompt += `전일 종합: ${p.market_summary?.slice(0, 100) ?? 'N/A'}\n`;
+      prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전일 대비 보합" 명시.\n`;
     }
 
     if (tab === 'recarburizer' && prevRecarburizer) {
       const p = prevRecarburizer.data;
-      let prevCtx = `
-
-【전일 데이터 (${prevRecarburizer.date}) — 반드시 아래 수치와 오늘을 비교하여 달라진 것 서술】
-`;
-      prevCtx += `전일 중국 FOB: ${p.china_price?.fob_qinhuangdao ?? p.china_price?.price_range_text ?? 'N/A'} USD/MT
-`;
-      prevCtx += `전일 러시아 FOB: ${p.russia_price?.fob_murmansk ?? p.russia_price?.price_range_text ?? 'N/A'} USD/MT
-`;
-      prevCtx += `전일 시장 요약: ${p.market_summary?.slice(0, 100) ?? 'N/A'}
-`;
-      prevCtx += `→ 오늘 위 수치 대비 달라진 것이 있으면 구체적으로 서술. 달라진 것 없으면 "전월 수준 유지" 명시.
-`;
-      prompt += prevCtx;
+      prompt += `\n\n【전일 데이터 (${prevRecarburizer.date}) — 반드시 아래 수치와 오늘을 비교】\n`;
+      prompt += `전일 중국 FOB: ${p.china_price?.fob_qinhuangdao ?? p.china_price?.price_range_text ?? 'N/A'} USD/MT\n`;
+      prompt += `전일 러시아 FOB: ${p.russia_price?.fob_murmansk ?? p.russia_price?.price_range_text ?? 'N/A'} USD/MT\n`;
+      prompt += `전일 시장 요약: ${p.market_summary?.slice(0, 100) ?? 'N/A'}\n`;
+      prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전월 수준 유지" 명시.\n`;
     }
+
+    // aluminum 실시간 데이터 주입
     if (tab === 'aluminum') {
-      let context = '\n\n【LME 실시간 수집 데이터 — move_reason/market_status 작성 시 반드시 아래 LME 공식 가격만 사용. 다른 출처의 LME 가격 절대 금지】\n';
-      // LME 가격을 컨텍스트 최상단에 명시 — Perplexity가 다른 숫자 사용 방지
+      let context = '\n\n【LME 실시간 수집 데이터 — move_reason/market_status 작성 시 반드시 아래 LME 공식 가격만 사용】\n';
       if (lmeData) {
-        context += `\n[LME Cash Settlement 공식 가격 — westmetall.com 파싱값, 이 숫자만 사용할 것]\n`;
-        const fmtPrice = (v) => parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const priceFormatted = fmtPrice(lmeData.price);
-        const changeFormatted = lmeData.change !== null ? `${parseFloat(lmeData.change) >= 0 ? '+' : ''}${fmtPrice(lmeData.change)}` : null;
+        const fmt = (v) => parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const priceFormatted = fmt(lmeData.price);
+        const changeFormatted = lmeData.change !== null ? `${parseFloat(lmeData.change) >= 0 ? '+' : ''}${fmt(lmeData.change)}` : null;
+        context += `\n[LME Cash Settlement — westmetall.com 파싱값]\n`;
         context += `현재가: ${priceFormatted} USD/MT\n`;
         if (changeFormatted !== null) context += `전일 대비: ${changeFormatted} USD/MT\n`;
         if (lmeData.change_pct) context += `등락률: ${lmeData.change_pct}\n`;
         context += `기준일: ${lmeData.date}\n`;
-        context += `[주의] move_reason 작성 시 반드시 위 ${priceFormatted} USD/MT 숫자를 사용 (천단위 쉼표 포함). 절대로 다른 수치 사용 금지.\n`;
+        context += `[주의] move_reason 작성 시 반드시 위 ${priceFormatted} USD/MT 숫자 사용. 다른 수치 금지.\n`;
       }
-      if (outlookText) context += `\n[가격 전망 참고 텍스트]\n${outlookText}\n`;
+      if (outlookText) context += `\n[가격 전망 참고]\n${outlookText}\n`;
       if (scrapPrices?.us && Object.keys(scrapPrices.us).length > 0) {
-        context += `\n[미국 알루미늄 스크랩 실제 가격 (USD/톤, scrapmonster.com 기준, USD/lb에서 환산)]\n`;
-        for (const [k, v] of Object.entries(scrapPrices.us)) {
-          context += `${k}: $${v.toLocaleString('en-US')}/톤\n`;
-        }
+        context += `\n[미국 알루미늄 스크랩 (USD/톤, scrapmonster.com)]\n`;
+        for (const [k, v] of Object.entries(scrapPrices.us)) context += `${k}: $${v.toLocaleString('en-US')}/톤\n`;
       }
       if (scrapPrices?.eu && Object.keys(scrapPrices.eu).length > 0) {
-        context += `\n[유럽 알루미늄 스크랩 실제 가격 (USD/톤, scrapmonster.com 기준)]\n`;
-        for (const [k, v] of Object.entries(scrapPrices.eu)) {
-          context += `${k}: $${v.toLocaleString('en-US')}/톤\n`;
-        }
+        context += `\n[유럽 알루미늄 스크랩 (USD/톤)]\n`;
+        for (const [k, v] of Object.entries(scrapPrices.eu)) context += `${k}: $${v.toLocaleString('en-US')}/톤\n`;
       }
       if (scrapPrices?.cn && Object.keys(scrapPrices.cn).length > 0) {
-        context += `\n[중국 알루미늄 스크랩 실제 가격 (CNY/톤, scrapmonster.com 기준)]\n`;
-        for (const [k, v] of Object.entries(scrapPrices.cn)) {
-          context += `${k}: ${v.toLocaleString('en-US')} CNY/톤\n`;
-        }
+        context += `\n[중국 알루미늄 스크랩 (CNY/톤)]\n`;
+        for (const [k, v] of Object.entries(scrapPrices.cn)) context += `${k}: ${v.toLocaleString('en-US')} CNY/톤\n`;
       }
       if (japanScrap?.prices && Object.keys(japanScrap.prices).length > 0) {
-        context += `\n[Japan Aluminum Scrap Prices (JPY/톤, dokindokin.com Osaka basis, ${japanScrap.date})]\n`;
-        for (const [k, v] of Object.entries(japanScrap.prices)) {
-          context += `${k}: ${v.toLocaleString('en-US')}円/톤\n`;
-        }
+        context += `\n[Japan Aluminum Scrap (JPY/톤, ${japanScrap.date})]\n`;
+        for (const [k, v] of Object.entries(japanScrap.prices)) context += `${k}: ${v.toLocaleString('en-US')}円/톤\n`;
       }
-      prompt = PROMPTS[tab] + context;
+      prompt += context;
     }
 
     if (tab === 'summary' && summaryContext) {
-      prompt = PROMPTS[tab] + summaryContext;
+      prompt += summaryContext;
     }
 
+    // ── 6. Perplexity 호출 ────────────────────────────────────────────────
     console.log(`[Perplexity] 호출 시작: ${tab}`);
     const raw = await callPerplexity(prompt);
 
@@ -276,30 +274,15 @@ export default async function handler(req, res) {
       parsed = parseJSON(raw);
     } catch (e) {
       console.error('[JSON] 파싱 실패:', e.message, '| raw:', raw.slice(0, 300));
-
-      // JSON 파싱 실패 시 최근 7일 fallback
-      if (token) {
-        for (let i = 1; i <= 7; i++) {
-          try {
-            const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
-            const fallback = await getFromFirestore(token, 'commodity_cache', `${tab}_${d}`);
-            if (fallback?.data) {
-              console.log(`[Fallback] JSON 파싱 실패 → ${i}일 전 데이터 반환`);
-              const fallbackParsed = JSON.parse(fallback.data);
-              return res.status(200).json({ ...fallbackParsed, _cached: true, _fallback: true, _age_min: 0 });
-            }
-          } catch (fe) { /* 다음 날짜 시도 */ }
-        }
+      const latest = await readLatest(token, tab);
+      if (latest?.data) {
+        console.log(`[Fallback] JSON 파싱 실패 → ${tab}_latest 반환`);
+        return res.status(200).json({ ...JSON.parse(latest.data), _cached: true, _fallback: true, _age_min: 0 });
       }
-
-      return res.status(500).json({
-        error: 'JSON parse failed',
-        detail: e.message,
-        raw_preview: raw.slice(0, 300),
-      });
+      return res.status(500).json({ error: 'JSON parse failed', detail: e.message, raw_preview: raw.slice(0, 300) });
     }
 
-    // ── LME 가격 주입: westmetall 성공 시 덮어씌움, 실패 시 Perplexity 값 유지
+    // ── 7. LME 가격 주입 (aluminum) ───────────────────────────────────────
     if (tab === 'aluminum' && lmeData) {
       console.log(`[LME] 가격 주입 (${lmeData.source}): ${lmeData.price} USD/톤 (${lmeData.date})`);
       parsed.lme = {
@@ -316,13 +299,24 @@ export default async function handler(req, res) {
       parsed.lme = { ...parsed.lme, source: 'perplexity' };
     }
 
-    // ── 3. Firestore 날짜별 저장 (7일 보관, 빈 데이터 저장 방지) ──────────
+    // ── 8. CNY → USD 환율 적용 (ferroalloy) ──────────────────────────────
+    if (tab === 'ferroalloy' && exchangeRate) {
+      for (const product of ['fesi', 'femn', 'simn']) {
+        if (parsed[product]?.price_cny) {
+          parsed[product].price_usd = cnyToUsd(parsed[product].price_cny, exchangeRate);
+        }
+      }
+      parsed.exchange_rate_cny_usd = exchangeRate;
+      console.log(`[ExRate] ferroalloy USD 변환 완료: 1 CNY = ${exchangeRate} USD`);
+    }
+
+    // ── 9. 유효성 검사 + Firestore 저장 ──────────────────────────────────
     if (token) {
       try {
-        // 탭별 핵심 필드 유효성 검사 — 빈 데이터는 저장 안 함
         const isValidData = (() => {
           if (tab === 'aluminum')     return !!(parsed.lme?.price || parsed.lme?.market_status);
-          if (tab === 'ferrosilicon') return !!(parsed.china_price?.china_context || parsed.market_summary);
+          if (tab === 'ferroalloy')   return !!(parsed.fesi?.price_cny || parsed.market_summary);
+          if (tab === 'steelmaker')   return !!(parsed.domestic_makers?.length > 0 || parsed.raw_material_forecast?.summary);
           if (tab === 'recarburizer') return !!(
             parsed.china_price?.price_range_text || parsed.china_price?.fob_qinhuangdao ||
             parsed.global_market?.headline || parsed.market_summary
@@ -332,61 +326,43 @@ export default async function handler(req, res) {
         })();
 
         if (!isValidData) {
-          console.warn(`[Firestore] 유효성 검사 실패 — 빈 데이터 저장 건너뜀: ${tab}`);
-          // 빈 데이터 대신 최근 7일 fallback 반환
-          for (let i = 1; i <= 7; i++) {
-            try {
-              const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
-              const fallback = await getFromFirestore(token, 'commodity_cache', `${tab}_${d}`);
-              if (fallback?.data) {
-                console.log(`[Fallback] 유효성 실패 → ${i}일 전 데이터 반환: ${tab}_${d}`);
-                const fallbackParsed = JSON.parse(fallback.data);
-                return res.status(200).json({ ...fallbackParsed, _cached: true, _fallback: true, _age_min: Math.round((Date.now() - Number(fallback.cached_at || 0)) / 60000) });
-              }
-            } catch (e) { /* 다음 날짜 시도 */ }
+          console.warn(`[Firestore] 유효성 검사 실패 — ${tab}_latest fallback 시도`);
+          const latest = await readLatest(token, tab);
+          if (latest?.data) {
+            return res.status(200).json({
+              ...JSON.parse(latest.data),
+              _cached: true, _fallback: true, _age_min: 0,
+            });
           }
-          // fallback도 없으면 빈 데이터 그대로 반환
           return res.status(200).json({ ...parsed, _cached: false, _age_min: 0 });
-        } else {
-          const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-          const docId = `${tab}_${todayKST}`;
-          await saveToFirestore(token, 'commodity_cache', docId, {
-            data: JSON.stringify(parsed),
-            cached_at: String(Date.now()),
-            tab,
-            date: todayKST,
-          });
-          console.log(`[Firestore] ✅ 저장 성공: commodity_cache/${docId}`);
         }
+
+        const todayKST = getKSTDate();
+        const docId = `${tab}_${todayKST}`;
+        const saveData = {
+          data: JSON.stringify(parsed),
+          cached_at: String(Date.now()),
+          tab,
+          date: todayKST,
+        };
+        await saveWithLatest(token, tab, docId, saveData);
       } catch (e) {
-        console.warn('[Firestore] 캐시 저장 실패:', e.message);
+        console.warn('[Firestore] 저장 실패:', e.message);
       }
     }
 
     return res.status(200).json({ ...parsed, _cached: false, _age_min: 0 });
+
   } catch (err) {
     console.error('[Handler] 예외:', err.message);
-
-    // Perplexity 실패 시 최근 7일 fallback (가장 최신 데이터 반환)
-    if (token) {
-      for (let i = 1; i <= 7; i++) {
-        try {
-          const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
-          const fallback = await getFromFirestore(token, 'commodity_cache', `${tab}_${d}`);
-          if (fallback?.data) {
-            console.log(`[Fallback] ${i}일 전 데이터 반환: ${tab}_${d}`);
-            const parsed = JSON.parse(fallback.data);
-            return res.status(200).json({
-              ...parsed,
-              _cached: true,
-              _fallback: true,
-              _age_min: Math.round((Date.now() - Number(fallback.cached_at || 0)) / 60000),
-            });
-          }
-        } catch (e) { /* 없으면 다음 날짜 시도 */ }
-      }
+    const latest = await readLatest(token, tab);
+    if (latest?.data) {
+      console.log(`[Fallback] 예외 → ${tab}_latest 반환`);
+      return res.status(200).json({
+        ...JSON.parse(latest.data),
+        _cached: true, _fallback: true, _age_min: 0,
+      });
     }
-
     return res.status(500).json({ error: err.message });
   }
 }

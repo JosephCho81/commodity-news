@@ -435,8 +435,166 @@ body {
 .ki-outlook { background: #e8f5e9; color: #2e7d32; }
 .key-issue-text { font-size: 12px; color: var(--text1); line-height: 1.65; }
 
+/* ── 합금철 탭 ── */
+.ferro-top-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.ferro-top-card {
+  background: var(--green-subtle); border: 1px solid var(--border);
+  border-radius: 5px; padding: 10px 8px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.ferro-top-abbr  { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--green-primary); letter-spacing: 1px; }
+.ferro-top-name  { font-size: 9px; color: var(--text3); }
+.ferro-top-price-row { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.ferro-top-usd   { font-size: 13px; font-weight: 600; color: var(--text); font-family: var(--sans); }
+.ferro-top-usd small { font-size: 9px; color: var(--text3); font-weight: 400; margin-left: 1px; }
+.ferro-top-na    { font-size: 12px; color: var(--text3); }
+.ferro-top-change { font-size: 9px; font-family: var(--mono); }
+.ferro-exrate-note {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  text-align: right; padding-top: 6px; border-top: 1px solid var(--border2); margin-top: 4px;
+}
+
+.ferro-dir { font-size: 11px; font-weight: 700; }
+.ferro-dir.up      { color: var(--up); }
+.ferro-dir.down    { color: var(--down); }
+.ferro-dir.neutral { color: var(--neutral); }
+
+.ferro-item-header {
+  background: var(--green-subtle); border: 1px solid var(--border2);
+  border-radius: 5px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.ferro-price-row   { display: flex; align-items: center; gap: 8px; }
+.ferro-price-main  { font-size: 20px; font-weight: 500; color: var(--text); font-family: var(--sans); line-height: 1.2; }
+.ferro-price-main small { font-size: 11px; color: var(--text2); font-weight: 400; margin-left: 3px; }
+.ferro-price-na    { font-size: 15px; color: var(--text3); }
+.ferro-meta-row    { display: flex; gap: 12px; flex-wrap: wrap; }
+.ferro-cny-ref     { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.ferro-change      { font-family: var(--mono); font-size: 10px; font-weight: 600; }
+.ferro-ref-note    { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+
+.steel-signal-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 3px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+}
+.signal-demand-strong { background: #e8f5ec; color: #1a6b32;  border: 1px solid #a3d9b3; }
+.signal-demand-weak   { background: #fdf2f2; color: #b32020;  border: 1px solid #f5b0b0; }
+.signal-supply-shock  { background: #fff8e8; color: #8a5a00;  border: 1px solid #e8d080; }
+.signal-mixed         { background: var(--green-subtle); color: var(--text2); border: 1px solid var(--border); }
+
+.cause-block { display: flex; flex-direction: column; gap: 8px; }
+.cause-row   { display: flex; gap: 8px; align-items: flex-start; }
+.cause-label {
+  flex-shrink: 0; font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px; margin-top: 2px;
+  white-space: nowrap; font-family: var(--mono);
+}
+.cause-supply { background: #fff8e8; color: #8a5a00; border: 1px solid #e8d080; }
+.cause-demand { background: #e8f5ec; color: #1a6b32; border: 1px solid #a3d9b3; }
+.cause-text   { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+.ferro-signal-block {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.ferro-signal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ferro-signal-title  { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; }
+.ferro-signal-reason { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+/* ── 제강사 탭 ── */
+.maker-row {
+  padding: 12px 0; border-bottom: 1px solid var(--border2);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.maker-row:last-child { border-bottom: none; }
+.maker-header  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.maker-name    { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--green-dark); }
+.maker-rate-badge {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 2px 7px; border-radius: 3px;
+}
+.rate-high { background: #e8f5ec; color: #1a6b32; border: 1px solid #a3d9b3; }
+.rate-mid  { background: #fff8e8; color: #8a5a00; border: 1px solid #e8d080; }
+.rate-low  { background: #fdf2f2; color: #b32020; border: 1px solid #f5b0b0; }
+.maker-eaf       { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+.maker-cut-badge {
+  font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 3px;
+  background: #fdf2f2; color: #b32020; border: 1px solid #f5b0b0;
+}
+.maker-note { font-size: 12px; color: var(--text); line-height: 1.65; }
+.maker-impact-box {
+  display: flex; gap: 8px; align-items: flex-start;
+  background: var(--green-subtle); border-radius: 3px; padding: 6px 10px;
+}
+.maker-impact-label {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  color: var(--green-primary); white-space: nowrap; margin-top: 2px;
+  padding: 1px 5px; border: 1px solid var(--green-mid); border-radius: 2px; background: #fff;
+}
+.maker-impact-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
+
+.demand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.demand-cell {
+  background: var(--green-subtle); border: 1px solid var(--border);
+  border-radius: 5px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.demand-label-row { display: flex; align-items: center; justify-content: space-between; }
+.demand-label  { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.5px; }
+.demand-status { font-size: 12px; color: var(--text); line-height: 1.5; }
+.demand-basis  { font-size: 10px; color: var(--text2); line-height: 1.5; }
+
+.dir-badge {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 2px;
+}
+.dir-up      { color: var(--up);      background: #e8f5ec; border: 1px solid #a3d9b3; }
+.dir-down    { color: var(--down);    background: #fdf2f2; border: 1px solid #f5b0b0; }
+.dir-neutral { color: var(--neutral); background: var(--green-subtle); border: 1px solid var(--border); }
+
+.forecast-box {
+  background: var(--green-subtle); border-left: 3px solid var(--green-primary);
+  padding: 10px 12px; border-radius: 0 5px 5px 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.forecast-item  { display: flex; gap: 8px; align-items: flex-start; }
+.forecast-label {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  color: var(--green-primary); padding: 2px 6px;
+  border: 1px solid var(--green-mid); border-radius: 2px; background: #fff;
+  white-space: nowrap; margin-top: 2px;
+}
+.forecast-text { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+.shipping-routes { display: flex; flex-direction: column; }
+.shipping-routes-header {
+  display: flex; justify-content: space-between;
+  padding: 4px 0 8px; border-bottom: 2px solid var(--border);
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.shipping-route-row {
+  display: grid; grid-template-columns: 1fr auto auto 1fr; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--border2);
+  align-items: center;
+}
+.shipping-route-row:last-child { border-bottom: none; }
+.shipping-route-name { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+.shipping-price-val  { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
+.shipping-note       { font-size: 10px; color: var(--text3); line-height: 1.5; }
+.shipping-outlook    {
+  font-size: 12px; color: var(--text2); line-height: 1.65;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border2);
+}
+
 /* ── 반응형 ── */
 @media (max-width: 360px) {
   .production-grid { grid-template-columns: 1fr; }
   .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
+  .ferro-top-grid { grid-template-columns: 1fr; }
+  .demand-grid    { grid-template-columns: 1fr; }
 }

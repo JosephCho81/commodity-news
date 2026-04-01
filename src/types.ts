@@ -3,6 +3,8 @@
 export type Direction = 'UP' | 'DOWN' | 'NEUTRAL';
 export type Urgency = 'HIGH' | 'MEDIUM' | 'LOW';
 export type Probability = 'HIGH' | 'MEDIUM' | 'LOW';
+export type OperatingRate = 'HIGH' | 'MID' | 'LOW';
+export type SteelSignal = 'DEMAND_STRONG' | 'DEMAND_WEAK' | 'SUPPLY_SHOCK' | 'MIXED';
 
 export interface ApiMeta {
   _cached?: boolean;
@@ -39,30 +41,37 @@ export interface AluminumData extends ApiMeta {
   };
 }
 
-export interface FerrosiliconData extends ApiMeta {
-  china_price: {
-    hbis_bid_price?: string | null;
-    hbis_bid_month?: string | null;
-    hbis_bid_change?: string | null;
-    fob_tianjin_monthly?: Record<string, string | null>;
-    fesi75_ningxia?: string | null;
-    date?: string | null;
-    change?: string | null;
-    china_context?: string;
-    china_outlook?: string;
-  };
-  china_production: { overall: string; };
-  non_china: Array<{
-    country: string;
-    producer: string;
-    status: string;
-    price_context?: string;
-    export_direction: string;
-  }>;
-  non_china_context?: string;
-  korea_import?: string;
-  market_summary: string;
+// ─── 합금철 (FeSi + FeMn + SiMn) ───────────────────────────────────────────
+
+export interface FerroItem {
+  price_cny: string | null;
+  price_usd: string | null;        // 서버에서 환율 적용 후 계산
+  reference: string;               // "HBIS Group 2026년 3월 입찰가"
+  direction: Direction;
+  change_cny: string | null;       // "+190" or "-80" or null
+  supply_cause: string;
+  demand_cause: string;
+  steel_signal: SteelSignal;
+  steel_signal_reason: string;
+  context: string;
 }
+
+export interface FerroalloyData extends ApiMeta {
+  exchange_rate_cny_usd?: number;  // 1 CNY = X USD (서버에서 주입)
+  fesi: FerroItem;
+  femn: FerroItem;
+  simn: FerroItem;
+  market_summary: string;
+  key_issues?: Array<{
+    title: string;
+    what: string;
+    why: string;
+    impact: string;
+    outlook: string;
+  }>;
+}
+
+// ─── 가탄제 ─────────────────────────────────────────────────────────────────
 
 export interface RecarburizerData extends ApiMeta {
   china_price: {
@@ -114,6 +123,60 @@ export interface RecarburizerData extends ApiMeta {
   market_summary: string;
 }
 
+// ─── 제강사 ─────────────────────────────────────────────────────────────────
+
+export interface IndustryStatus {
+  direction: Direction;
+  status: string;
+  basis: string;
+}
+
+export interface DomesticMaker {
+  name: string;
+  operating_rate: OperatingRate;
+  production_cut: boolean;
+  eaf_status: string;
+  note: string;
+  raw_material_impact: string;
+}
+
+export interface OverseasMaker {
+  country: string;
+  makers: string;
+  status: string;
+  raw_material_impact: string;
+}
+
+export interface ShippingRoute {
+  route: string;
+  price_feu: string | null;
+  direction: Direction;
+  note?: string;
+}
+
+export interface SteelmakerData extends ApiMeta {
+  domestic_makers: DomesticMaker[];
+  overseas_makers: OverseasMaker[];
+  demand_industries: {
+    construction_korea: IndustryStatus;
+    construction_china: IndustryStatus;
+    auto: IndustryStatus;
+    shipbuilding: IndustryStatus;
+  };
+  raw_material_forecast: {
+    summary: string;
+    ferroalloy: string;
+    recarburizer: string;
+  };
+  shipping: {
+    current_issues: string;
+    routes: ShippingRoute[];
+    outlook: string;
+  };
+}
+
+// ─── 시황 종합 ───────────────────────────────────────────────────────────────
+
 export interface SummaryData extends ApiMeta {
   date?: string | null;
   one_liner: string;
@@ -132,18 +195,20 @@ export interface SummaryData extends ApiMeta {
   week_ahead: string;
 }
 
-export type TabId = 'aluminum' | 'ferrosilicon' | 'recarburizer' | 'summary';
+// ─── 탭 설정 ─────────────────────────────────────────────────────────────────
+
+export type TabId = 'steelmaker' | 'aluminum' | 'ferroalloy' | 'recarburizer' | 'summary';
 
 export interface TabConfig {
   id: TabId;
   label: string;
   labelEn: string;
-  icon: string;
 }
 
 export const TABS: TabConfig[] = [
-  { id: 'aluminum',     label: '알루미늄',   labelEn: 'Aluminum',     icon: '◈' },
-  { id: 'ferrosilicon', label: '페로실리콘', labelEn: 'FerroSilicon', icon: '◉' },
-  { id: 'recarburizer', label: '가탄제',     labelEn: 'Recarburizer', icon: '◍' },
-  { id: 'summary',      label: '시황 종합',  labelEn: 'Summary',      icon: '▦' },
+  { id: 'steelmaker',  label: '제강사',    labelEn: 'Steel Maker'  },
+  { id: 'aluminum',    label: '알루미늄',  labelEn: 'Aluminum'     },
+  { id: 'ferroalloy',  label: '합금철',    labelEn: 'Ferro Alloy'  },
+  { id: 'recarburizer',label: '가탄제',    labelEn: 'Recarburizer' },
+  { id: 'summary',     label: '시황 종합', labelEn: 'Summary'      },
 ];

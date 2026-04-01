@@ -1,24 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { TabId, AluminumData, FerrosiliconData, RecarburizerData, SummaryData } from './types';
+import type { TabId, AluminumData, FerroalloyData, RecarburizerData, SummaryData, SteelmakerData } from './types';
 import { TABS } from './types';
 import { Logo, LoadingState, ErrorState } from './components/ui';
-import { AluminumTab } from './tabs/AluminumTab';
-import { FerrosiliconTab } from './tabs/FerrosiliconTab';
+import { SteelmakerTab }  from './tabs/SteelmakerTab';
+import { AluminumTab }    from './tabs/AluminumTab';
+import { FerroalloyTab }  from './tabs/FerroalloyTab';
 import { RecarburizerTab } from './tabs/RecarburizerTab';
-import { SummaryTab } from './tabs/SummaryTab';
+import { SummaryTab }     from './tabs/SummaryTab';
 import './styles/app.css';
 
 const API_BASE = '/api/get-news';
 
+const EMPTY_LOADING: Record<TabId, boolean> = {
+  steelmaker: false, aluminum: false, ferroalloy: false, recarburizer: false, summary: false,
+};
+const EMPTY_ERROR: Record<TabId, boolean> = {
+  steelmaker: false, aluminum: false, ferroalloy: false, recarburizer: false, summary: false,
+};
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabId>('aluminum');
+  const [activeTab, setActiveTab] = useState<TabId>('steelmaker');
   const [data, setData] = useState<Record<string, unknown>>({});
-  const [loading, setLoading] = useState<Record<TabId, boolean>>({
-    aluminum: false, ferrosilicon: false, recarburizer: false, summary: false,
-  });
-  const [error, setError] = useState<Record<TabId, boolean>>({
-    aluminum: false, ferrosilicon: false, recarburizer: false, summary: false,
-  });
+  const [loading, setLoading] = useState<Record<TabId, boolean>>(EMPTY_LOADING);
+  const [error, setError]   = useState<Record<TabId, boolean>>(EMPTY_ERROR);
 
   const fetchTab = useCallback(async (tab: TabId) => {
     setLoading(p => ({ ...p, [tab]: true }));
@@ -42,19 +46,20 @@ export default function App() {
     }
   }, [activeTab, fetchTab]);
 
-  const tabData = data[activeTab] as never;
+  const tabData  = data[activeTab] as never;
   const isLoading = loading[activeTab];
-  const isError = error[activeTab];
+  const isError   = error[activeTab];
 
   function renderContent() {
     if (isLoading) return <LoadingState />;
-    if (isError) return <ErrorState onRetry={() => fetchTab(activeTab)} />;
-    if (!tabData) return null;
+    if (isError)   return <ErrorState onRetry={() => fetchTab(activeTab)} />;
+    if (!tabData)  return null;
     switch (activeTab) {
-      case 'aluminum':     return <AluminumTab data={tabData as AluminumData} />;
-      case 'ferrosilicon': return <FerrosiliconTab data={tabData as FerrosiliconData} />;
+      case 'steelmaker':   return <SteelmakerTab  data={tabData as SteelmakerData} />;
+      case 'aluminum':     return <AluminumTab     data={tabData as AluminumData} />;
+      case 'ferroalloy':   return <FerroalloyTab   data={tabData as FerroalloyData} />;
       case 'recarburizer': return <RecarburizerTab data={tabData as RecarburizerData} />;
-      case 'summary':      return <SummaryTab data={tabData as SummaryData} />;
+      case 'summary':      return <SummaryTab      data={tabData as SummaryData} />;
     }
   }
 
