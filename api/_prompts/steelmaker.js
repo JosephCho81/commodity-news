@@ -122,22 +122,30 @@ overseas_makers 배열 각 객체 필드:
     "construction_korea": {
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
       "status": "2026년 현재 상태 1문장",
-      "basis": "통계 근거 포함 1문장"
+      "basis": "착공·수주 통계 수치 포함 1문장",
+      "reason": "이 상태가 된 원인 1~2문장. 정책·금리·미분양 등 구체적 요인.",
+      "outlook": "2026년 하반기 전망 1문장. 회복 가능성 또는 지속 요인."
     },
     "construction_china": {
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
       "status": "2026년 현재 상태 1문장",
-      "basis": "통계 근거 포함 1문장"
+      "basis": "통계 수치 포함 1문장",
+      "reason": "부동산 정책·자금조달 등 원인 1~2문장.",
+      "outlook": "2026년 하반기 전망 1문장."
     },
     "auto": {
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
       "status": "2026년 현재 상태 1문장",
-      "basis": "생산량 통계 포함 1문장"
+      "basis": "생산량·수출 통계 포함 1문장",
+      "reason": "전기차 전환·관세·반도체 등 원인 1~2문장.",
+      "outlook": "2026년 하반기 전망 1문장."
     },
     "shipbuilding": {
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
       "status": "2026년 현재 상태 1문장",
-      "basis": "수주잔량 포함 1문장"
+      "basis": "수주잔량·신규수주 통계 포함 1문장",
+      "reason": "LNG선·컨테이너선 수요 등 원인 1~2문장.",
+      "outlook": "2026년 하반기 전망 1문장."
     }
   },
   "raw_material_forecast": {

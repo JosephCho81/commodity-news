@@ -130,6 +130,8 @@ export interface IndustryStatus {
   direction: Direction;
   status: string;
   basis: string;
+  reason?: string;
+  outlook?: string;
 }
 
 export interface DomesticMaker {
