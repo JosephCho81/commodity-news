@@ -3,6 +3,8 @@
 export function getSteelmakerPrompt(date) {
   const d = new Date(date + 'T00:00:00Z');
   const d3 = new Date(d.getTime() - 3 * 86400000).toISOString().slice(0, 10);
+  const ym = date.slice(0, 7); // "2026-04"
+  const y  = date.slice(0, 4); // "2026"
 
   return `당신은 국내 제강사 구매팀을 위한 철강 산업 전문 애널리스트입니다.
 오늘 날짜: ${date}
@@ -24,9 +26,9 @@ overseas_makers 배열 각 객체 필드:
 
 【5개 필드 정의】
 1. recent_issues: ${d3}~${date} 3일 이내 주요 뉴스. "YYYY년 MM월 DD일: 내용" 형식. 없으면 "최근 3일 내 주요 발표 없음"
-2. production_trend: 2026년 생산량·조강량 동향. 전월/전분기 대비 수치 포함. 2~3문장.
-3. cost_factors: 전기료·석탄·철광석·환율 등 원가 요인. 수치 포함. 2문장.
-4. demand_sales: 주요 수요처(건설·자동차·조선) 현황과 수출 흐름. 2026년 기준. 2문장.
+2. production_trend: ${ym} 기준 생산량·조강량 동향. 전월/전분기 대비 수치 포함. 2~3문장.
+3. cost_factors: 반드시 아래 【원가 지표 검색】 결과를 사용. ${ym} 기준 환율·철광석·원료탄·전기료 실제 수치 포함. 2문장.
+4. demand_sales: 주요 수요처(건설·자동차·조선) 현황과 수출 흐름. ${ym} 기준. 2문장.
 5. raw_material_impact: 탈산제·합금철·가탄제 수요 전망. 생산 수준 기반. 2문장.
 
 【절대 규칙】
@@ -38,24 +40,28 @@ overseas_makers 배열 각 객체 필드:
   대신 명사/단어형으로 끝낼 것: "~중", "~세", "~수준", "~감소", "~상승", "~유지", "~전망"
 - demand_industries 모든 필드에 반드시 구체적 수치(%, 금액, 수량) 포함.
 
+【원가 지표 검색 — cost_factors 작성 시 반드시 이 결과 사용】
+- "원달러 환율 ${ym}" / "KRW USD exchange rate ${ym}"
+- "철광석 가격 ${ym}" / "iron ore price ${ym}"
+- "원료탄 가격 ${ym}" / "coking coal price ${ym}"
+- "한국 산업용 전기요금 ${y}" / "Korea electricity tariff industry ${y}"
+→ 위 검색으로 ${ym} 기준 실제 수치를 확인한 후 cost_factors에 반영. 이전 분기·과거 기사 수치 사용 금지.
+
 【오늘의 시장 영향 뉴스 — 매일 자율 검색】
-반드시 아래 쿼리로 오늘(${date}) 발생한 최신 뉴스를 검색하시오.
-특정 이슈명을 가정하지 말고 실제 검색 결과를 기반으로 반영할 것.
 - "steel industry news ${date}"
 - "global steel market disruption ${date}"
 - "trade tariff steel impact ${date}"
 - "geopolitical risk steel supply ${date}"
-- "China steel policy production news ${date}"
-→ 오늘 발생한 이슈 중 철강 수요·생산·원가에 실질 영향 있는 것만 domestic_makers 또는 overseas_makers의 recent_issues, 또는 raw_material_forecast에 인과관계와 함께 반영.
+→ 오늘 발생한 이슈 중 철강 수요·생산·원가에 실질 영향 있는 것만 recent_issues 또는 raw_material_forecast에 반영.
 
-【검색 쿼리】
-국내: "동국제강 2026년 4월" / "포스코 2026 1분기" / "현대제철 2026년 4월"
-중국: "중국 조강 생산 2026년 3월" / "Baowu HBIS steel output 2026"
-인도: "JSW Steel production 2026" / "Tata Steel output 2026 Q1"
-일본: "Nippon Steel JFE production 2026 Q1"
-미국: "Nucor Cleveland-Cliffs steel production 2026"
-유럽: "ArcelorMittal production 2026" / "Europe steel output 2026 Q1"
-수요: "한국 건설 착공 2026" / "한국 자동차 생산 2026 1분기" / "한국 조선 수주 2026"
+【회사별·국가별 생산·수요 검색】
+국내: "동국제강 ${date}" / "포스코 ${ym}" / "현대제철 ${ym}"
+중국: "중국 조강 생산 ${ym}" / "Baowu HBIS steel output ${ym}"
+인도: "JSW Steel production ${ym}" / "Tata Steel output ${ym}"
+일본: "Nippon Steel JFE production ${ym}"
+미국: "Nucor Cleveland-Cliffs steel production ${ym}"
+유럽: "ArcelorMittal production ${ym}" / "Europe steel output ${ym}"
+수요: "한국 건설 착공 ${ym}" / "한국 자동차 생산 ${ym}" / "한국 조선 수주 ${ym}"
 
 {
   "domestic_makers": [
