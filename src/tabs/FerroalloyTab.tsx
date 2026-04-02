@@ -1,4 +1,4 @@
-import type { FerroalloyData, FerroItem, SteelSignal, Direction } from '../types';
+import type { FerroalloyData, FerroItem, FerroProducer, SteelSignal, Direction } from '../types';
 import { SectionCard, TextBlock } from '../components/ui';
 import { KeyIssuesSection } from '../components/KeyIssues';
 
@@ -21,6 +21,81 @@ function SteelSignalBadge({ signal }: { signal: SteelSignal }) {
   return <span className={`steel-signal-badge ${cls}`}>{label}</span>;
 }
 
+function fmtCny(val: string | number | null | undefined): string {
+  if (val === null || val === undefined || val === '') return '—';
+  const n = Number(String(val).replace(/,/g, ''));
+  if (isNaN(n)) return String(val);
+  return n.toLocaleString('en-US');
+}
+
+// ─── 가격 헤더 ────────────────────────────────────────────────────────────────
+
+function FerroPrice({ item }: { item: FerroItem }) {
+  const changeCny = item.change_cny;
+  const changeColor = changeCny
+    ? (String(changeCny).startsWith('-') ? 'var(--down)' : 'var(--up)')
+    : 'var(--text3)';
+
+  return (
+    <div className="ferro-item-header">
+      <div className="ferro-price-row">
+        {item.price_usd ? (
+          <>
+            <span className="ferro-price-main">
+              USD {item.price_usd}<small>/MT</small>
+            </span>
+            <span className="ferro-price-cny-inline">
+              (CNY {fmtCny(item.price_cny)}/MT, 내수가)
+            </span>
+          </>
+        ) : item.price_cny ? (
+          <>
+            <span className="ferro-price-main ferro-price-cny-only">
+              CNY {fmtCny(item.price_cny)}<small>/MT</small>
+            </span>
+            <span className="ferro-price-cny-inline">(내수가)</span>
+          </>
+        ) : (
+          <span className="ferro-price-na">가격 확인 중</span>
+        )}
+        {dirArrow(item.direction)}
+      </div>
+
+      <div className="ferro-meta-row">
+        {changeCny && (
+          <span className="ferro-change" style={{ color: changeColor }}>
+            전월比 {changeCny} CNY
+          </span>
+        )}
+        <span className="ferro-ref-note">{item.reference}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── 비중국 생산국 ────────────────────────────────────────────────────────────
+
+function NonChinaProducers({ producers }: { producers: FerroProducer[] }) {
+  if (!producers || producers.length === 0) return null;
+  return (
+    <div className="non-china-block">
+      <div className="non-china-title">비중국 주요 생산국</div>
+      <div className="non-china-list">
+        {producers.map((p, i) => (
+          <div key={i} className="non-china-row">
+            <div className="non-china-header">
+              <span className="non-china-country">{p.country}</span>
+              <span className="non-china-company">{p.company}</span>
+              {p.share && <span className="non-china-share">{p.share}</span>}
+            </div>
+            <p className="non-china-status">{p.status}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── 품목 카드 ────────────────────────────────────────────────────────────────
 
 function FerroItemCard({
@@ -28,45 +103,9 @@ function FerroItemCard({
 }: {
   name: string; abbr: string; item: FerroItem; accent: string;
 }) {
-  const changeCny = item.change_cny;
-  const changeColor = changeCny
-    ? (String(changeCny).startsWith('-') ? 'var(--down)' : 'var(--up)')
-    : 'var(--text3)';
-
   return (
     <SectionCard title={`${name} (${abbr})`} accent={accent}>
-      {/* 가격 헤더 */}
-      <div className="ferro-item-header">
-        <div className="ferro-price-row">
-          {item.price_usd ? (
-            <span className="ferro-price-main">
-              USD {item.price_usd}<small>/MT</small>
-            </span>
-          ) : item.price_cny ? (
-            <span className="ferro-price-main">
-              CNY {Number(String(item.price_cny).replace(/,/g, '')).toLocaleString('en-US')}<small>/MT</small>
-            </span>
-          ) : (
-            <span className="ferro-price-na">가격 확인 중</span>
-          )}
-          {dirArrow(item.direction)}
-        </div>
-
-        <div className="ferro-meta-row">
-          {item.price_cny && item.price_usd && (
-            <span className="ferro-cny-ref">
-              CNY {Number(String(item.price_cny).replace(/,/g, '')).toLocaleString('en-US')}/MT
-            </span>
-          )}
-          {changeCny && (
-            <span className="ferro-change" style={{ color: changeColor }}>
-              전월比 {changeCny} CNY
-            </span>
-          )}
-        </div>
-
-        <div className="ferro-ref-note">{item.reference}</div>
-      </div>
+      <FerroPrice item={item} />
 
       {/* 원인 분석 */}
       <div className="cause-block">
@@ -88,6 +127,11 @@ function FerroItemCard({
         </div>
         <p className="ferro-signal-reason">{item.steel_signal_reason}</p>
       </div>
+
+      {/* 비중국 생산국 */}
+      {item.non_china_producers && item.non_china_producers.length > 0 && (
+        <NonChinaProducers producers={item.non_china_producers} />
+      )}
 
       {/* 시장 종합 */}
       {item.context && (
@@ -129,13 +173,18 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
                   </span>
                 ) : item?.price_cny ? (
                   <span className="ferro-top-usd">
-                    CNY {Number(String(item.price_cny).replace(/,/g, '')).toLocaleString('en-US')}
+                    CNY {fmtCny(item.price_cny)}
                   </span>
                 ) : (
                   <span className="ferro-top-na">—</span>
                 )}
                 {item && dirArrow(item.direction)}
               </div>
+              {item?.price_cny && item?.price_usd && (
+                <div className="ferro-top-cny">
+                  CNY {fmtCny(item.price_cny)} <span className="ferro-top-domestic">내수가</span>
+                </div>
+              )}
               {item?.change_cny && (
                 <div
                   className="ferro-top-change"
@@ -154,7 +203,7 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
 
       <KeyIssuesSection issues={(data as any).key_issues ?? []} />
 
-      <FerroItemCard name="페로실리콘" abbr="FeSi 75"  item={fesi} accent="FeSi" />
+      <FerroItemCard name="페로실리콘" abbr="FeSi 75"   item={fesi} accent="FeSi" />
       <FerroItemCard name="페로망간"   abbr="FeMn HC78" item={femn} accent="FeMn" />
       <FerroItemCard name="실리콘망간" abbr="SiMn 6517" item={simn} accent="SiMn" />
 

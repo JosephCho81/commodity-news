@@ -44,6 +44,13 @@ export interface AluminumData extends ApiMeta {
 
 // ─── 합금철 (FeSi + FeMn + SiMn) ───────────────────────────────────────────
 
+export interface FerroProducer {
+  country: string;
+  company: string;
+  status: string;
+  share?: string;
+}
+
 export interface FerroItem {
   price_cny: string | null;
   price_usd: string | null;        // 서버에서 환율 적용 후 계산
@@ -55,6 +62,7 @@ export interface FerroItem {
   steel_signal: SteelSignal;
   steel_signal_reason: string;
   context: string;
+  non_china_producers?: FerroProducer[];
 }
 
 export interface FerroalloyData extends ApiMeta {

@@ -450,6 +450,8 @@ body {
 .ferro-top-usd   { font-size: 13px; font-weight: 600; color: var(--text); font-family: var(--sans); }
 .ferro-top-usd small { font-size: 9px; color: var(--text3); font-weight: 400; margin-left: 1px; }
 .ferro-top-na    { font-size: 12px; color: var(--text3); }
+.ferro-top-cny   { font-size: 9px; color: var(--text3); font-family: var(--mono); }
+.ferro-top-domestic { color: var(--green-primary); font-weight: 700; }
 .ferro-top-change { font-size: 9px; font-family: var(--mono); }
 .ferro-exrate-note {
   font-family: var(--mono); font-size: 9px; color: var(--text3);
@@ -466,14 +468,16 @@ body {
   border-radius: 5px; padding: 10px 12px;
   display: flex; flex-direction: column; gap: 4px;
 }
-.ferro-price-row   { display: flex; align-items: center; gap: 8px; }
-.ferro-price-main  { font-size: 20px; font-weight: 500; color: var(--text); font-family: var(--sans); line-height: 1.2; }
+.ferro-price-row        { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ferro-price-main       { font-size: 20px; font-weight: 500; color: var(--text); font-family: var(--sans); line-height: 1.2; }
 .ferro-price-main small { font-size: 11px; color: var(--text2); font-weight: 400; margin-left: 3px; }
-.ferro-price-na    { font-size: 15px; color: var(--text3); }
-.ferro-meta-row    { display: flex; gap: 12px; flex-wrap: wrap; }
-.ferro-cny-ref     { font-family: var(--mono); font-size: 10px; color: var(--text3); }
-.ferro-change      { font-family: var(--mono); font-size: 10px; font-weight: 600; }
-.ferro-ref-note    { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+.ferro-price-cny-only   { color: var(--text2); }
+.ferro-price-cny-inline { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.ferro-price-na         { font-size: 15px; color: var(--text3); }
+.ferro-meta-row         { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.ferro-cny-ref          { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.ferro-change           { font-family: var(--mono); font-size: 10px; font-weight: 600; }
+.ferro-ref-note         { font-family: var(--mono); font-size: 9px; color: var(--text3); }
 
 .steel-signal-badge {
   display: inline-flex; align-items: center;
@@ -504,6 +508,35 @@ body {
 .ferro-signal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ferro-signal-title  { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; }
 .ferro-signal-reason { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+/* 비중국 생산국 */
+.non-china-block {
+  border: 1px solid var(--border); border-radius: 5px; overflow: hidden;
+}
+.non-china-title {
+  font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+  color: var(--text3); text-transform: uppercase;
+  background: var(--green-subtle); padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.non-china-list { display: flex; flex-direction: column; }
+.non-china-row {
+  padding: 7px 12px; border-bottom: 1px solid var(--border2);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.non-china-row:last-child { border-bottom: none; }
+.non-china-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.non-china-country {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: var(--green-dark);
+}
+.non-china-company { font-size: 10px; color: var(--text2); }
+.non-china-share {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  background: var(--green-subtle); border: 1px solid var(--border);
+  padding: 0 5px; border-radius: 2px; margin-left: auto;
+}
+.non-china-status { font-size: 11px; color: var(--text); line-height: 1.55; margin: 0; }
 
 /* ── 제강사 탭 ── */
 .maker-row {
