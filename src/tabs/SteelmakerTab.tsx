@@ -1,7 +1,12 @@
 import type { SteelmakerData, DomesticMaker, OverseasMaker, IndustryStatus, Direction } from '../types';
-import { SectionCard, TextBlock } from '../components/ui';
+import { SectionCard } from '../components/ui';
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────────────
+
+function MetricBadge({ text }: { text?: string | null }) {
+  if (!text) return null;
+  return <div className="maker-metric"><span className="maker-metric-text">{text}</span></div>;
+}
 
 function DirBadge({ dir }: { dir: Direction }) {
   const map = {
@@ -42,6 +47,7 @@ function DomesticMakerRow({ maker }: { maker: DomesticMaker }) {
         <span className="maker-name">{maker.name}</span>
         <DirBadge dir={maker.direction} />
       </div>
+      <MetricBadge text={maker.key_metric} />
       <RecentIssues text={maker.recent_issues} />
       <div className="maker-detail-block">
         <InfoRow label="현황" text={maker.status}  labelCls="ki-what"   />
@@ -62,6 +68,7 @@ function OverseasMakerRow({ maker }: { maker: OverseasMaker }) {
         <span className="country-producer">{maker.makers}</span>
         <DirBadge dir={maker.direction} />
       </div>
+      <MetricBadge text={maker.output} />
       <RecentIssues text={maker.recent_issues} />
       <div className="maker-detail-block">
         <InfoRow label="현황" text={maker.status}  labelCls="ki-what"   />
@@ -81,6 +88,7 @@ function DemandReport({ label, industry }: { label: string; industry: IndustrySt
         <span className="country-name">{label}</span>
         <DirBadge dir={industry.direction} />
       </div>
+      <MetricBadge text={industry.metric} />
       <div className="maker-detail-block">
         <InfoRow label="현황" text={industry.status}  labelCls="ki-what"   />
         <InfoRow label="이유" text={industry.reason}  labelCls="ki-why"    />
@@ -93,7 +101,7 @@ function DemandReport({ label, industry }: { label: string; industry: IndustrySt
 // ─── 메인 탭 ────────────────────────────────────────────────────────────────
 
 export function SteelmakerTab({ data }: { data: SteelmakerData }) {
-  const { domestic_makers = [], overseas_makers = [], demand_industries, raw_material_forecast } = data;
+  const { domestic_makers = [], overseas_makers = [], demand_industries } = data;
 
   return (
     <div className="tab-content">
@@ -120,14 +128,6 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
           <DemandReport label="건설 (중국)" industry={demand_industries.construction_china} />
           <DemandReport label="자동차"      industry={demand_industries.auto} />
           <DemandReport label="조선"        industry={demand_industries.shipbuilding} />
-        </SectionCard>
-      )}
-
-      {raw_material_forecast && (
-        <SectionCard title="부원료 수요 전망" accent="FORE">
-          <TextBlock text={typeof raw_material_forecast === 'string'
-            ? raw_material_forecast
-            : (raw_material_forecast as any).summary ?? ''} />
         </SectionCard>
       )}
 

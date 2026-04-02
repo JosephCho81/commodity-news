@@ -587,6 +587,16 @@ body {
 }
 .maker-impact-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
 
+.maker-metric {
+  display: inline-flex; align-items: center;
+  background: #f0f8f3; border: 1px solid var(--green-mid);
+  border-radius: 4px; padding: 3px 10px; margin: 1px 0;
+}
+.maker-metric-text {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--green-dark);
+}
+
 .maker-recent-issues {
   display: flex; gap: 8px; align-items: flex-start;
   padding: 6px 8px; border-radius: 4px; margin-bottom: 6px;

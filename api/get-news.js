@@ -189,7 +189,7 @@ export default async function handler(req, res) {
         if (smData?.data) {
           const sm = JSON.parse(smData.data);
           summaryContext += `\n[제강사]\n`;
-          summaryContext += `부원료 수요 전망: ${sm.raw_material_forecast?.summary ?? ''}\n`;
+          summaryContext += `국내 제강사: ${sm.domestic_makers?.map(m => `${m.name} ${m.direction}`).join(', ') ?? ''}\n`;
         }
 
         console.log('[Summary] 탭 데이터 주입 완료');
@@ -327,7 +327,7 @@ export default async function handler(req, res) {
         const isValidData = (() => {
           if (tab === 'aluminum')     return !!(parsed.lme?.price || parsed.lme?.market_status);
           if (tab === 'ferroalloy')   return !!(parsed.fesi?.price_cny || parsed.market_summary);
-          if (tab === 'steelmaker')   return !!(parsed.domestic_makers?.length > 0 || parsed.raw_material_forecast?.summary);
+          if (tab === 'steelmaker')   return !!(parsed.domestic_makers?.length > 0);
           if (tab === 'recarburizer') return !!(
             parsed.china_price?.price_range_text || parsed.china_price?.fob_qinhuangdao ||
             parsed.global_market?.headline || parsed.market_summary
