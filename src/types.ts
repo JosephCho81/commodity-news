@@ -147,28 +147,27 @@ export interface RecarburizerData extends ApiMeta {
 export interface IndustryStatus {
   direction: Direction;
   status: string;
-  basis: string;
-  reason?: string;
-  outlook?: string;
+  reason: string;
+  outlook: string;
 }
 
 export interface DomesticMaker {
   name: string;
   recent_issues: string;
-  production_trend: string;
-  cost_factors: string;
-  demand_sales: string;
-  raw_material_impact: string;
+  direction: Direction;
+  status: string;
+  reason: string;
+  outlook: string;
 }
 
 export interface OverseasMaker {
   country: string;
   makers: string;
   recent_issues: string;
-  production_trend: string;
-  cost_factors: string;
-  demand_sales: string;
-  raw_material_impact: string;
+  direction: Direction;
+  status: string;
+  reason: string;
+  outlook: string;
 }
 
 export interface SteelmakerData extends ApiMeta {
@@ -180,12 +179,7 @@ export interface SteelmakerData extends ApiMeta {
     auto: IndustryStatus;
     shipbuilding: IndustryStatus;
   };
-  raw_material_forecast: {
-    summary: string;
-    deoxidizer: string;
-    ferroalloy: string;
-    recarburizer: string;
-  };
+  raw_material_forecast: string;
 }
 
 // ─── 시황 종합 ───────────────────────────────────────────────────────────────
