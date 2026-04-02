@@ -66,12 +66,21 @@ export interface FerroItem {
   non_china_producers?: FerroProducer[];
 }
 
+export interface FerroMarketSummary {
+  fesi?: string;
+  femn?: string;
+  simn?: string;
+  intl_context?: string;
+  non_china_summary?: string;
+  outlook?: string;
+}
+
 export interface FerroalloyData extends ApiMeta {
   exchange_rate_cny_usd?: number;  // 1 CNY = X USD (서버에서 주입)
   fesi: FerroItem;
   femn: FerroItem;
   simn: FerroItem;
-  market_summary: string;
+  market_summary: FerroMarketSummary | string;
   key_issues?: Array<{
     title: string;
     what: string;

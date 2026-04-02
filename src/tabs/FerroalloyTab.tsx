@@ -2,6 +2,49 @@ import type { FerroalloyData, FerroItem, FerroProducer, SteelSignal, Direction }
 import { SectionCard, TextBlock } from '../components/ui';
 import { KeyIssuesSection } from '../components/KeyIssues';
 
+// ─── 합금철 시장 종합 ─────────────────────────────────────────────────────────
+
+type MarketSummaryData = {
+  fesi?: string;
+  femn?: string;
+  simn?: string;
+  intl_context?: string;
+  non_china_summary?: string;
+  outlook?: string;
+} | string | null | undefined;
+
+const SUMMARY_ROWS: Array<{ key: string; label: string; labelCls: string }> = [
+  { key: 'fesi',              label: '페로실리콘',       labelCls: 'ki-what'   },
+  { key: 'femn',              label: '페로망간',         labelCls: 'ki-why'    },
+  { key: 'simn',              label: '실리망간',         labelCls: 'ki-impact' },
+  { key: 'intl_context',      label: '국제 정세',        labelCls: 'ki-outlook'},
+  { key: 'non_china_summary', label: '비중국 생산',      labelCls: 'ki-what'   },
+  { key: 'outlook',           label: '단기 전망',        labelCls: 'ki-outlook'},
+];
+
+function MarketSummary({ summary }: { summary: MarketSummaryData }) {
+  if (!summary) return null;
+
+  // 구형 캐시: 문자열로 왔을 때
+  if (typeof summary === 'string') {
+    return <TextBlock text={summary} />;
+  }
+
+  const obj = summary as Record<string, string>;
+  return (
+    <div className="market-summary-list">
+      {SUMMARY_ROWS.map(({ key, label, labelCls }) =>
+        obj[key] ? (
+          <div key={key} className="maker-info-row">
+            <span className={`maker-info-label ${labelCls}`}>{label}</span>
+            <span className="maker-info-text">{obj[key]}</span>
+          </div>
+        ) : null
+      )}
+    </div>
+  );
+}
+
 // ─── 헬퍼 ────────────────────────────────────────────────────────────────────
 
 function dirArrow(dir: Direction) {
@@ -219,7 +262,7 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
         <div className="ferro-top-grid">
           <TopCard abbr="FeSi" name="페로실리콘" item={fesi} />
           <TopCard abbr="FeMn" name="페로망간"   item={femn} />
-          <TopCard abbr="SiMn" name="실리콘망간" item={simn} />
+          <TopCard abbr="SiMn" name="실리망간" item={simn} />
         </div>
         {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
       </div>
@@ -231,7 +274,7 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
       <FerroItemCard name="실리망간"   abbr="SiMn" item={simn} accent="SiMn" />
 
       <SectionCard title="합금철 시장 종합" accent="SUM">
-        <TextBlock text={market_summary} />
+        <MarketSummary summary={market_summary} />
       </SectionCard>
     </div>
   );
