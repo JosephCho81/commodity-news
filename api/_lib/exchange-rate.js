@@ -54,6 +54,54 @@ export async function fetchCNYUSDRate(token, { saveToFirestore, getFromFirestore
 }
 
 /**
+ * USD/KRW 환율 반환 (1 USD = X KRW)
+ * 하루 1회 Firestore 캐시 사용, 실패 시 fallback
+ */
+export async function fetchUSDKRWRate(token, { saveToFirestore, getFromFirestore } = {}) {
+  const today = getKSTDate();
+  const docId = `USD_KRW_${today}`;
+
+  if (token && getFromFirestore) {
+    try {
+      const cached = await getFromFirestore(token, 'exchange_rate', docId);
+      if (cached?.rate) {
+        const rate = parseFloat(cached.rate);
+        if (rate > 0) {
+          console.log(`[ExRate] KRW 캐시 HIT: 1 USD = ${rate} KRW`);
+          return rate;
+        }
+      }
+    } catch (e) {
+      console.warn('[ExRate] KRW 캐시 읽기 실패:', e.message);
+    }
+  }
+
+  try {
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=KRW', {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const rate = data.rates?.KRW;
+    if (!rate || typeof rate !== 'number') throw new Error('rates.KRW 없음');
+
+    console.log(`[ExRate] KRW API 성공: 1 USD = ${rate} KRW`);
+
+    if (token && saveToFirestore) {
+      saveToFirestore(token, 'exchange_rate', docId, {
+        rate: String(rate),
+        date: today,
+      }).catch(e => console.warn('[ExRate] KRW 저장 실패:', e.message));
+    }
+
+    return rate;
+  } catch (e) {
+    console.warn(`[ExRate] KRW API 실패, fallback 사용: ${e.message}`);
+    return 1480; // fallback ≈ 현재 시세
+  }
+}
+
+/**
  * CNY 숫자값을 USD로 변환
  * @param {string|number} val - "5950" or 5950 or "5,950"
  * @param {number} rate - 1 CNY = X USD (예: 0.1379)

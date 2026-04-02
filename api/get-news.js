@@ -13,7 +13,7 @@ import {
 
 import { callPerplexity, parseJSON } from './_lib/perplexity.js';
 import { fetchLmePrice, fetchAluminumOutlook, fetchScrapPrices, fetchJapanScrapPrices } from './_lib/aluminum-data.js';
-import { fetchCNYUSDRate, cnyToUsd } from './_lib/exchange-rate.js';
+import { fetchCNYUSDRate, fetchUSDKRWRate, cnyToUsd } from './_lib/exchange-rate.js';
 import { getAluminumPrompt }    from './_prompts/aluminum.js';
 import { getFerroalloyPrompt }  from './_prompts/ferroalloy.js';
 import { getRecarburizerPrompt } from './_prompts/recarburizer.js';
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
     // ── 3. 탭별 사전 데이터 fetch ─────────────────────────────────────────
     let lmeData = null, outlookText = null, scrapPrices = null, japanScrap = null;
     let prevAluminum = null, prevFerroalloy = null, prevRecarburizer = null, prevSteelmaker = null;
-    let exchangeRate = null;
+    let exchangeRate = null, krwRate = null;
 
     if (tab === 'aluminum') {
       [lmeData, outlookText, scrapPrices, japanScrap, prevAluminum] = await Promise.all([
@@ -133,7 +133,10 @@ export default async function handler(req, res) {
       prevRecarburizer = await fetchPrevDayData(token, 'recarburizer');
     }
     if (tab === 'steelmaker') {
-      prevSteelmaker = await fetchPrevDayData(token, 'steelmaker');
+      [krwRate, prevSteelmaker] = await Promise.all([
+        fetchUSDKRWRate(token, { saveToFirestore, getFromFirestore }),
+        fetchPrevDayData(token, 'steelmaker'),
+      ]);
     }
 
     // ── 4. summary 탭: 각 탭 캐시 데이터 주입 ────────────────────────────
@@ -225,6 +228,14 @@ export default async function handler(req, res) {
       prompt += `전일 러시아 FOB: ${p.russia_price?.fob_murmansk ?? p.russia_price?.price_range_text ?? 'N/A'} USD/MT\n`;
       prompt += `전일 시장 요약: ${p.market_summary?.slice(0, 100) ?? 'N/A'}\n`;
       prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전월 수준 유지" 명시.\n`;
+    }
+
+    // steelmaker KRW/USD 환율 주입
+    if (tab === 'steelmaker' && krwRate) {
+      const krwFormatted = Math.round(krwRate).toLocaleString('ko-KR');
+      prompt += `\n\n【실시간 환율 데이터 — cost_factors 작성 시 반드시 아래 값 사용】\n`;
+      prompt += `USD/KRW: 1 USD = ${krwFormatted}원 (${getKSTDate()} 기준, frankfurter.app 실시간)\n`;
+      prompt += `→ cost_factors에서 환율 언급 시 위 수치 사용. 다른 환율 수치 절대 금지.\n`;
     }
 
     // aluminum 실시간 데이터 주입

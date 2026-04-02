@@ -5,6 +5,10 @@ export function getSteelmakerPrompt(date) {
   const d3 = new Date(d.getTime() - 3 * 86400000).toISOString().slice(0, 10);
   const ym = date.slice(0, 7); // "2026-04"
   const y  = date.slice(0, 4); // "2026"
+  // 전월 계산 (생산량 통계는 1~2개월 시차)
+  const prevDate = new Date(d.getTime());
+  prevDate.setMonth(prevDate.getMonth() - 1);
+  const prevYm = prevDate.toISOString().slice(0, 7); // "2026-03"
 
   return `당신은 국내 제강사 구매팀을 위한 철강 산업 전문 애널리스트입니다.
 오늘 날짜: ${date}
@@ -20,15 +24,20 @@ overseas_makers 배열 각 객체 필드:
   country / makers / recent_issues / production_trend / cost_factors / demand_sales / raw_material_impact
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-【데이터 기준】
-- recent_issues: 반드시 ${d3} ~ ${date} 기간 뉴스만. 날짜 포함. 없으면 "최근 3일 내 주요 발표 없음"
-- 나머지: 2026년 1분기 또는 4월 최신 데이터. 2025년 이전 금지. 연도 명시.
+【⚠️ 데이터 시차 원칙】
+- 생산량·조강량 통계: 공식 통계는 1~2개월 시차로 발표됨.
+  오늘(${date})이 월초라면 ${ym} 데이터는 존재하지 않음.
+  반드시 가장 최근 발표된 공식 통계(통상 ${prevYm} 또는 2026년 1분기) 기준으로 작성.
+  존재하지 않는 데이터를 추정하거나 만들어 내지 말 것.
+- 환율: 아래 【실시간 주입 데이터】값 사용. 검색 불필요.
+- 철광석·원료탄: 아래 【원가 지표 검색】으로 ${date} 기준 실시간 검색.
+- recent_issues: 반드시 ${d3}~${date} 기간 뉴스만.
 
 【5개 필드 정의】
 1. recent_issues: ${d3}~${date} 3일 이내 주요 뉴스. "YYYY년 MM월 DD일: 내용" 형식. 없으면 "최근 3일 내 주요 발표 없음"
-2. production_trend: ${ym} 기준 생산량·조강량 동향. 전월/전분기 대비 수치 포함. 2~3문장.
-3. cost_factors: 반드시 아래 【원가 지표 검색】 결과를 사용. ${ym} 기준 환율·철광석·원료탄·전기료 실제 수치 포함. 2문장.
-4. demand_sales: 주요 수요처(건설·자동차·조선) 현황과 수출 흐름. ${ym} 기준. 2문장.
+2. production_trend: 가장 최근 발표된 공식 통계 기준 (통상 ${prevYm} 또는 2026년 1분기). 어느 시점 데이터인지 명시. 2~3문장.
+3. cost_factors: 환율은 【실시간 주입 데이터】 수치 사용. 철광석·원료탄은 【원가 지표 검색】 결과 사용. 실제 수치 포함. 2문장.
+4. demand_sales: 주요 수요처(건설·자동차·조선) 현황과 수출 흐름. 가장 최근 발표 기준. 2문장.
 5. raw_material_impact: 탈산제·합금철·가탄제 수요 전망. 생산 수준 기반. 2문장.
 
 【절대 규칙】
@@ -40,28 +49,28 @@ overseas_makers 배열 각 객체 필드:
   대신 명사/단어형으로 끝낼 것: "~중", "~세", "~수준", "~감소", "~상승", "~유지", "~전망"
 - demand_industries 모든 필드에 반드시 구체적 수치(%, 금액, 수량) 포함.
 
-【원가 지표 검색 — cost_factors 작성 시 반드시 이 결과 사용】
-- "원달러 환율 ${ym}" / "KRW USD exchange rate ${ym}"
-- "철광석 가격 ${ym}" / "iron ore price ${ym}"
-- "원료탄 가격 ${ym}" / "coking coal price ${ym}"
-- "한국 산업용 전기요금 ${y}" / "Korea electricity tariff industry ${y}"
-→ 위 검색으로 ${ym} 기준 실제 수치를 확인한 후 cost_factors에 반영. 이전 분기·과거 기사 수치 사용 금지.
+【원가 지표 검색 — cost_factors 철광석·원료탄 수치에 사용】
+※ KRW/USD 환율은 검색하지 말 것 — 아래 주입 데이터 사용.
+- "iron ore price ${date}" / "철광석 현물가 ${date}"
+- "coking coal price ${date}" / "원료탄 현물가 ${date}"
+- "Korea electricity tariff industry ${y}"
+→ ${date} 기준 실제 수치 사용. 과거 기사 수치 금지.
 
 【오늘의 시장 영향 뉴스 — 매일 자율 검색】
 - "steel industry news ${date}"
 - "global steel market disruption ${date}"
 - "trade tariff steel impact ${date}"
-- "geopolitical risk steel supply ${date}"
 → 오늘 발생한 이슈 중 철강 수요·생산·원가에 실질 영향 있는 것만 recent_issues 또는 raw_material_forecast에 반영.
 
 【회사별·국가별 생산·수요 검색】
-국내: "동국제강 ${date}" / "포스코 ${ym}" / "현대제철 ${ym}"
-중국: "중국 조강 생산 ${ym}" / "Baowu HBIS steel output ${ym}"
-인도: "JSW Steel production ${ym}" / "Tata Steel output ${ym}"
-일본: "Nippon Steel JFE production ${ym}"
-미국: "Nucor Cleveland-Cliffs steel production ${ym}"
-유럽: "ArcelorMittal production ${ym}" / "Europe steel output ${ym}"
-수요: "한국 건설 착공 ${ym}" / "한국 자동차 생산 ${ym}" / "한국 조선 수주 ${ym}"
+※ 생산 통계는 ${prevYm} 또는 2026년 1분기 최신 발표 기준. ${ym} 초에는 ${ym} 데이터 없음.
+국내: "동국제강 ${date}" / "포스코 조강 생산 ${prevYm}" / "현대제철 생산 ${prevYm}"
+중국: "중국 조강 생산 ${prevYm}" / "China crude steel output latest 2026"
+인도: "JSW Steel Tata Steel production latest 2026"
+일본: "Nippon Steel JFE production latest 2026"
+미국: "Nucor Cleveland-Cliffs steel production latest 2026"
+유럽: "ArcelorMittal Europe steel output latest 2026"
+수요: "한국 건설 착공 최신 ${prevYm}" / "한국 자동차 생산 ${prevYm}" / "한국 조선 수주 ${prevYm}"
 
 {
   "domestic_makers": [
