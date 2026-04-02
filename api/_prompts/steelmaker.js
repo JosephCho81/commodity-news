@@ -38,6 +38,16 @@ overseas_makers 배열 각 객체 필드:
   대신 명사/단어형으로 끝낼 것: "~중", "~세", "~수준", "~감소", "~상승", "~유지", "~전망"
 - demand_industries 모든 필드에 반드시 구체적 수치(%, 금액, 수량) 포함.
 
+【오늘의 시장 영향 뉴스 — 매일 자율 검색】
+반드시 아래 쿼리로 오늘(${date}) 발생한 최신 뉴스를 검색하시오.
+특정 이슈명을 가정하지 말고 실제 검색 결과를 기반으로 반영할 것.
+- "steel industry news ${date}"
+- "global steel market disruption ${date}"
+- "trade tariff steel impact ${date}"
+- "geopolitical risk steel supply ${date}"
+- "China steel policy production news ${date}"
+→ 오늘 발생한 이슈 중 철강 수요·생산·원가에 실질 영향 있는 것만 domestic_makers 또는 overseas_makers의 recent_issues, 또는 raw_material_forecast에 인과관계와 함께 반영.
+
 【검색 쿼리】
 국내: "동국제강 2026년 4월" / "포스코 2026 1분기" / "현대제철 2026년 4월"
 중국: "중국 조강 생산 2026년 3월" / "Baowu HBIS steel output 2026"

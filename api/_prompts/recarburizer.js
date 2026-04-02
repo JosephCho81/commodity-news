@@ -18,6 +18,16 @@ export function getRecarburizerPrompt(date) {
 4. 이 보고서는 반드시 무연탄(Anthracite)만 다룸. 유연탄·열탄·원료탄·갈탄 금지.
 5. 각주 번호 절대 금지. 한국어 작성.
 
+【오늘의 시장 영향 뉴스 — 매일 자율 검색】
+반드시 아래 쿼리로 오늘(${date}) 발생한 최신 뉴스를 검색하시오.
+특정 이슈명을 가정하지 말고 실제 검색 결과를 기반으로 반영할 것.
+- "anthracite coal market news ${date}"
+- "China coal export policy news ${date}"
+- "Russia coal sanctions shipping ${date}"
+- "bulk shipping freight disruption ${date}"
+- "energy coal supply disruption ${date}"
+→ 오늘 발생한 이슈 중 무연탄 가격·공급·운임에 실질 영향 있는 것만 key_issues 또는 global_market에 인과관계와 함께 반영.
+
 【중국 무연탄 가격 검색 — 반드시 아래 순서로 모두 시도】
 1. "China anthracite FOB Qinhuangdao price 2026"
 2. "Jincheng Lu'an Yangquan anthracite export price 2026"

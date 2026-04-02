@@ -29,6 +29,16 @@ export function getFerroalloyPrompt(date) {
 8. 문장 종결어미 금지: "~이다", "~했다", "~있다", "~된다" 사용 금지. "~세", "~중", "~수준", "~감소", "~상승"으로 끝낼 것.
 9. 모든 수치는 천단위 콤마 표기 (예: 5,950 / 12,000톤).
 
+【오늘의 시장 영향 뉴스 — 매일 자율 검색】
+반드시 아래 쿼리로 오늘(${date}) 발생한 최신 뉴스를 검색하시오.
+특정 이슈명을 가정하지 말고 실제 검색 결과를 기반으로 반영할 것.
+- "ferroalloy metals market news ${date}"
+- "geopolitical risk commodity supply ${date}"
+- "China metals export policy news ${date}"
+- "energy cost metals production impact ${date}"
+- "steel raw materials supply disruption ${date}"
+→ 오늘 발생한 이슈 중 FeSi·FeMn·SiMn 가격·공급에 실질 영향 있는 것만 key_issues 또는 market_summary의 intl_context에 인과관계와 함께 반영.
+
 【검색 — FeSi 75 가격】
 - "ferrosilicon 75 China domestic price ${ym}"
 - "HBIS ferrosilicon bidding price ${ym}"

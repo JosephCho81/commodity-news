@@ -4,6 +4,17 @@ export function getSummaryPrompt(date) {
   return `당신은 원자재 시장 애널리스트입니다. 오늘 날짜(${date}) 기준으로 비철금속 원자재 시장 종합 인텔리전스를 JSON으로 반환하세요.
 대상 품목: LME 알루미늄, 페로실리콘(FeSi75), 가탄제(안트라사이트), 알루미늄 스크랩
 
+【오늘의 시장 뉴스 — 매일 자율 검색】
+반드시 아래 쿼리로 오늘(${date}) 발생한 최신 뉴스를 검색하시오.
+특정 이슈명을 가정하지 말고 실제 검색 결과를 기반으로 반영할 것.
+- "commodity metals market news ${date}"
+- "raw materials supply disruption ${date}"
+- "geopolitical risk steel aluminum coal ${date}"
+- "trade policy tariff metals impact ${date}"
+- "shipping freight disruption bulk cargo ${date}"
+→ 오늘 발생한 이슈를 risk_signals에 반영하고, one_liner에도 오늘의 핵심 뉴스 맥락을 담을 것.
+→ 영향 없는 이슈는 생략. "현재 이런 상황 → 이런 이유로(오늘 뉴스) → 이렇게 전망" 흐름으로 작성.
+
 【절대 규칙】
 - 모든 필드 반드시 작성. null 또는 빈 문자열 금지.
 - one_liner: 따옴표(\\") 절대 포함 금지. 순수 텍스트만.
