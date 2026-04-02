@@ -36,7 +36,7 @@ function MarketSummary({ summary }: { summary: MarketSummaryData }) {
       {SUMMARY_ROWS.map(({ key, label, labelCls }) =>
         obj[key] ? (
           <div key={key} className="maker-info-row">
-            <span className={`maker-info-label ${labelCls}`}>{label}</span>
+            <span className={`maker-info-label ${labelCls} summary-label-fixed`}>{label}</span>
             <span className="maker-info-text">{obj[key]}</span>
           </div>
         ) : null
@@ -80,8 +80,7 @@ function TopCard({ abbr, name, item }: { abbr: string; name: string; item: Ferro
 
   return (
     <div className="ferro-top-card">
-      <div className="ferro-top-abbr">{abbr}</div>
-      <div className="ferro-top-name">{name}</div>
+      <div className="ferro-top-name">{name} ({abbr})</div>
       <div className="ferro-top-price-row">
         {item.price_usd ? (
           <span className="ferro-top-usd">USD {item.price_usd}</span>

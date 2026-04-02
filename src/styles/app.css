@@ -445,7 +445,7 @@ body {
   display: flex; flex-direction: column; gap: 3px;
 }
 .ferro-top-abbr  { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--green-dark); }
-.ferro-top-name  { font-family: var(--sans); font-size: 10px; color: var(--text3); }
+.ferro-top-name  { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--green-dark); }
 .ferro-top-price-row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
 .ferro-top-usd   { font-size: 13px; font-weight: 600; color: var(--text); font-family: var(--sans); }
 .ferro-top-usd small { font-size: 9px; color: var(--text3); font-weight: 400; margin-left: 1px; }
@@ -571,6 +571,7 @@ body {
   white-space: nowrap; font-family: var(--mono);
 }
 .maker-info-text { font-size: 12px; color: var(--text); line-height: 1.65; }
+.summary-label-fixed { min-width: 68px; text-align: center; }
 .maker-impact-box {
   display: flex; gap: 8px; align-items: flex-start;
   background: var(--green-subtle); border-radius: 3px; padding: 6px 10px;
