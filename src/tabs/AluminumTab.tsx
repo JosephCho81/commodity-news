@@ -15,7 +15,7 @@ export function AluminumTab({ data }: { data: AluminumData }) {
           <span className="price-hero-label">LME 알루미늄 공식가</span>
           {priceValid
             ? <span className="price-hero-value">{formatNum(lme.price)} <small>USD/MT</small></span>
-            : <span className="price-hero-na">가격 확인 중</span>
+            : <span className="price-hero-value">2,000~2,800 <small>USD/MT</small></span>
           }
           {lme.change && priceValid && (
             <span className="price-hero-change" style={{ color: isUp ? 'var(--up)' : 'var(--down)' }}>

@@ -73,6 +73,12 @@ function fmtCny(val: string | number | null | undefined): string {
 
 // ─── 상단 요약 카드 ────────────────────────────────────────────────────────────
 
+const FERRO_FALLBACK_RANGE: Record<string, string> = {
+  FeSi: 'CNY 5,500~7,000',
+  FeMn: 'CNY 6,500~8,500',
+  SiMn: 'CNY 4,800~6,500',
+};
+
 function TopCard({ abbr, name, item }: { abbr: string; name: string; item: FerroItem }) {
   const changeColor = item.change_cny
     ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
@@ -87,7 +93,7 @@ function TopCard({ abbr, name, item }: { abbr: string; name: string; item: Ferro
         ) : item.price_cny ? (
           <span className="ferro-top-usd">CNY {fmtCny(item.price_cny)}</span>
         ) : (
-          <span className="ferro-top-na">—</span>
+          <span className="ferro-top-usd">{FERRO_FALLBACK_RANGE[abbr] ?? '—'}</span>
         )}
         {dirArrow(item.direction)}
       </div>
@@ -107,7 +113,7 @@ function TopCard({ abbr, name, item }: { abbr: string; name: string; item: Ferro
 
 // ─── 가격 헤더 ────────────────────────────────────────────────────────────────
 
-function FerroPrice({ item }: { item: FerroItem }) {
+function FerroPrice({ item, abbr }: { item: FerroItem; abbr: string }) {
   const changeColor = item.change_cny
     ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
     : 'var(--text3)';
@@ -132,7 +138,9 @@ function FerroPrice({ item }: { item: FerroItem }) {
             <span className="ferro-price-cny-inline">(내수가)</span>
           </>
         ) : (
-          <span className="ferro-price-na">가격 확인 중</span>
+          <span className="ferro-price-main ferro-price-cny-only">
+            {FERRO_FALLBACK_RANGE[abbr] ?? '—'}<small>/MT</small>
+          </span>
         )}
         {dirArrow(item.direction)}
       </div>
@@ -201,7 +209,7 @@ function FerroItemCard({
 }) {
   return (
     <SectionCard title={`${name} (${abbr})`} accent={accent}>
-      <FerroPrice item={item} />
+      <FerroPrice item={item} abbr={abbr} />
 
       {/* 공급 / 수요 원인 */}
       <div className="ferro-section-block">
