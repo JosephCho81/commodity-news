@@ -22,10 +22,12 @@ export function getFerroalloyPrompt(date) {
 1. price_cny: 숫자만 (예: 5950). null/미확인/데이터 없음 금지.
 2. direction: UP / DOWN / NEUTRAL 중 하나만.
 3. steel_signal: DEMAND_STRONG / DEMAND_WEAK / SUPPLY_SHOCK / MIXED 중 하나만.
-4. non_china_producers: 각 품목별 반드시 3~4개국 작성. 없으면 "정보 없음" 금지, 최근 알려진 현황 작성.
+4. non_china_producers: 각 품목별 반드시 3~4개국 작성. issue/cause/outlook 모두 구체적 수치(생산량 톤, 가동률%, 전년比%, 가격) 포함.
 5. key_issues: 실제 시장 이슈 2개. "데이터 부재" 금지. 가격 방향·공급 변화·수요 변화 중 실제 이슈.
 6. market_summary: 3개 품목 종합 반드시 작성. 3~4문장.
 7. 각주 번호 [1][2] 금지. 한국어.
+8. 문장 종결어미 금지: "~이다", "~했다", "~있다", "~된다" 사용 금지. "~세", "~중", "~수준", "~감소", "~상승"으로 끝낼 것.
+9. 모든 수치는 천단위 콤마 표기 (예: 5,950 / 12,000톤).
 
 【검색 — FeSi 75 가격】
 - "ferrosilicon 75 China domestic price ${ym}"
@@ -46,14 +48,27 @@ export function getFerroalloyPrompt(date) {
 - "SMM SiMn market ${ym}"
 - "OM Materials SiMn price ${y}"
 
-【검색 — 비중국 생산국】
-- "Elkem ferrosilicon production ${y}" (노르웨이)
-- "Russia ferrosilicon ferroalloy production ${y}"
-- "Malaysia OM Materials silicon manganese ${y}"
-- "Kazakhstan TNC Kazchrome ferromanganese ${y}"
-- "South Africa Samancor ferromanganese ${y}"
-- "India IMFA ferrosilicon ${y}"
-- "non-China ferroalloy supply ${y}"
+【검색 — FeSi 비중국 생산국 (생산량·이슈·수치 필수)】
+- "Elkem ferrosilicon production output ${y} tonnes"
+- "Elkem ferrosilicon plant shutdown curtailment ${y}"
+- "Russia ferrosilicon export ban sanctions ${y}"
+- "ChEZ Chelyabinsk Electrode ferrosilicon ${y}"
+- "IMFA India ferrosilicon production ${y} MT"
+- "Brazil ferrosilicon output ${y}"
+
+【검색 — FeMn 비중국 생산국 (생산량·이슈·수치 필수)】
+- "TNC Kazchrome ferromanganese output ${y} thousand tonnes"
+- "Samancor South Africa ferromanganese production ${y}"
+- "Eramet Gabon manganese ore output ${y}"
+- "MOIL India manganese ore ferromanganese ${y}"
+- "Ukraine ferromanganese production war impact ${y}"
+
+【검색 — SiMn 비중국 생산국 (생산량·이슈·수치 필수)】
+- "OM Materials Malaysia SiMn production ${y} MT"
+- "OM Materials silicon manganese plant capacity ${y}"
+- "India SiMn silicon manganese output ${y}"
+- "TNC Kazchrome SiMn production ${y}"
+- "Vietnam Indonesia silicon manganese output ${y}"
 
 {
   "fesi": {
@@ -69,27 +84,27 @@ export function getFerroalloyPrompt(date) {
     "non_china_producers": [
       {
         "country": "노르웨이", "company": "Elkem",
-        "issue": "${y} 최신 이슈 1문장 (가동 중단·생산 변화·수출 계약 등)",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "issue": "생산량 수치 포함 최신 이슈. 예: '${y} 1분기 생산량 X만톤, 전년比 Y% 변화' 또는 가동 중단·재가동 이슈. 종결어미 금지",
+        "cause": "에너지 비용·수요 부진·설비 점검 등 원인. 수치 포함. 종결어미 금지",
+        "outlook": "생산 전망 수치 또는 조건 포함. 종결어미 금지"
       },
       {
-        "country": "러시아", "company": "ChEZ 등",
-        "issue": "${y} 최신 이슈 1문장 (제재·수출·생산 변화 등)",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "country": "러시아", "company": "ChEZ·RUSAL 등",
+        "issue": "수출량·생산량 수치 포함. 제재 영향 또는 수출 현황. 종결어미 금지",
+        "cause": "서방 제재·루블화 약세·에너지 비용 등 원인. 수치 포함. 종결어미 금지",
+        "outlook": "수출 방향 또는 생산 전망. 종결어미 금지"
       },
       {
-        "country": "인도", "company": "IMFA 등",
-        "issue": "${y} 최신 이슈 1문장",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "country": "인도", "company": "IMFA·Shyam Ferro 등",
+        "issue": "생산량·가동률 수치 포함 이슈. 종결어미 금지",
+        "cause": "전력비·원료(규석·코크스) 가격·수요 등 원인. 종결어미 금지",
+        "outlook": "생산 또는 수출 전망. 종결어미 금지"
       },
       {
-        "country": "브라질·남아공", "company": "주요 생산사",
-        "issue": "${y} 최신 이슈 1문장",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "country": "브라질", "company": "Companhia Ferroligas 등",
+        "issue": "생산량·수출 수치 포함 이슈. 종결어미 금지",
+        "cause": "원인. 종결어미 금지",
+        "outlook": "전망. 종결어미 금지"
       }
     ]
   },
@@ -106,27 +121,27 @@ export function getFerroalloyPrompt(date) {
     "non_china_producers": [
       {
         "country": "카자흐스탄", "company": "TNC Kazchrome",
-        "issue": "${y} 최신 이슈 1문장 (생산량 변화·수출 계약·노사 분쟁 등)",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "issue": "생산량 수치 포함. 예: '${y} 1분기 FeMn X만톤, 전년比 Y%'. 수출 계약·생산 변동 이슈. 종결어미 금지",
+        "cause": "전력비·망간광석 원가·수요 등 원인. 수치 포함. 종결어미 금지",
+        "outlook": "생산·수출 전망. 수치 또는 조건 포함. 종결어미 금지"
       },
       {
         "country": "남아프리카", "company": "Samancor",
-        "issue": "${y} 최신 이슈 1문장 (가동·전력·수출 등)",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "issue": "생산량·가동률 수치 포함 이슈. 전력 문제·로드쉐딩 영향 포함. 종결어미 금지",
+        "cause": "Eskom 전력 공급 불안정·광석 원가·수출 물류 등 원인. 수치 포함. 종결어미 금지",
+        "outlook": "가동 전망 또는 생산 계획. 종결어미 금지"
       },
       {
-        "country": "인도", "company": "MOIL 등",
-        "issue": "${y} 최신 이슈 1문장",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "country": "인도", "company": "MOIL·VISA Steel 등",
+        "issue": "생산량·수출량 수치 포함 이슈. 종결어미 금지",
+        "cause": "망간광석 국내 가격·전력비 등 원인. 종결어미 금지",
+        "outlook": "생산 또는 수출 전망. 종결어미 금지"
       },
       {
-        "country": "가봉·우크라이나", "company": "주요 생산사",
-        "issue": "${y} 최신 이슈 1문장",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "country": "가봉", "company": "Eramet / Comilog",
+        "issue": "망간광석 생산·선적 수치 포함 이슈. 종결어미 금지",
+        "cause": "원인. 종결어미 금지",
+        "outlook": "전망. 종결어미 금지"
       }
     ]
   },
@@ -143,27 +158,27 @@ export function getFerroalloyPrompt(date) {
     "non_china_producers": [
       {
         "country": "말레이시아", "company": "OM Materials",
-        "issue": "${y} 최신 이슈 1문장 (가동·생산·수출 계약 등)",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "issue": "생산량 수치 포함. 예: '${y} 1분기 SiMn X만톤, 전년比 Y%'. 설비 가동·수출 계약 이슈. 종결어미 금지",
+        "cause": "전기료·망간광석·규석 원가·수요 등 원인. 수치 포함. 종결어미 금지",
+        "outlook": "생산·수출 전망. 수치 포함. 종결어미 금지"
       },
       {
-        "country": "인도", "company": "주요 생산사",
-        "issue": "${y} 최신 이슈 1문장",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "country": "인도", "company": "Nava Bharat·Ferro Alloys Corp 등",
+        "issue": "생산량·가동률 수치 포함 이슈. 종결어미 금지",
+        "cause": "망간광석 원가·전력비·내수 수요 등 원인. 종결어미 금지",
+        "outlook": "생산 또는 수출 전망. 종결어미 금지"
       },
       {
         "country": "카자흐스탄", "company": "TNC Kazchrome",
-        "issue": "${y} SiMn 최신 이슈 1문장",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "issue": "SiMn 생산량 수치 포함 이슈. 종결어미 금지",
+        "cause": "에너지 비용·원료 원가 등 원인. 종결어미 금지",
+        "outlook": "생산 전망. 종결어미 금지"
       },
       {
         "country": "베트남·인도네시아", "company": "주요 생산사",
-        "issue": "${y} 최신 이슈 1문장",
-        "cause": "원인 1문장",
-        "outlook": "단기 전망 1문장"
+        "issue": "생산량·수출 수치 포함 이슈. 종결어미 금지",
+        "cause": "원인. 종결어미 금지",
+        "outlook": "전망. 종결어미 금지"
       }
     ]
   },

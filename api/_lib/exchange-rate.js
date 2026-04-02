@@ -63,5 +63,7 @@ export function cnyToUsd(val, rate) {
   if (!val || !rate) return null;
   const num = parseFloat(String(val).replace(/,/g, ''));
   if (isNaN(num) || num <= 0) return null;
-  return (num * rate).toFixed(4);
+  const usd = num * rate;
+  // x,xxx.xx format (2 decimal, thousands separator)
+  return usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
