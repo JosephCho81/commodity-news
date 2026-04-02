@@ -30,6 +30,8 @@ demand_industries 각 객체: direction / status / reason / outlook
 - 각주 번호 [1][2] 절대 금지. 한국어.
 - 문장 종결어미 금지: "~이다", "~했다", "~있다", "~된다" → "~세", "~중", "~수준", "~전망"으로 끝낼 것.
 - recent_issues: ${d3}~${date} 기간 뉴스만. 없으면 "최근 3일 내 주요 발표 없음".
+- "부원료 수요 전망", "raw_material_forecast" 절대 금지. JSON 필드로도, 텍스트 내용에도 포함하지 말 것.
+- 아래 JSON 구조 외 추가 필드 생성 금지.
 
 【오늘의 시장 영향 뉴스 — 매일 자율 검색】
 - "steel industry news ${date}"
