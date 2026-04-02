@@ -94,14 +94,13 @@ function FerroPrice({ item }: { item: FerroItem }) {
         )}
         {dirArrow(item.direction)}
       </div>
-      <div className="ferro-meta-row">
-        {item.change_cny && (
+      {item.change_cny && (
+        <div className="ferro-meta-row">
           <span className="ferro-change" style={{ color: changeColor }}>
             전월比 {item.change_cny} CNY
           </span>
-        )}
-        <span className="ferro-ref-note">{item.reference}</span>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
