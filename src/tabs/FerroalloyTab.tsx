@@ -22,19 +22,7 @@ const SUMMARY_ROWS: Array<{ key: string; label: string; labelCls: string }> = [
   { key: 'outlook',           label: '단기 전망',        labelCls: 'ki-outlook'},
 ];
 
-const ITEM_PRICE_KEYS: Record<string, keyof Pick<FerroalloyData, 'fesi' | 'femn' | 'simn'>> = {
-  fesi: 'fesi',
-  femn: 'femn',
-  simn: 'simn',
-};
-
-function MarketSummary({
-  summary,
-  items,
-}: {
-  summary: MarketSummaryData;
-  items?: Pick<FerroalloyData, 'fesi' | 'femn' | 'simn'>;
-}) {
+function MarketSummary({ summary }: { summary: MarketSummaryData }) {
   if (!summary) return null;
 
   // 구형 캐시: 문자열로 왔을 때
@@ -45,22 +33,14 @@ function MarketSummary({
   const obj = summary as Record<string, string>;
   return (
     <div className="market-summary-list">
-      {SUMMARY_ROWS.map(({ key, label, labelCls }) => {
-        if (!obj[key]) return null;
-        const itemKey = ITEM_PRICE_KEYS[key];
-        const priceUsd = itemKey && items ? items[itemKey]?.price_usd : null;
-        return (
+      {SUMMARY_ROWS.map(({ key, label, labelCls }) =>
+        obj[key] ? (
           <div key={key} className="maker-info-row">
             <span className={`maker-info-label ${labelCls} summary-label-fixed`}>{label}</span>
-            <span className="maker-info-text">
-              {priceUsd && (
-                <span className="ferro-summary-price-badge">USD {priceUsd}/톤</span>
-              )}
-              {obj[key]}
-            </span>
+            <span className="maker-info-text">{obj[key]}</span>
           </div>
-        );
-      })}
+        ) : null
+      )}
     </div>
   );
 }
@@ -301,7 +281,7 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
       <FerroItemCard name="실리망간"   abbr="SiMn" item={simn} accent="SiMn" />
 
       <SectionCard title="합금철 시장 종합" accent="SUM">
-        <MarketSummary summary={market_summary} items={{ fesi, femn, simn }} />
+        <MarketSummary summary={market_summary} />
       </SectionCard>
     </div>
   );
