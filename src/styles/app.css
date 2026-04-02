@@ -25,7 +25,7 @@
   --medium:   #e67e22;
   --low:      #7a9485;
 
-  --mono:     'IBM Plex Mono', monospace;
+  --mono:     'Noto Sans KR', sans-serif;
   --sans:     'Noto Sans KR', sans-serif;
 
   --shadow-sm: 0 1px 4px rgba(31,168,60,0.07);
@@ -491,9 +491,9 @@ body {
 .cause-block { display: flex; flex-direction: column; gap: 8px; }
 .cause-row   { display: flex; gap: 8px; align-items: flex-start; }
 .cause-label {
-  flex-shrink: 0; font-size: 9px; font-weight: 700;
-  padding: 2px 6px; border-radius: 3px; margin-top: 2px;
-  white-space: nowrap; font-family: var(--mono);
+  flex-shrink: 0; font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 3px; margin-top: 2px;
+  white-space: nowrap; font-family: var(--sans);
 }
 .cause-supply { background: #fff8e8; color: #8a5a00; border: 1px solid #e8d080; }
 .cause-demand { background: #e8f5ec; color: #1a6b32; border: 1px solid #a3d9b3; }
@@ -505,7 +505,7 @@ body {
   display: flex; flex-direction: column; gap: 6px;
 }
 .ferro-signal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.ferro-signal-title  { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; }
+.ferro-signal-title  { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text2); }
 .ferro-signal-reason { font-size: 12px; color: var(--text); line-height: 1.65; }
 
 /* 비중국 생산국 */
@@ -514,8 +514,8 @@ body {
   padding-top: 8px;
 }
 .non-china-title {
-  font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
-  color: var(--text3); text-transform: uppercase;
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  color: var(--text2);
   margin-bottom: 6px;
 }
 .non-china-list { display: flex; flex-direction: column; gap: 8px; }
