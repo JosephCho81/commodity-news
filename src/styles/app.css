@@ -457,6 +457,12 @@ body {
   font-family: var(--mono); font-size: 9px; color: var(--text3);
   text-align: right; padding-top: 6px; border-top: 1px solid var(--border2); margin-top: 4px;
 }
+.ferro-summary-price-badge {
+  display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 4px; padding: 1px 5px; margin-right: 6px; white-space: nowrap;
+}
 
 .ferro-dir { font-size: 11px; font-weight: 700; }
 .ferro-dir.up      { color: var(--up); }
