@@ -260,7 +260,7 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
   const { fesi, femn, simn, market_summary, exchange_rate_cny_usd, exchange_rate_date } = data;
 
   const rateLabel = exchange_rate_cny_usd
-    ? `환율: 1 CNY = ${exchange_rate_cny_usd.toFixed(4)} USD${exchange_rate_date ? ` (${exchange_rate_date} 고시)` : ''}`
+    ? `${exchange_rate_date ? exchange_rate_date + ' ' : ''}매매기준율: 1 CNY = ${exchange_rate_cny_usd.toFixed(4)} USD`
     : null;
 
   return (
