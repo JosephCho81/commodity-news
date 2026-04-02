@@ -182,7 +182,7 @@ export function getFerroalloyPrompt(date) {
       }
     ]
   },
-  "market_summary": "FeSi·FeMn·SiMn 3개 품목 종합 브리핑. 전반적 방향, 주요 공급·수요 요인, 비중국 생산 동향, 단기 전망. 3~4문장.",
+  "market_summary": "아래 6개 항목을 모두 포함하여 작성. 각 항목 1~2문장. 종결어미(~이다/했다/있다) 금지.\n① FeSi 현황: 가격 수준·방향·주요 공급수요 원인 요약\n② FeMn 현황: 가격 수준·방향·망간광석 원가·주요 요인 요약\n③ SiMn 현황: 가격 수준·방향·주요 요인 요약\n④ 국제 정세 영향: 미·중 관세, 러시아 제재, 에너지 가격 등 합금철 시장 직접 영향\n⑤ 비중국 생산 동향: Elkem·TNC Kazchrome·OM Materials 등 주요 비중국 생산지 현 상황 종합\n⑥ 단기 전망: 향후 4주 가격 방향과 핵심 변수",
   "key_issues": [
     {
       "title": "10자 이내 핵심 이슈 제목 (예: 닝샤 FeSi 감산)",

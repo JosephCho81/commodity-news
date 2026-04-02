@@ -213,8 +213,8 @@ body {
   display: flex; flex-direction: column; gap: 4px;
 }
 .outlook-label {
-  font-family: var(--mono); font-size: 9px; font-weight: 600;
-  color: var(--green-primary); letter-spacing: 1.5px; text-transform: uppercase;
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  color: var(--green-dark);
 }
 .outlook-text { font-size: 12px; color: var(--text); line-height: 1.7; }
 
@@ -499,9 +499,14 @@ body {
 .cause-demand { background: #e8f5ec; color: #1a6b32; border: 1px solid #a3d9b3; }
 .cause-text   { font-size: 12px; color: var(--text); line-height: 1.65; }
 
-.ferro-signal-block {
+/* 섹션 간 구분 블록 — 위 공백 + 구분선 */
+.ferro-section-block {
   border-top: 1px solid var(--border2);
-  padding-top: 10px;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.ferro-signal-block {
   display: flex; flex-direction: column; gap: 6px;
 }
 .ferro-signal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -510,8 +515,7 @@ body {
 
 /* 비중국 생산국 */
 .non-china-block {
-  border-top: 1px solid var(--border2);
-  padding-top: 8px;
+  /* border-top은 부모 .ferro-section-block이 담당 */
 }
 .non-china-title {
   font-family: var(--sans); font-size: 11px; font-weight: 700;

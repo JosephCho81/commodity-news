@@ -161,18 +161,22 @@ function FerroItemCard({
     <SectionCard title={`${name} (${abbr})`} accent={accent}>
       <FerroPrice item={item} />
 
-      <div className="cause-block">
-        <div className="cause-row">
-          <span className="cause-label cause-supply">공급</span>
-          <span className="key-issue-text">{item.supply_cause}</span>
-        </div>
-        <div className="cause-row">
-          <span className="cause-label cause-demand">수요</span>
-          <span className="key-issue-text">{item.demand_cause}</span>
+      {/* 공급 / 수요 원인 */}
+      <div className="ferro-section-block">
+        <div className="cause-block">
+          <div className="cause-row">
+            <span className="cause-label cause-supply">공급</span>
+            <span className="key-issue-text">{item.supply_cause}</span>
+          </div>
+          <div className="cause-row">
+            <span className="cause-label cause-demand">수요</span>
+            <span className="key-issue-text">{item.demand_cause}</span>
+          </div>
         </div>
       </div>
 
-      <div className="ferro-signal-block">
+      {/* 철강 업황 시그널 */}
+      <div className="ferro-section-block ferro-signal-block">
         <div className="ferro-signal-header">
           <span className="ferro-signal-title">철강 업황 시그널</span>
           <SteelSignalBadge signal={item.steel_signal} />
@@ -180,14 +184,20 @@ function FerroItemCard({
         <p className="key-issue-text">{item.steel_signal_reason}</p>
       </div>
 
+      {/* 비중국 주요 생산지 동향 */}
       {item.non_china_producers && item.non_china_producers.length > 0 && (
-        <NonChinaProducers producers={item.non_china_producers} />
+        <div className="ferro-section-block">
+          <NonChinaProducers producers={item.non_china_producers} />
+        </div>
       )}
 
+      {/* 시장 현황 종합 */}
       {item.context && (
-        <div className="outlook-box">
-          <span className="outlook-label">시장 현황</span>
-          <p className="key-issue-text">{item.context}</p>
+        <div className="ferro-section-block">
+          <div className="outlook-box">
+            <span className="outlook-label">시장 현황</span>
+            <p className="key-issue-text">{item.context}</p>
+          </div>
         </div>
       )}
     </SectionCard>
@@ -216,9 +226,9 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
 
       <KeyIssuesSection issues={(data as any).key_issues ?? []} />
 
-      <FerroItemCard name="페로실리콘" abbr="FeSi 75"   item={fesi} accent="FeSi" />
-      <FerroItemCard name="페로망간"   abbr="FeMn HC78" item={femn} accent="FeMn" />
-      <FerroItemCard name="실리콘망간" abbr="SiMn 6517" item={simn} accent="SiMn" />
+      <FerroItemCard name="페로실리콘" abbr="FeSi" item={fesi} accent="FeSi" />
+      <FerroItemCard name="페로망간"   abbr="FeMn" item={femn} accent="FeMn" />
+      <FerroItemCard name="실리망간"   abbr="SiMn" item={simn} accent="SiMn" />
 
       <SectionCard title="합금철 시장 종합" accent="SUM">
         <TextBlock text={market_summary} />
