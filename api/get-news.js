@@ -175,7 +175,11 @@ export default async function handler(req, res) {
           summaryContext += `FeSi: CNY ${fa.fesi?.price_cny ?? 'N/A'}/MT (USD ${fa.fesi?.price_usd ?? 'N/A'}/MT) ${fa.fesi?.direction ?? ''}\n`;
           summaryContext += `FeMn: CNY ${fa.femn?.price_cny ?? 'N/A'}/MT (USD ${fa.femn?.price_usd ?? 'N/A'}/MT) ${fa.femn?.direction ?? ''}\n`;
           summaryContext += `SiMn: CNY ${fa.simn?.price_cny ?? 'N/A'}/MT (USD ${fa.simn?.price_usd ?? 'N/A'}/MT) ${fa.simn?.direction ?? ''}\n`;
-          summaryContext += `종합: ${fa.market_summary ?? ''}\n`;
+          const faSummaryText = typeof fa.market_summary === 'string'
+            ? fa.market_summary
+            : [fa.market_summary?.fesi, fa.market_summary?.femn, fa.market_summary?.simn, fa.market_summary?.outlook]
+                .filter(Boolean).join(' ');
+          summaryContext += `종합: ${faSummaryText}\n`;
         }
 
         if (recData?.data) {
@@ -217,7 +221,10 @@ export default async function handler(req, res) {
       prompt += `전일 FeSi: CNY ${p.fesi?.price_cny ?? 'N/A'}/MT\n`;
       prompt += `전일 FeMn: CNY ${p.femn?.price_cny ?? 'N/A'}/MT\n`;
       prompt += `전일 SiMn: CNY ${p.simn?.price_cny ?? 'N/A'}/MT\n`;
-      prompt += `전일 종합: ${p.market_summary?.slice(0, 100) ?? 'N/A'}\n`;
+      const prevSummaryText = typeof p.market_summary === 'string'
+        ? p.market_summary.slice(0, 100)
+        : (p.market_summary?.fesi ?? p.market_summary?.outlook ?? 'N/A');
+      prompt += `전일 종합: ${prevSummaryText}\n`;
       prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전일 대비 보합" 명시.\n`;
     }
 
