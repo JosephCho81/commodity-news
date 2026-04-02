@@ -3,11 +3,6 @@ import { SectionCard } from '../components/ui';
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────────────
 
-function MetricBadge({ text }: { text?: string | null }) {
-  if (!text) return null;
-  return <div className="maker-metric"><span className="maker-metric-text">{text}</span></div>;
-}
-
 function DirBadge({ dir }: { dir: Direction }) {
   const map = {
     UP:      { label: '▲ 상승세', cls: 'dir-up'      },
@@ -47,7 +42,6 @@ function DomesticMakerRow({ maker }: { maker: DomesticMaker }) {
         <span className="maker-name">{maker.name}</span>
         <DirBadge dir={maker.direction} />
       </div>
-      <MetricBadge text={maker.key_metric} />
       <RecentIssues text={maker.recent_issues} />
       <div className="maker-detail-block">
         <InfoRow label="현황" text={maker.status}  labelCls="ki-what"   />
@@ -68,7 +62,6 @@ function OverseasMakerRow({ maker }: { maker: OverseasMaker }) {
         <span className="country-producer">{maker.makers}</span>
         <DirBadge dir={maker.direction} />
       </div>
-      <MetricBadge text={maker.output} />
       <RecentIssues text={maker.recent_issues} />
       <div className="maker-detail-block">
         <InfoRow label="현황" text={maker.status}  labelCls="ki-what"   />
@@ -88,7 +81,6 @@ function DemandReport({ label, industry }: { label: string; industry: IndustrySt
         <span className="country-name">{label}</span>
         <DirBadge dir={industry.direction} />
       </div>
-      <MetricBadge text={industry.metric} />
       <div className="maker-detail-block">
         <InfoRow label="현황" text={industry.status}  labelCls="ki-what"   />
         <InfoRow label="이유" text={industry.reason}  labelCls="ki-why"    />

@@ -146,7 +146,6 @@ export interface RecarburizerData extends ApiMeta {
 
 export interface IndustryStatus {
   direction: Direction;
-  metric?: string | null;   // 대표 통계 수치 (예: "2월 착공 8.9만동 (전년比 -22%)")
   status: string;
   reason: string;
   outlook: string;
@@ -156,7 +155,6 @@ export interface DomesticMaker {
   name: string;
   recent_issues: string;
   direction: Direction;
-  key_metric?: string | null;  // 대표 제품가 (예: "철근 내수가 67만원/톤")
   status: string;
   reason: string;
   outlook: string;
@@ -167,7 +165,6 @@ export interface OverseasMaker {
   makers: string;
   recent_issues: string;
   direction: Direction;
-  output?: string | null;  // 조강 생산량 (예: "2월 조강 8,980만톤 (전년比 -1.8%)")
   status: string;
   reason: string;
   outlook: string;

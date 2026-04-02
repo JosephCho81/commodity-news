@@ -24,7 +24,7 @@ demand_industries 각 객체: direction / status / reason / outlook
 
 【절대 규칙】
 - "미확인", "정보 없음", "확인 불가", "데이터 부재", "변동성 존재" 등 불확실 표현 절대 금지.
-- 가동률 수치(%) 작성 금지. 공식 발표된 조강 생산량(톤)만 인용 가능. 없으면 방향성으로만 서술.
+- 가동률 수치(%) 작성 금지. 공식 발표된 조강 생산량·착공 실적·수출 대수·수주량 등 수치는 status/reason 문장 안에 자연스럽게 포함할 것.
 - direction: UP / DOWN / NEUTRAL 중 하나만.
 - null 금지. 모든 필드 작성 필수.
 - 각주 번호 [1][2] 절대 금지. 한국어.
@@ -32,6 +32,12 @@ demand_industries 각 객체: direction / status / reason / outlook
 - recent_issues: ${d3}~${date} 기간 뉴스만. 없으면 "최근 3일 내 주요 발표 없음".
 - "부원료 수요 전망", "raw_material_forecast" 절대 금지. JSON 필드로도, 텍스트 내용에도 포함하지 말 것.
 - 아래 JSON 구조 외 추가 필드 생성 금지.
+
+【수치 포함 기준】
+status·reason 문장에 반드시 아래 중 해당 수치를 포함할 것:
+- 국내 제강사: 건설 착공 실적(전년比%), 자동차 수출 대수, 조선 수주량, 수요처별 발주 동향
+- 해외 제강사: NBS/WSA 발표 가장 최근 월 조강 생산량(만톤, 전년比%)
+- 수요 산업: 국토부 착공 실적, KAMA 완성차 수출, Clarkson 수주량, 중국 부동산 투자 증감률
 
 【오늘의 시장 영향 뉴스 — 매일 자율 검색】
 - "steel industry news ${date}"
@@ -53,27 +59,24 @@ demand_industries 각 객체: direction / status / reason / outlook
       "name": "동국제강",
       "recent_issues": "${d3}~${date} 뉴스. 날짜 포함. 없으면 '최근 3일 내 주요 발표 없음'",
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "key_metric": "철근 내수 유통가 XX만원/톤 (전월比 ±X만원). 검색 후 최신 공시가 작성. 없으면 최근 3개월 내 가장 최근 값 + 날짜 명시.",
-      "status": "현재 업황 1~2문장. 수요 부진/회복 수준, 재고 상황 등. 가동률 수치 금지.",
-      "reason": "방향의 원인 1~2문장. 건설경기·수요처·경쟁 환경·원가 등.",
+      "status": "현재 업황 1~2문장. 건설 착공 실적·수요처 발주 등 수치 포함. 가동률 수치 금지.",
+      "reason": "원인 1~2문장. 건설경기·수요처·경쟁 환경 등 구조적 이유. 가능하면 수치 포함.",
       "outlook": "단기(4주) 전망 1문장."
     },
     {
       "name": "포스코",
       "recent_issues": "날짜 포함 뉴스 또는 '최근 3일 내 주요 발표 없음'",
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "key_metric": "열연(HRC) 내수가 XX만원/톤 (전월比 ±X만원). 검색 후 최신 공시가 작성. 없으면 최근 3개월 내 값 + 날짜.",
-      "status": "현재 업황 1~2문장. 가동률 수치 금지.",
-      "reason": "원인 1~2문장.",
+      "status": "현재 업황 1~2문장. 자동차·조선 수요 등 수치 포함. 가동률 수치 금지.",
+      "reason": "원인 1~2문장. 가능하면 수치 포함.",
       "outlook": "전망 1문장."
     },
     {
       "name": "현대제철",
       "recent_issues": "날짜 포함 뉴스 또는 '최근 3일 내 주요 발표 없음'",
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "key_metric": "H형강 내수 유통가 XX만원/톤 (전월比 ±X만원). 검색 후 최신 공시가 작성. 없으면 최근 3개월 내 값 + 날짜.",
-      "status": "현재 업황 1~2문장. 가동률 수치 금지.",
-      "reason": "원인 1~2문장.",
+      "status": "현재 업황 1~2문장. 건설·자동차 수요 등 수치 포함. 가동률 수치 금지.",
+      "reason": "원인 1~2문장. 가능하면 수치 포함.",
       "outlook": "전망 1문장."
     }
   ],
@@ -83,8 +86,7 @@ demand_industries 각 객체: direction / status / reason / outlook
       "makers": "바오우(Baowu), HBIS",
       "recent_issues": "날짜 포함 뉴스 또는 '최근 3일 내 주요 발표 없음'",
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "output": "NBS 발표 가장 최근 월 조강 생산량. 예: '${prevYm} 조강 X,XXX만톤 (전년比 ±X.X%)'",
-      "status": "중국 철강 업황 1~2문장. 내수·수출 방향.",
+      "status": "중국 철강 업황 1~2문장. NBS 발표 최근 월 조강 생산량(만톤, 전년比%) 포함.",
       "reason": "원인 1~2문장. 부동산·인프라·관세 등.",
       "outlook": "전망 1문장."
     },
@@ -93,8 +95,7 @@ demand_industries 각 객체: direction / status / reason / outlook
       "makers": "JSW Steel, 타타스틸(Tata Steel)",
       "recent_issues": "날짜 포함 뉴스 또는 '최근 3일 내 주요 발표 없음'",
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "output": "WSA 발표 가장 최근 월 조강 생산량. 예: '${prevYm} 조강 XXX만톤 (전년比 ±X.X%)'",
-      "status": "인도 철강 업황 1~2문장.",
+      "status": "인도 철강 업황 1~2문장. WSA 발표 최근 월 조강 생산량(만톤, 전년比%) 포함.",
       "reason": "원인 1~2문장.",
       "outlook": "전망 1문장."
     },
@@ -103,8 +104,7 @@ demand_industries 각 객체: direction / status / reason / outlook
       "makers": "닛폰스틸(Nippon Steel), JFE스틸",
       "recent_issues": "날짜 포함 뉴스 또는 '최근 3일 내 주요 발표 없음'",
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "output": "일본철강연맹 발표 가장 최근 월 조강 생산량. 예: '${prevYm} 조강 XXX만톤 (전년比 ±X.X%)'",
-      "status": "일본 철강 업황 1~2문장.",
+      "status": "일본 철강 업황 1~2문장. 일본철강연맹 발표 최근 월 조강 생산량(만톤, 전년比%) 포함.",
       "reason": "원인 1~2문장.",
       "outlook": "전망 1문장."
     }
@@ -112,29 +112,25 @@ demand_industries 각 객체: direction / status / reason / outlook
   "demand_industries": {
     "construction_korea": {
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "metric": "국토부 발표 가장 최근 월 건설 착공 실적. 예: '${prevYm} 착공 X.X만동 (전년比 ±X%)'",
-      "status": "한국 건설 업황 1문장.",
+      "status": "한국 건설 업황 1문장. 국토부 발표 최근 월 착공 실적(동수·전년比%) 포함.",
       "reason": "원인 1문장.",
       "outlook": "전망 1문장."
     },
     "construction_china": {
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "metric": "중국 부동산 투자 또는 신규 착공 최근 수치. 예: '${prevYm} 부동산 투자 전년比 ±X%'",
-      "status": "중국 부동산·건설 업황 1문장.",
+      "status": "중국 부동산·건설 업황 1문장. 부동산 투자 증감률 또는 신규 착공 수치 포함.",
       "reason": "원인 1문장.",
       "outlook": "전망 1문장."
     },
     "auto": {
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "metric": "KAMA 발표 가장 최근 월 완성차 수출 대수. 예: '${prevYm} 수출 XX만대 (전년比 ±X%)'",
-      "status": "한국 자동차 생산·수출 업황 1문장.",
+      "status": "한국 자동차 생산·수출 업황 1문장. KAMA 발표 최근 월 수출 대수(전년比%) 포함.",
       "reason": "원인 1문장.",
       "outlook": "전망 1문장."
     },
     "shipbuilding": {
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
-      "metric": "Clarkson·KR 발표 최근 수주량. 예: '${prevYm} 수주 XXX만CGT (전년比 ±X%)'",
-      "status": "한국 조선 수주·업황 1문장.",
+      "status": "한국 조선 수주·업황 1문장. Clarkson 발표 최근 수주량(CGT·전년比%) 포함.",
       "reason": "원인 1문장.",
       "outlook": "전망 1문장."
     }
