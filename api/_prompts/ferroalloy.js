@@ -28,6 +28,9 @@ export function getFerroalloyPrompt(date) {
 7. 각주 번호 [1][2] 금지. 한국어.
 8. 문장 종결어미 금지: "~이다", "~했다", "~있다", "~된다" 사용 금지. "~세", "~중", "~수준", "~감소", "~상승"으로 끝낼 것.
 9. 모든 수치는 천단위 콤마 표기 (예: 5,950 / 12,000톤).
+10. 가격 표기 원칙: 중국 내수가는 CNY x,xxx/MT (괄호 내). 그 외 모든 가격은 USD x,xxx/MT 형식으로 표기.
+    - market_summary 포함 모든 텍스트 필드에서 CNY 단독 표기 금지. 중국 내수가는 반드시 괄호 처리: 예) USD 820/MT (CNY 5,950/MT, 중국 내수가)
+    - supply_cause, demand_cause, context, market_summary 내 가격 언급 시 USD x,xxx/MT 우선 표기.
 
 【오늘의 시장 영향 뉴스 — 매일 자율 검색】
 반드시 아래 쿼리로 오늘(${date}) 발생한 최신 뉴스를 검색하시오.
@@ -147,9 +150,9 @@ export function getFerroalloyPrompt(date) {
     ]
   },
   "market_summary": {
-    "fesi": "FeSi 현황: 가격 수준·방향·주요 공급수요 원인 요약. 1~2문장. 종결어미 금지.",
-    "femn": "FeMn 현황: 가격 수준·방향·망간광석 원가·주요 요인 요약. 1~2문장. 종결어미 금지.",
-    "simn": "SiMn 현황: 가격 수준·방향·주요 요인 요약. 1~2문장. 종결어미 금지.",
+    "fesi": "FeSi 현황: 가격 수준·방향·주요 공급수요 원인 요약. 1~2문장. 종결어미 금지. 가격은 USD x,xxx/MT 형식 (예: USD 820/MT).",
+    "femn": "FeMn 현황: 가격 수준·방향·망간광석 원가·주요 요인 요약. 1~2문장. 종결어미 금지. 가격은 USD x,xxx/MT 형식.",
+    "simn": "SiMn 현황: 가격 수준·방향·주요 요인 요약. 1~2문장. 종결어미 금지. 가격은 USD x,xxx/MT 형식.",
     "intl_context": "국제 정세 영향: 미·중 관세, 러시아 제재, 에너지 가격 등 합금철 시장 직접 영향. 1~2문장. 종결어미 금지.",
     "non_china_summary": "비중국 생산 동향: Elkem·TNC Kazchrome·OM Materials 등 주요 비중국 생산지 현 상황 종합. 1~2문장. 종결어미 금지.",
     "outlook": "단기 전망: 향후 4주 가격 방향과 핵심 변수. 1~2문장. 종결어미 금지."

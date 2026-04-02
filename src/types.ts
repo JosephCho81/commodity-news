@@ -77,6 +77,7 @@ export interface FerroMarketSummary {
 
 export interface FerroalloyData extends ApiMeta {
   exchange_rate_cny_usd?: number;  // 1 CNY = X USD (서버에서 주입)
+  exchange_rate_date?: string;     // 환율 고시 날짜 (서버에서 주입)
   fesi: FerroItem;
   femn: FerroItem;
   simn: FerroItem;

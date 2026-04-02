@@ -99,7 +99,7 @@ function TopCard({ abbr, name, item }: { abbr: string; name: string; item: Ferro
       </div>
       {item.price_cny && item.price_usd && (
         <div className="ferro-top-cny">
-          CNY {fmtCny(item.price_cny)}/MT <span className="ferro-top-domestic">내수가</span>
+          CNY {fmtCny(item.price_cny)}/MT <span className="ferro-top-domestic">중국 내수가</span>
         </div>
       )}
       {item.change_cny && (
@@ -127,7 +127,7 @@ function FerroPrice({ item, abbr }: { item: FerroItem; abbr: string }) {
               USD {item.price_usd}<small>/MT</small>
             </span>
             <span className="ferro-price-cny-inline">
-              (CNY {fmtCny(item.price_cny)}/MT, 내수가)
+              (CNY {fmtCny(item.price_cny)}/MT, 중국 내수가)
             </span>
           </>
         ) : item.price_cny ? (
@@ -257,10 +257,10 @@ function FerroItemCard({
 // ─── 메인 탭 ────────────────────────────────────────────────────────────────
 
 export function FerroalloyTab({ data }: { data: FerroalloyData }) {
-  const { fesi, femn, simn, market_summary, exchange_rate_cny_usd } = data;
+  const { fesi, femn, simn, market_summary, exchange_rate_cny_usd, exchange_rate_date } = data;
 
   const rateLabel = exchange_rate_cny_usd
-    ? `환율: 1 CNY = ${exchange_rate_cny_usd.toFixed(4)} USD`
+    ? `환율: 1 CNY = ${exchange_rate_cny_usd.toFixed(4)} USD${exchange_rate_date ? ` (${exchange_rate_date} 고시)` : ''}`
     : null;
 
   return (

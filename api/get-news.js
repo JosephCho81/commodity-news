@@ -318,6 +318,7 @@ export default async function handler(req, res) {
         }
       }
       parsed.exchange_rate_cny_usd = exchangeRate;
+      parsed.exchange_rate_date = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
       console.log(`[ExRate] ferroalloy USD 변환 완료: 1 CNY = ${exchangeRate} USD`);
     }
 
