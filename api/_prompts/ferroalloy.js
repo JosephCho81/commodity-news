@@ -15,7 +15,7 @@ export function getFerroalloyPrompt(date) {
   FeSi 75 중국 내수가: 5,500~7,000 CNY/MT
   FeMn HC78 중국 내수가: 6,500~8,500 CNY/MT
   SiMn 6517 중국 내수가: 4,800~6,500 CNY/MT
-- 검색 후에도 정확한 값 불가 시 위 범위 중간값 사용하고 reference에 "(추정, 검색 불가)" 표시.
+- 검색 후에도 정확한 값 불가 시 위 범위 중간값 사용. reference에는 출처와 날짜만 작성.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 【절대 규칙】
@@ -67,10 +67,30 @@ export function getFerroalloyPrompt(date) {
     "steel_signal_reason": "시그널 근거 2문장. 수급 상황 기반.",
     "context": "FeSi 시장 현황 종합 + 단기 전망. 3~4문장.",
     "non_china_producers": [
-      { "country": "노르웨이", "company": "Elkem", "status": "${y} 생산·가동 현황 1문장", "share": "글로벌 점유율 또는 생산량" },
-      { "country": "러시아", "company": "주요 생산사", "status": "${y} 생산·수출 현황 1문장", "share": "글로벌 점유율 또는 생산량" },
-      { "country": "인도", "company": "IMFA 등", "status": "${y} 생산 현황 1문장", "share": "생산량 또는 수출량" },
-      { "country": "기타", "company": "브라질·남아공 등", "status": "${y} 동향 1문장", "share": "기타 생산량" }
+      {
+        "country": "노르웨이", "company": "Elkem",
+        "issue": "${y} 최신 이슈 1문장 (가동 중단·생산 변화·수출 계약 등)",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "러시아", "company": "ChEZ 등",
+        "issue": "${y} 최신 이슈 1문장 (제재·수출·생산 변화 등)",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "인도", "company": "IMFA 등",
+        "issue": "${y} 최신 이슈 1문장",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "브라질·남아공", "company": "주요 생산사",
+        "issue": "${y} 최신 이슈 1문장",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      }
     ]
   },
   "femn": {
@@ -84,10 +104,30 @@ export function getFerroalloyPrompt(date) {
     "steel_signal_reason": "시그널 근거 2문장.",
     "context": "FeMn 시장 현황 종합 + 단기 전망. 3~4문장.",
     "non_china_producers": [
-      { "country": "카자흐스탄", "company": "TNC Kazchrome", "status": "${y} 생산·수출 현황 1문장", "share": "생산량 또는 점유율" },
-      { "country": "남아프리카", "company": "Samancor", "status": "${y} 생산·가동 현황 1문장", "share": "생산량 또는 점유율" },
-      { "country": "인도", "company": "MOIL 등", "status": "${y} 생산 현황 1문장", "share": "생산량" },
-      { "country": "기타", "company": "가봉·우크라이나 등", "status": "${y} 동향 1문장", "share": "기타 생산량" }
+      {
+        "country": "카자흐스탄", "company": "TNC Kazchrome",
+        "issue": "${y} 최신 이슈 1문장 (생산량 변화·수출 계약·노사 분쟁 등)",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "남아프리카", "company": "Samancor",
+        "issue": "${y} 최신 이슈 1문장 (가동·전력·수출 등)",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "인도", "company": "MOIL 등",
+        "issue": "${y} 최신 이슈 1문장",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "가봉·우크라이나", "company": "주요 생산사",
+        "issue": "${y} 최신 이슈 1문장",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      }
     ]
   },
   "simn": {
@@ -101,10 +141,30 @@ export function getFerroalloyPrompt(date) {
     "steel_signal_reason": "시그널 근거 2문장.",
     "context": "SiMn 시장 현황 종합 + 단기 전망. 3~4문장.",
     "non_china_producers": [
-      { "country": "말레이시아", "company": "OM Materials", "status": "${y} 생산·수출 현황 1문장", "share": "생산량 또는 점유율" },
-      { "country": "인도", "company": "주요 생산사", "status": "${y} 생산 현황 1문장", "share": "생산량" },
-      { "country": "카자흐스탄", "company": "TNC Kazchrome", "status": "${y} SiMn 생산 현황 1문장", "share": "생산량" },
-      { "country": "기타", "company": "베트남·인도네시아 등", "status": "${y} 동향 1문장", "share": "기타 생산량" }
+      {
+        "country": "말레이시아", "company": "OM Materials",
+        "issue": "${y} 최신 이슈 1문장 (가동·생산·수출 계약 등)",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "인도", "company": "주요 생산사",
+        "issue": "${y} 최신 이슈 1문장",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "카자흐스탄", "company": "TNC Kazchrome",
+        "issue": "${y} SiMn 최신 이슈 1문장",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      },
+      {
+        "country": "베트남·인도네시아", "company": "주요 생산사",
+        "issue": "${y} 최신 이슈 1문장",
+        "cause": "원인 1문장",
+        "outlook": "단기 전망 1문장"
+      }
     ]
   },
   "market_summary": "FeSi·FeMn·SiMn 3개 품목 종합 브리핑. 전반적 방향, 주요 공급·수요 요인, 비중국 생산 동향, 단기 전망. 3~4문장.",

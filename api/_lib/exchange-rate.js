@@ -63,5 +63,5 @@ export function cnyToUsd(val, rate) {
   if (!val || !rate) return null;
   const num = parseFloat(String(val).replace(/,/g, ''));
   if (isNaN(num) || num <= 0) return null;
-  return Math.round(num * rate).toLocaleString('en-US');
+  return (num * rate).toFixed(4);
 }

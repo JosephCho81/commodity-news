@@ -47,8 +47,9 @@ export interface AluminumData extends ApiMeta {
 export interface FerroProducer {
   country: string;
   company: string;
-  status: string;
-  share?: string;
+  issue: string;
+  cause: string;
+  outlook: string;
 }
 
 export interface FerroItem {

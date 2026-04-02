@@ -28,12 +28,46 @@ function fmtCny(val: string | number | null | undefined): string {
   return n.toLocaleString('en-US');
 }
 
+// ─── 상단 요약 카드 ────────────────────────────────────────────────────────────
+
+function TopCard({ abbr, name, item }: { abbr: string; name: string; item: FerroItem }) {
+  const changeColor = item.change_cny
+    ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
+    : 'var(--text3)';
+
+  return (
+    <div className="ferro-top-card">
+      <div className="ferro-top-abbr">{abbr}</div>
+      <div className="ferro-top-name">{name}</div>
+      <div className="ferro-top-price-row">
+        {item.price_usd ? (
+          <span className="ferro-top-usd">USD {item.price_usd}</span>
+        ) : item.price_cny ? (
+          <span className="ferro-top-usd">CNY {fmtCny(item.price_cny)}</span>
+        ) : (
+          <span className="ferro-top-na">—</span>
+        )}
+        {dirArrow(item.direction)}
+      </div>
+      {item.price_cny && item.price_usd && (
+        <div className="ferro-top-cny">
+          CNY {fmtCny(item.price_cny)}/MT <span className="ferro-top-domestic">내수가</span>
+        </div>
+      )}
+      {item.change_cny && (
+        <div className="ferro-top-change" style={{ color: changeColor }}>
+          전월比 {item.change_cny} CNY
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── 가격 헤더 ────────────────────────────────────────────────────────────────
 
 function FerroPrice({ item }: { item: FerroItem }) {
-  const changeCny = item.change_cny;
-  const changeColor = changeCny
-    ? (String(changeCny).startsWith('-') ? 'var(--down)' : 'var(--up)')
+  const changeColor = item.change_cny
+    ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
     : 'var(--text3)';
 
   return (
@@ -60,11 +94,10 @@ function FerroPrice({ item }: { item: FerroItem }) {
         )}
         {dirArrow(item.direction)}
       </div>
-
       <div className="ferro-meta-row">
-        {changeCny && (
+        {item.change_cny && (
           <span className="ferro-change" style={{ color: changeColor }}>
-            전월比 {changeCny} CNY
+            전월比 {item.change_cny} CNY
           </span>
         )}
         <span className="ferro-ref-note">{item.reference}</span>
@@ -73,22 +106,44 @@ function FerroPrice({ item }: { item: FerroItem }) {
   );
 }
 
-// ─── 비중국 생산국 ────────────────────────────────────────────────────────────
+// ─── 비중국 생산국 (뉴스/이슈 중심) ──────────────────────────────────────────
 
 function NonChinaProducers({ producers }: { producers: FerroProducer[] }) {
   if (!producers || producers.length === 0) return null;
   return (
     <div className="non-china-block">
-      <div className="non-china-title">비중국 주요 생산국</div>
+      <div className="non-china-title">비중국 주요 생산지 동향</div>
       <div className="non-china-list">
         {producers.map((p, i) => (
           <div key={i} className="non-china-row">
             <div className="non-china-header">
               <span className="non-china-country">{p.country}</span>
               <span className="non-china-company">{p.company}</span>
-              {p.share && <span className="non-china-share">{p.share}</span>}
             </div>
-            <p className="non-china-status">{p.status}</p>
+            <div className="non-china-detail">
+              {p.issue && (
+                <div className="key-issue-row">
+                  <span className="key-issue-label ki-what">이슈</span>
+                  <span className="key-issue-text">{p.issue}</span>
+                </div>
+              )}
+              {p.cause && (
+                <div className="key-issue-row">
+                  <span className="key-issue-label ki-why">원인</span>
+                  <span className="key-issue-text">{p.cause}</span>
+                </div>
+              )}
+              {p.outlook && (
+                <div className="key-issue-row">
+                  <span className="key-issue-label ki-outlook">전망</span>
+                  <span className="key-issue-text">{p.outlook}</span>
+                </div>
+              )}
+              {/* backward compat: old status field */}
+              {!(p.issue || p.cause || p.outlook) && (p as any).status && (
+                <p className="non-china-status">{(p as any).status}</p>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -107,37 +162,33 @@ function FerroItemCard({
     <SectionCard title={`${name} (${abbr})`} accent={accent}>
       <FerroPrice item={item} />
 
-      {/* 원인 분석 */}
       <div className="cause-block">
         <div className="cause-row">
           <span className="cause-label cause-supply">공급</span>
-          <span className="cause-text">{item.supply_cause}</span>
+          <span className="key-issue-text">{item.supply_cause}</span>
         </div>
         <div className="cause-row">
           <span className="cause-label cause-demand">수요</span>
-          <span className="cause-text">{item.demand_cause}</span>
+          <span className="key-issue-text">{item.demand_cause}</span>
         </div>
       </div>
 
-      {/* 철강 업황 시그널 */}
       <div className="ferro-signal-block">
         <div className="ferro-signal-header">
           <span className="ferro-signal-title">철강 업황 시그널</span>
           <SteelSignalBadge signal={item.steel_signal} />
         </div>
-        <p className="ferro-signal-reason">{item.steel_signal_reason}</p>
+        <p className="key-issue-text">{item.steel_signal_reason}</p>
       </div>
 
-      {/* 비중국 생산국 */}
       {item.non_china_producers && item.non_china_producers.length > 0 && (
         <NonChinaProducers producers={item.non_china_producers} />
       )}
 
-      {/* 시장 종합 */}
       {item.context && (
         <div className="outlook-box">
           <span className="outlook-label">시장 현황</span>
-          <p className="outlook-text">{item.context}</p>
+          <p className="key-issue-text">{item.context}</p>
         </div>
       )}
     </SectionCard>
@@ -155,48 +206,11 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
 
   return (
     <div className="tab-content">
-      {/* 상단 3개 품목 가격 요약 */}
       <div className="price-hero">
         <div className="ferro-top-grid">
-          {[
-            { abbr: 'FeSi', name: '페로실리콘', item: fesi },
-            { abbr: 'FeMn', name: '페로망간',   item: femn },
-            { abbr: 'SiMn', name: '실리콘망간', item: simn },
-          ].map(({ abbr, name, item }) => (
-            <div key={abbr} className="ferro-top-card">
-              <div className="ferro-top-abbr">{abbr}</div>
-              <div className="ferro-top-name">{name}</div>
-              <div className="ferro-top-price-row">
-                {item?.price_usd ? (
-                  <span className="ferro-top-usd">
-                    {item.price_usd}<small> USD</small>
-                  </span>
-                ) : item?.price_cny ? (
-                  <span className="ferro-top-usd">
-                    CNY {fmtCny(item.price_cny)}
-                  </span>
-                ) : (
-                  <span className="ferro-top-na">—</span>
-                )}
-                {item && dirArrow(item.direction)}
-              </div>
-              {item?.price_cny && item?.price_usd && (
-                <div className="ferro-top-cny">
-                  CNY {fmtCny(item.price_cny)} <span className="ferro-top-domestic">내수가</span>
-                </div>
-              )}
-              {item?.change_cny && (
-                <div
-                  className="ferro-top-change"
-                  style={{
-                    color: String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)',
-                  }}
-                >
-                  전월比 {item.change_cny} CNY
-                </div>
-              )}
-            </div>
-          ))}
+          <TopCard abbr="FeSi" name="페로실리콘" item={fesi} />
+          <TopCard abbr="FeMn" name="페로망간"   item={femn} />
+          <TopCard abbr="SiMn" name="실리콘망간" item={simn} />
         </div>
         {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
       </div>

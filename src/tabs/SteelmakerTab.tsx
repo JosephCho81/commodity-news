@@ -97,36 +97,38 @@ function OverseasMakerRow({ maker }: { maker: OverseasMaker }) {
   );
 }
 
-// ─── 수요 산업 리포트 ─────────────────────────────────────────────────────────
+// ─── 수요 산업 리포트 (OverseasMakerRow 동일 스타일) ─────────────────────────
 
 function DemandReport({ label, industry }: { label: string; industry: IndustryStatus }) {
   return (
-    <div className="demand-report-item">
-      <div className="demand-report-header">
-        <span className="demand-report-title">{label}</span>
+    <div className="country-row">
+      <div className="country-header">
+        <span className="country-name">{label}</span>
         <DirBadge dir={industry.direction} />
       </div>
-      <div className="demand-report-body">
-        <div className="demand-report-row">
-          <span className="demand-report-label">현황</span>
-          <span className="demand-report-text">{industry.status}</span>
-        </div>
+      <div className="maker-detail-block">
+        {industry.status && (
+          <div className="maker-info-row">
+            <span className="maker-info-label ki-what">현황</span>
+            <span className="maker-info-text">{industry.status}</span>
+          </div>
+        )}
         {industry.basis && (
-          <div className="demand-report-row">
-            <span className="demand-report-label">근거</span>
-            <span className="demand-report-text">{industry.basis}</span>
+          <div className="maker-info-row">
+            <span className="maker-info-label ki-why">근거</span>
+            <span className="maker-info-text">{industry.basis}</span>
           </div>
         )}
         {industry.reason && (
-          <div className="demand-report-row">
-            <span className="demand-report-label">원인</span>
-            <span className="demand-report-text">{industry.reason}</span>
+          <div className="maker-info-row">
+            <span className="maker-info-label ki-impact">원인</span>
+            <span className="maker-info-text">{industry.reason}</span>
           </div>
         )}
         {industry.outlook && (
-          <div className="demand-report-row">
-            <span className="demand-report-label">전망</span>
-            <span className="demand-report-text">{industry.outlook}</span>
+          <div className="maker-info-row">
+            <span className="maker-info-label ki-outlook">전망</span>
+            <span className="maker-info-text">{industry.outlook}</span>
           </div>
         )}
       </div>
@@ -144,18 +146,8 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
     raw_material_forecast,
   } = data;
 
-  // 데이터 기준 날짜 (updated_at or today)
-  const updatedAt = (data as any).updated_at;
-  const dateBasis = updatedAt
-    ? new Date(updatedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
-    : null;
-
   return (
     <div className="tab-content">
-
-      {dateBasis && (
-        <p className="steelmaker-date-note">데이터 기준: {dateBasis} (2026년 1분기 ~ 4월)</p>
-      )}
 
       {/* 국내 제강사 */}
       <SectionCard title="국내 제강사 동향" accent="KR">
@@ -178,12 +170,10 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
       {/* 수요 산업 — 리포트 형식 */}
       {demand_industries && (
         <SectionCard title="수요 산업 현황" accent="DEM">
-          <div className="demand-report-list">
-            <DemandReport label="건설 (한국)" industry={demand_industries.construction_korea} />
-            <DemandReport label="건설 (중국)" industry={demand_industries.construction_china} />
-            <DemandReport label="자동차"      industry={demand_industries.auto} />
-            <DemandReport label="조선"        industry={demand_industries.shipbuilding} />
-          </div>
+          <DemandReport label="건설 (한국)" industry={demand_industries.construction_korea} />
+          <DemandReport label="건설 (중국)" industry={demand_industries.construction_china} />
+          <DemandReport label="자동차"      industry={demand_industries.auto} />
+          <DemandReport label="조선"        industry={demand_industries.shipbuilding} />
         </SectionCard>
       )}
 
