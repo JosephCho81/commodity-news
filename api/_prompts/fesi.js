@@ -3,6 +3,8 @@
 export function getFesiPrompt(date, prevData = null) {
   const ym = date.slice(0, 7); // "2026-04"
   const y  = date.slice(0, 4); // "2026"
+  const prevD = new Date(date); prevD.setMonth(prevD.getMonth() - 1);
+  const prevYm = prevD.toISOString().slice(0, 7); // "2026-03" — HBIS 당월 입찰은 전월 공시
 
   const prevSection = prevData ? `
 【전일 데이터 — 반드시 비교】
@@ -37,7 +39,10 @@ export function getFesiPrompt(date, prevData = null) {
 9. 모든 수치는 천단위 콤마 (예: 5,950 / 12,000톤).
 10. 텍스트 필드 가격: CNY x,xxx/MT 형식만. USD 직접 표기 금지.
 
-【검색 — FeSi 75 가격】
+【검색 — FeSi 75 가격 + HBIS 입찰가】
+※ HBIS 당월 입찰은 전월 20~25일에 공시 → 전월(${prevYm}) 검색 우선
+- "HBIS ferrosilicon bidding price ${prevYm}"
+- "河钢 硅铁 招标价 ${prevYm}"
 - "HBIS ferrosilicon bidding price ${ym}"
 - "HBIS ferrosilicon tender price ${ym}"
 - "河钢 硅铁 招标价 ${ym}"

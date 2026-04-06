@@ -3,6 +3,8 @@
 export function getFemnPrompt(date, prevData = null) {
   const ym = date.slice(0, 7); // "2026-04"
   const y  = date.slice(0, 4); // "2026"
+  const prevD = new Date(date); prevD.setMonth(prevD.getMonth() - 1);
+  const prevYm = prevD.toISOString().slice(0, 7); // "2026-03" — HBIS 당월 입찰은 전월 공시
 
   const prevSection = prevData ? `
 【전일 데이터 — 반드시 비교】
@@ -38,6 +40,9 @@ export function getFemnPrompt(date, prevData = null) {
     ※ 예외: mn_ore_cif_korea 필드는 업계 관행상 USD/MT 단위 사용. 숫자만 입력.
 
 【검색 — FeMn HC78 가격 + HBIS 입찰가】
+※ HBIS 당월 입찰은 전월 20~25일에 공시 → 전월(${prevYm}) 검색 우선
+- "HBIS ferromanganese bidding price ${prevYm}"
+- "河钢 高碳锰铁 招标价 ${prevYm}"
 - "HBIS ferromanganese bidding price ${ym}"
 - "河钢 高碳锰铁 招标价 ${ym}"
 - "ferromanganese HC78 China domestic price ${ym}"
