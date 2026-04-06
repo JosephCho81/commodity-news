@@ -14,11 +14,14 @@ import {
 import { callPerplexity, parseJSON } from './_lib/perplexity.js';
 import { fetchLmePrice, fetchAluminumOutlook, fetchScrapPrices, fetchJapanScrapPrices } from './_lib/aluminum-data.js';
 import { fetchCNYUSDRate, fetchUSDKRWRate, cnyToUsd } from './_lib/exchange-rate.js';
-import { getAluminumPrompt }    from './_prompts/aluminum.js';
-import { getFerroalloyPrompt }  from './_prompts/ferroalloy.js';
-import { getRecarburizerPrompt } from './_prompts/recarburizer.js';
-import { getSteelmakerPrompt }  from './_prompts/steelmaker.js';
-import { getSummaryPrompt }     from './_prompts/summary.js';
+import { getAluminumPrompt }          from './_prompts/aluminum.js';
+import { getFesiPrompt }              from './_prompts/fesi.js';
+import { getFemnPrompt }              from './_prompts/femn.js';
+import { getSimnPrompt }              from './_prompts/simn.js';
+import { getFerroalloySummaryPrompt } from './_prompts/ferroalloy-summary.js';
+import { getRecarburizerPrompt }      from './_prompts/recarburizer.js';
+import { getSteelmakerPrompt }        from './_prompts/steelmaker.js';
+import { getSummaryPrompt }           from './_prompts/summary.js';
 
 // ─── 환경변수 ───────────────────────────────────────────────────────────────
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
@@ -26,17 +29,18 @@ const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 // ─── KST 날짜 헬퍼 ──────────────────────────────────────────────────────────
 const getKSTDate = () => new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-// ─── 탭별 프롬프트 ──────────────────────────────────────────────────────────
+// ─── 탭별 프롬프트 (단일 호출 탭만 — ferroalloy는 멀티콜로 별도 처리) ──────
 const PROMPTS = (() => {
   const date = getKSTDate();
   return {
     steelmaker:   getSteelmakerPrompt(date),
     aluminum:     getAluminumPrompt(date),
-    ferroalloy:   getFerroalloyPrompt(date),
     recarburizer: getRecarburizerPrompt(date),
     summary:      getSummaryPrompt(date),
   };
 })();
+
+const VALID_TABS = new Set(['steelmaker', 'aluminum', 'ferroalloy', 'recarburizer', 'summary']);
 
 // ─── _latest fallback 헬퍼 ──────────────────────────────────────────────────
 async function readLatest(token, tab) {
@@ -70,7 +74,7 @@ export default async function handler(req, res) {
   const force =
     req.query.force === 'true' && req.query.secret === process.env.ADMIN_SECRET;
 
-  if (!PROMPTS[tab]) {
+  if (!VALID_TABS.has(tab)) {
     return res.status(400).json({
       error: `Unknown tab: ${tab}. Use: steelmaker, aluminum, ferroalloy, recarburizer, summary`,
     });
@@ -109,9 +113,142 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── 3. 탭별 사전 데이터 fetch ─────────────────────────────────────────
+    // ── 3. ferroalloy 멀티콜 특별 처리 ──────────────────────────────────────
+    if (tab === 'ferroalloy') {
+      const todayKST = getKSTDate();
+
+      // 3-1. 환율 + 전일 데이터 병렬 fetch
+      let exchangeRate = null;
+      let prevFerroalloy = null;
+      try {
+        [exchangeRate, prevFerroalloy] = await Promise.all([
+          fetchCNYUSDRate(token, { saveToFirestore, getFromFirestore }),
+          fetchPrevDayData(token, 'ferroalloy'),
+        ]);
+      } catch (e) {
+        console.warn('[Ferroalloy] 사전 데이터 fetch 실패:', e.message);
+      }
+      const prevData = prevFerroalloy?.data ?? null;
+
+      // 3-2. 3품목 병렬 Perplexity 호출
+      console.log('[Perplexity] 합금철 3품목 병렬 호출 시작');
+      const [fesiSettled, femnSettled, simnSettled] = await Promise.allSettled([
+        callPerplexity(getFesiPrompt(todayKST, prevData?.fesi), { maxTokens: 2500 }),
+        callPerplexity(getFemnPrompt(todayKST, prevData?.femn), { maxTokens: 2000 }),
+        callPerplexity(getSimnPrompt(todayKST, prevData?.simn), { maxTokens: 2000 }),
+      ]);
+
+      // 3-3. 개별 파싱 + 품목별 fallback
+      const latestDoc = await readLatest(token, 'ferroalloy');
+      const latestData = latestDoc?.data ? JSON.parse(latestDoc.data) : null;
+
+      function parseProduct(settled, fallback, name) {
+        if (settled.status === 'fulfilled') {
+          try { return parseJSON(settled.value); }
+          catch (e) { console.warn(`[${name}] JSON 파싱 실패 — fallback 사용`); }
+        } else {
+          console.warn(`[${name}] 호출 실패 — fallback 사용:`, settled.reason?.message);
+        }
+        return fallback ?? null;
+      }
+
+      let fesi = parseProduct(fesiSettled, latestData?.fesi, 'FeSi');
+      let femn = parseProduct(femnSettled, latestData?.femn, 'FeMn');
+      let simn = parseProduct(simnSettled, latestData?.simn, 'SiMn');
+
+      // 전체 실패 시
+      if (!fesi && !femn && !simn) {
+        if (latestData) {
+          return res.status(200).json({ ...latestData, _cached: true, _fallback: true, _age_min: 0 });
+        }
+        return res.status(500).json({ error: '합금철 3품목 호출 전체 실패' });
+      }
+
+      // 3-4. CNY → USD 환율 적용
+      if (exchangeRate) {
+        for (const product of [fesi, femn, simn]) {
+          if (product?.price_cny) {
+            product.price_usd = cnyToUsd(product.price_cny, exchangeRate);
+          }
+        }
+        console.log(`[ExRate] ferroalloy USD 변환: 1 CNY = ${exchangeRate} USD`);
+      }
+
+      // 3-5. summary 호출 (Step 2 — 순차)
+      let market_summary;
+      try {
+        console.log('[Perplexity] 합금철 종합 호출 시작');
+        const summaryRaw = await callPerplexity(
+          getFerroalloySummaryPrompt(todayKST, fesi, femn, simn),
+          { maxTokens: 1000 }
+        );
+        const sr = parseJSON(summaryRaw);
+        market_summary = {
+          fesi:              fesi?.context ?? null,
+          femn:              femn?.context ?? null,
+          simn:              simn?.context ?? null,
+          intl_context:      sr.intl_context ?? null,
+          non_china_summary: sr.non_china_summary ?? null,
+          outlook:           sr.outlook ?? null,
+        };
+      } catch (e) {
+        console.warn('[FerroSummary] 실패 — context로 조립:', e.message);
+        market_summary = {
+          fesi: fesi?.context ?? null,
+          femn: femn?.context ?? null,
+          simn: simn?.context ?? null,
+        };
+      }
+
+      // 3-6. key_issues 병합 (품목별 1개씩, 총 최대 3개)
+      const key_issues = [
+        ...(Array.isArray(fesi?.key_issues) ? fesi.key_issues : []),
+        ...(Array.isArray(femn?.key_issues) ? femn.key_issues : []),
+        ...(Array.isArray(simn?.key_issues) ? simn.key_issues : []),
+      ];
+
+      // 3-7. 최종 결과 조립
+      const parsed = {
+        fesi:                  fesi  ?? latestData?.fesi,
+        femn:                  femn  ?? latestData?.femn,
+        simn:                  simn  ?? latestData?.simn,
+        market_summary,
+        key_issues,
+        exchange_rate_cny_usd: exchangeRate ?? null,
+        exchange_rate_date:    todayKST,
+      };
+
+      // 3-8. 유효성 검사 + Firestore 저장
+      if (token) {
+        try {
+          const isValid = !!(parsed.fesi?.price_cny || parsed.market_summary);
+          if (!isValid) {
+            console.warn('[Firestore] ferroalloy 유효성 검사 실패');
+            if (latestData) {
+              return res.status(200).json({ ...latestData, _cached: true, _fallback: true, _age_min: 0 });
+            }
+          } else {
+            const docId = `ferroalloy_${todayKST}`;
+            const saveData = {
+              data: JSON.stringify(parsed),
+              cached_at: String(Date.now()),
+              tab: 'ferroalloy',
+              date: todayKST,
+            };
+            await saveWithLatest(token, 'ferroalloy', docId, saveData);
+          }
+        } catch (e) {
+          console.warn('[Firestore] ferroalloy 저장 실패:', e.message);
+        }
+      }
+
+      return res.status(200).json({ ...parsed, _cached: false, _age_min: 0 });
+    }
+    // ── END ferroalloy 멀티콜 ────────────────────────────────────────────────
+
+    // ── 4. 나머지 탭 사전 데이터 fetch ───────────────────────────────────────
     let lmeData = null, outlookText = null, scrapPrices = null, japanScrap = null;
-    let prevAluminum = null, prevFerroalloy = null, prevRecarburizer = null, prevSteelmaker = null;
+    let prevAluminum = null, prevRecarburizer = null, prevSteelmaker = null;
     let exchangeRate = null, krwRate = null;
 
     if (tab === 'aluminum') {
@@ -121,12 +258,6 @@ export default async function handler(req, res) {
         fetchScrapPrices(),
         fetchJapanScrapPrices(),
         fetchPrevDayData(token, 'aluminum'),
-      ]);
-    }
-    if (tab === 'ferroalloy') {
-      [exchangeRate, prevFerroalloy] = await Promise.all([
-        fetchCNYUSDRate(token, { saveToFirestore, getFromFirestore }),
-        fetchPrevDayData(token, 'ferroalloy'),
       ]);
     }
     if (tab === 'recarburizer') {
@@ -215,20 +346,7 @@ export default async function handler(req, res) {
       prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전일 대비 보합" 명시.\n`;
     }
 
-    if (tab === 'ferroalloy' && prevFerroalloy) {
-      const p = prevFerroalloy.data;
-      prompt += `\n\n【전일 데이터 (${prevFerroalloy.date}) — 반드시 아래 수치와 오늘을 비교】\n`;
-      prompt += `전일 FeSi: CNY ${p.fesi?.price_cny ?? 'N/A'}/MT\n`;
-      prompt += `전일 FeMn: CNY ${p.femn?.price_cny ?? 'N/A'}/MT\n`;
-      prompt += `전일 SiMn: CNY ${p.simn?.price_cny ?? 'N/A'}/MT\n`;
-      const prevSummaryText = typeof p.market_summary === 'string'
-        ? p.market_summary.slice(0, 100)
-        : (p.market_summary?.fesi ?? p.market_summary?.outlook ?? 'N/A');
-      prompt += `전일 종합: ${prevSummaryText}\n`;
-      prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전일 대비 보합" 명시.\n`;
-    }
-
-    if (tab === 'recarburizer' && prevRecarburizer) {
+if (tab === 'recarburizer' && prevRecarburizer) {
       const p = prevRecarburizer.data;
       prompt += `\n\n【전일 데이터 (${prevRecarburizer.date}) — 반드시 아래 수치와 오늘을 비교】\n`;
       prompt += `전일 중국 FOB: ${p.china_price?.fob_qinhuangdao ?? p.china_price?.price_range_text ?? 'N/A'} USD/MT\n`;
@@ -285,7 +403,7 @@ export default async function handler(req, res) {
 
     // ── 6. Perplexity 호출 ────────────────────────────────────────────────
     console.log(`[Perplexity] 호출 시작: ${tab}`);
-    const raw = await callPerplexity(prompt, { maxTokens: (tab === 'steelmaker' || tab === 'ferroalloy') ? 6000 : 3000 });
+    const raw = await callPerplexity(prompt, { maxTokens: tab === 'steelmaker' ? 6000 : 3000 });
 
     let parsed;
     try {
@@ -317,24 +435,11 @@ export default async function handler(req, res) {
       parsed.lme = { ...parsed.lme, source: 'perplexity' };
     }
 
-    // ── 8. CNY → USD 환율 적용 (ferroalloy) ──────────────────────────────
-    if (tab === 'ferroalloy' && exchangeRate) {
-      for (const product of ['fesi', 'femn', 'simn']) {
-        if (parsed[product]?.price_cny) {
-          parsed[product].price_usd = cnyToUsd(parsed[product].price_cny, exchangeRate);
-        }
-      }
-      parsed.exchange_rate_cny_usd = exchangeRate;
-      parsed.exchange_rate_date = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      console.log(`[ExRate] ferroalloy USD 변환 완료: 1 CNY = ${exchangeRate} USD`);
-    }
-
-    // ── 9. 유효성 검사 + Firestore 저장 ──────────────────────────────────
+    // ── 8. 유효성 검사 + Firestore 저장 ──────────────────────────────────
     if (token) {
       try {
         const isValidData = (() => {
           if (tab === 'aluminum')     return !!(parsed.lme?.price || parsed.lme?.market_status);
-          if (tab === 'ferroalloy')   return !!(parsed.fesi?.price_cny || parsed.market_summary);
           if (tab === 'steelmaker')   return !!(parsed.domestic_makers?.length > 0);
           if (tab === 'recarburizer') return !!(
             parsed.china_price?.price_range_text || parsed.china_price?.fob_qinhuangdao ||

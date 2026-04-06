@@ -64,6 +64,18 @@ export interface FerroItem {
   steel_signal_reason: string;
   context: string;
   non_china_producers?: FerroProducer[];
+  // FeSi 전용
+  hbis_bid_price?: number | null;
+  hbis_bid_month?: string | null;
+  hbis_bid_change?: string | null;
+  ningxia_spot?: number | null;
+  china_production_status?: string | null;
+  // FeMn 전용
+  mn_ore_cif_korea?: number | null;
+  ore_to_femn_spread?: string | null;
+  // SiMn 전용
+  china_overcapacity_note?: string | null;
+  dual_input_cost?: string | null;
 }
 
 export interface FerroMarketSummary {
