@@ -62,6 +62,11 @@ export function getSimnPrompt(date, prevData = null) {
 - "silicon manganese market news ${date}"
 - "SiMn supply disruption ${date}"
 - "silicomanganese steel demand ${date}"
+
+【검색 — 중국 수출 관세율】
+- "China silicomanganese export tariff rate 2026"
+- "硅锰 出口关税 税率 2026"
+→ 숫자(%)만 반환. 못 찾으면 최근 공표 기준값 사용. null 금지.
 ${prevSection}
 {
   "price_cny": 5400,
@@ -98,6 +103,9 @@ ${prevSection}
       "outlook": "실제 검색값 — 아시아 수출 방향·공급 영향 전망 1~2문장"
     }
   ],
+  "china_export_tariff_pct": 20,
+  "china_export_misc_usd": 15,
+  "china_export_tariff_ref": "2026-04 MOFCOM 고시 기준",
   "key_issues": [
     {
       "title": "SiMn 핵심 이슈 제목 10자 이내",

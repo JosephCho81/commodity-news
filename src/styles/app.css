@@ -457,6 +457,11 @@ body {
   font-family: var(--mono); font-size: 9px; color: var(--text3);
   text-align: right; padding-top: 6px; border-top: 1px solid var(--border2); margin-top: 4px;
 }
+.ferro-fob-note {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  padding: 5px 0 2px; border-top: 1px solid var(--border2); margin-top: 6px;
+  line-height: 1.5;
+}
 
 .ferro-dir { font-size: 11px; font-weight: 700; }
 .ferro-dir.up      { color: var(--up); }

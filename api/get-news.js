@@ -164,11 +164,18 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: '합금철 3품목 호출 전체 실패' });
       }
 
-      // 3-4. CNY → USD 환율 적용
+      // 3-4. CNY → USD 환율 적용 + FOB 추정 계산
       if (exchangeRate) {
         for (const product of [fesi, femn, simn]) {
           if (product?.price_cny) {
             product.price_usd = cnyToUsd(product.price_cny, exchangeRate);
+          }
+          // FOB 추정: (내수가 × 환율) × (1 + 수출관세) + 부대비용
+          const tariff = Number(product?.china_export_tariff_pct ?? NaN);
+          const misc   = Number(product?.china_export_misc_usd   ?? 15);
+          if (product?.price_cny && !isNaN(tariff) && tariff >= 0 && tariff <= 50) {
+            const fob = Number(product.price_cny) * exchangeRate * (1 + tariff / 100) + misc;
+            product.fob_est_usd = Math.round(fob);
           }
         }
         console.log(`[ExRate] ferroalloy USD 변환: 1 CNY = ${exchangeRate} USD`);

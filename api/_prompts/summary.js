@@ -21,8 +21,10 @@ export function getSummaryPrompt(date) {
 - key_signals: 4개 품목 모두 반드시 작성. signal 필드는 최근 시황 기반 1문장.
 - direction: 반드시 UP, DOWN, NEUTRAL 중 하나.
 - urgency: 반드시 HIGH, MEDIUM, LOW 중 하나.
-- week_ahead: 이번 주 주목 변수 3가지를 줄바꿈(\\n)으로 구분해서 작성.
+- week_ahead: 배열 형식으로 3개 요소 작성. 줄바꿈 문자열 금지.
 - 모든 숫자 가격은 천단위 콤마 필수. 예: 3,426 USD/톤, 5,850 CNY/톤, 440,000 JPY/톤.
+- [1][2] 각주 번호 절대 금지. 한국어 작성.
+- 문장 종결어미 금지: "~이다", "~했다", "~있다", "~된다". "~세", "~중", "~수준", "~감소", "~상승"으로 끝낼 것.
 
 {
   "date": "${date}",
@@ -88,6 +90,6 @@ export function getSummaryPrompt(date) {
       "expected": "예상 결과와 영향 1문장. 반드시 작성."
     }
   ],
-  "updated_at": "${new Date().toISOString()}"
+  "updated_at": "응답 생성 시각 ISO 8601"
 }`;
 }

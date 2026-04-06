@@ -76,6 +76,11 @@ export interface FerroItem {
   // SiMn 전용
   china_overcapacity_note?: string | null;
   dual_input_cost?: string | null;
+  // 수출 관세 + FOB 추정 (공통)
+  china_export_tariff_pct?: number | null;
+  china_export_misc_usd?: number | null;
+  china_export_tariff_ref?: string | null;
+  fob_est_usd?: number | null;
 }
 
 export interface FerroMarketSummary {
@@ -211,7 +216,7 @@ export interface SummaryData extends ApiMeta {
     probability: Probability;
     impact: string;
   }>;
-  week_ahead: string;
+  week_ahead: Array<{ variable: string; why: string; expected: string }>;
 }
 
 // ─── 탭 설정 ─────────────────────────────────────────────────────────────────
