@@ -64,8 +64,10 @@ export function getSimnPrompt(date, prevData = null) {
 - "silicomanganese steel demand ${date}"
 
 【검색 — 중국 수출 관세율】
-- "China silicomanganese export tariff rate 2026"
-- "硅锰 出口关税 税率 2026"
+※ 반드시 중국이 자국 수출 시 부과하는 수출세(出口关税)를 검색. 한국 수입 관세 아님.
+- "China silicomanganese export duty tax rate MOFCOM 2026"
+- "中国 硅锰 出口关税 税率 MOFCOM 2025 2026"
+- "silicomanganese China export tax customs tariff schedule 2026"
 → 숫자(%)만 반환. 못 찾으면 최근 공표 기준값 사용. null 금지.
 ${prevSection}
 {
