@@ -28,22 +28,29 @@ export function getRecarburizerPrompt(date) {
 - "energy coal supply disruption ${date}"
 → 오늘 발생한 이슈 중 무연탄 가격·공급·운임에 실질 영향 있는 것만 key_issues 또는 global_market에 인과관계와 함께 반영.
 
-【중국 무연탄 가격 검색 — 반드시 아래 순서로 모두 시도】
+【중국 무연탄 FOB 가격 검색 — 반드시 아래 순서로 모두 시도】
 1. "China anthracite FOB Qinhuangdao price 2026"
 2. "Jincheng Lu'an Yangquan anthracite export price 2026"
 3. sunsirs.com 무연탄(安泰科) 시세
 4. coalspot.com anthracite China 2026
 5. steelorbis.com anthracite China 2026
-6. "China anthracite CIF Korea price 2026"
-7. "안트라사이트 CIF 한국 수입 가격 2026"
 → 참고 범위: FOB 친황다오 100~180 USD/톤. 못 찾으면 추정값 기재.
 
-【러시아 무연탄 가격 검색 — 반드시 아래 순서로 모두 시도】
+【중국산 CIF 한국 검색 — 반드시 두 쿼리 모두 시도】
+1. "China anthracite CIF Korea import price 2026"
+2. "안트라사이트 무연탄 CIF 한국 수입가 2026"
+→ 두 쿼리 모두 실패 시 cif_korea = null. price_range_source에 "CIF 검색 실패 — FOB만 확인" 명시.
+
+【러시아 무연탄 FOB 가격 검색 — 반드시 아래 순서로 모두 시도】
 1. "SUEK anthracite export price FOB Murmansk 2026"
 2. "Russia anthracite Nakhodka FOB price 2026"
-3. "Russian anthracite Korea CIF import price 2026"
-4. steelorbis.com "Russian anthracite 2026"
+3. steelorbis.com "Russian anthracite 2026"
 → 참고 범위: FOB 80~150 USD/톤. 못 찾으면 추정값 기재.
+
+【러시아산 CIF 한국 검색 — 반드시 두 쿼리 모두 시도】
+1. "Russian anthracite CIF Korea import price 2026"
+2. "러시아 무연탄 CIF 한국 수입가 2026"
+→ 두 쿼리 모두 실패 시 cif_korea = null. price_range_source에 "CIF 검색 실패 — FOB만 확인" 명시.
 
 【국가별 생산·수출 현황 검색 필수】
 - "China anthracite production Shanxi Guizhou 2026"
@@ -56,7 +63,7 @@ export function getRecarburizerPrompt(date) {
 {
   "china_price": {
     "fob_qinhuangdao": "숫자만 USD/톤. 참고범위 100~180. 못 찾으면 추정값 기재",
-    "cif_korea": "숫자만 USD/톤. 위 CIF 한국 검색 결과 사용. 못 찾으면 null",
+    "cif_korea": "숫자만 USD/톤. 위 【중국산 CIF 한국 검색】 결과만 사용. 두 쿼리 모두 실패 시 null",
     "domestic_shanxi": "숫자만 CNY/톤. 못 찾으면 추정값 기재",
     "calcined_cac_fob": "숫자만 USD/톤. 못 찾으면 null",
     "price_range_text": "fob_qinhuangdao 없을 때만. 형식: '숫자~숫자 USD/MT'. 있으면 null",
@@ -68,7 +75,7 @@ export function getRecarburizerPrompt(date) {
   },
   "russia_price": {
     "fob_murmansk": "숫자만 USD/톤. 참고범위 80~150. 못 찾으면 추정값 기재",
-    "cif_korea": "숫자만 USD/톤. 못 찾으면 fob + 운임 추정",
+    "cif_korea": "숫자만 USD/톤. 위 【러시아산 CIF 한국 검색】 결과만 사용. 두 쿼리 모두 실패 시 null",
     "price_range_text": "fob_murmansk 없을 때만. 형식: '숫자~숫자 USD/MT'. 있으면 null",
     "price_range_source": "가격 기준 출처. 못 찾으면 'FOB 무르만스크 시장 추정'",
     "today_summary": "러시아 무연탄 핵심 한 줄. 현재 가격 수준과 주된 이유. 예: 'FOB $110~125/MT, 중국산 대비 $30 저렴하나 서방 제재로 한국 직수입 제한적'",
