@@ -35,8 +35,8 @@ export function getSummaryPrompt(date) {
       "urgency": "HIGH 또는 MEDIUM 또는 LOW"
     },
     {
-      "commodity": "페로실리콘(FeSi75)",
-      "signal": "페로실리콘 75 FOB 천진항 가격 동향과 핵심 시그널을 1문장으로 — 반드시 작성",
+      "commodity": "합금철(FeSi·FeMn·SiMn)",
+      "signal": "FeSi·FeMn·SiMn 3품목 가격 동향 및 핵심 시그널을 1문장으로 — 반드시 작성",
       "direction": "UP 또는 DOWN 또는 NEUTRAL",
       "urgency": "HIGH 또는 MEDIUM 또는 LOW"
     },

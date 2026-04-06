@@ -34,6 +34,8 @@ export function getRecarburizerPrompt(date) {
 3. sunsirs.com 무연탄(安泰科) 시세
 4. coalspot.com anthracite China 2026
 5. steelorbis.com anthracite China 2026
+6. "China anthracite CIF Korea price 2026"
+7. "안트라사이트 CIF 한국 수입 가격 2026"
 → 참고 범위: FOB 친황다오 100~180 USD/톤. 못 찾으면 추정값 기재.
 
 【러시아 무연탄 가격 검색 — 반드시 아래 순서로 모두 시도】
@@ -54,7 +56,7 @@ export function getRecarburizerPrompt(date) {
 {
   "china_price": {
     "fob_qinhuangdao": "숫자만 USD/톤. 참고범위 100~180. 못 찾으면 추정값 기재",
-    "cif_korea": "숫자만 USD/톤. 못 찾으면 fob_qinhuangdao + 운임 $10~15 추정",
+    "cif_korea": "숫자만 USD/톤. 위 CIF 한국 검색 결과 사용. 못 찾으면 null",
     "domestic_shanxi": "숫자만 CNY/톤. 못 찾으면 추정값 기재",
     "calcined_cac_fob": "숫자만 USD/톤. 못 찾으면 null",
     "price_range_text": "fob_qinhuangdao 없을 때만. 형식: '숫자~숫자 USD/MT'. 있으면 null",

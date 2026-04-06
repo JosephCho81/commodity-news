@@ -248,7 +248,7 @@ export default async function handler(req, res) {
 
     // ── 4. 나머지 탭 사전 데이터 fetch ───────────────────────────────────────
     let lmeData = null, outlookText = null, scrapPrices = null, japanScrap = null;
-    let prevAluminum = null, prevRecarburizer = null, prevSteelmaker = null;
+    let prevAluminum = null, prevRecarburizer = null;
     let exchangeRate = null, krwRate = null;
 
     if (tab === 'aluminum') {
@@ -264,10 +264,7 @@ export default async function handler(req, res) {
       prevRecarburizer = await fetchPrevDayData(token, 'recarburizer');
     }
     if (tab === 'steelmaker') {
-      [krwRate, prevSteelmaker] = await Promise.all([
-        fetchUSDKRWRate(token, { saveToFirestore, getFromFirestore }),
-        fetchPrevDayData(token, 'steelmaker'),
-      ]);
+      krwRate = await fetchUSDKRWRate(token, { saveToFirestore, getFromFirestore });
     }
 
     // ── 4. summary 탭: 각 탭 캐시 데이터 주입 ────────────────────────────
