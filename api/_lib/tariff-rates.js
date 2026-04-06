@@ -5,16 +5,16 @@ export const FERRO_EXPORT_TARIFFS = {
   fesi: {
     pct:      25,
     misc_usd: 15,
-    ref:      '중국 수출 관세 25% (HS 72022100, 72022900)',
+    hs:       'HS 72022100, 72022900',
   },
   femn: {
     pct:      20,
     misc_usd: 15,
-    ref:      '중국 수출 관세 20% (HS 72021100, 72021900)',
+    hs:       'HS 72021100, 72021900',
   },
   simn: {
     pct:      20,
     misc_usd: 15,
-    ref:      '중국 수출 관세 20% (HS 72023000)',
+    hs:       'HS 72023000',
   },
 };

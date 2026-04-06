@@ -177,7 +177,7 @@ export default async function handler(req, res) {
           if (product.price_cny && t) {
             product.china_export_tariff_pct = t.pct;
             product.china_export_misc_usd   = t.misc_usd;
-            product.china_export_tariff_ref = t.ref;
+            product.china_export_tariff_ref = t.hs;
             const fob = Number(product.price_cny) * exchangeRate * (1 + t.pct / 100) + t.misc_usd;
             product.fob_est_usd = Math.round(fob);
           }

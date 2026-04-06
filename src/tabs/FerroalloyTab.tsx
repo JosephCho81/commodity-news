@@ -305,11 +305,13 @@ function FobNote({ item }: { item: FerroItem }) {
   if (item.fob_est_usd == null || item.china_export_tariff_pct == null) return null;
   return (
     <div className="ferro-fob-note">
-      * 한국 수입 시, 중국 수출 관세 {item.china_export_tariff_pct}%
-      {item.china_export_misc_usd != null && ` + 수출 부대비용 약 $${item.china_export_misc_usd}/톤`}
-      {' → '}FOB 추정 단가 USD {item.fob_est_usd.toLocaleString('en-US')}/톤
+      <div>
+        * 한국 수입 시, 중국 수출 관세 {item.china_export_tariff_pct}%
+        {item.china_export_misc_usd != null && ` + 수출 부대비용 약 $${item.china_export_misc_usd}/톤`}
+        {' → '}FOB 추정 단가 USD {item.fob_est_usd.toLocaleString('en-US')}/톤
+      </div>
       {item.china_export_tariff_ref && (
-        <span className="ferro-cny-ref"> ({item.china_export_tariff_ref})</span>
+        <div className="ferro-cny-ref">{item.china_export_tariff_ref}</div>
       )}
     </div>
   );
