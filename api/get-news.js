@@ -30,16 +30,13 @@ const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 // ─── KST 날짜 헬퍼 ──────────────────────────────────────────────────────────
 const getKSTDate = () => new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-// ─── 탭별 프롬프트 (단일 호출 탭만 — ferroalloy는 멀티콜로 별도 처리) ──────
-const PROMPTS = (() => {
-  const date = getKSTDate();
-  return {
-    steelmaker:   getSteelmakerPrompt(date),
-    aluminum:     getAluminumPrompt(date),
-    recarburizer: getRecarburizerPrompt(date),
-    summary:      getSummaryPrompt(date),
-  };
-})();
+// ─── 탭별 프롬프트 빌더 (요청마다 호출하여 날짜 고정 방지) ─────────────────
+const PROMPT_BUILDERS = {
+  steelmaker:   getSteelmakerPrompt,
+  aluminum:     getAluminumPrompt,
+  recarburizer: getRecarburizerPrompt,
+  summary:      getSummaryPrompt,
+};
 
 const VALID_TABS = new Set(['steelmaker', 'aluminum', 'ferroalloy', 'recarburizer', 'summary']);
 
@@ -259,7 +256,7 @@ export default async function handler(req, res) {
 
     // ── 4. 나머지 탭 사전 데이터 fetch ───────────────────────────────────────
     let lmeData = null, outlookText = null, scrapPrices = null, japanScrap = null;
-    let prevAluminum = null, prevRecarburizer = null;
+    let prevAluminum = null, prevRecarburizer = null, prevSteelmaker = null;
     let exchangeRate = null, krwRate = null;
 
     if (tab === 'aluminum') {
@@ -275,7 +272,10 @@ export default async function handler(req, res) {
       prevRecarburizer = await fetchPrevDayData(token, 'recarburizer');
     }
     if (tab === 'steelmaker') {
-      krwRate = await fetchUSDKRWRate(token, { saveToFirestore, getFromFirestore });
+      [krwRate, prevSteelmaker] = await Promise.all([
+        fetchUSDKRWRate(token, { saveToFirestore, getFromFirestore }),
+        fetchPrevDayData(token, 'steelmaker'),
+      ]);
     }
 
     // ── 4. summary 탭: 각 탭 캐시 데이터 주입 ────────────────────────────
@@ -342,7 +342,7 @@ export default async function handler(req, res) {
     }
 
     // ── 5. 프롬프트 구성 ──────────────────────────────────────────────────
-    let prompt = PROMPTS[tab];
+    let prompt = PROMPT_BUILDERS[tab]?.(getKSTDate());
 
     // 전일 비교 컨텍스트 주입
     if (tab === 'aluminum' && prevAluminum) {
@@ -361,6 +361,25 @@ if (tab === 'recarburizer' && prevRecarburizer) {
       prompt += `전일 러시아 FOB: ${p.russia_price?.fob_murmansk ?? p.russia_price?.price_range_text ?? 'N/A'} USD/MT\n`;
       prompt += `전일 시장 요약: ${p.market_summary?.slice(0, 100) ?? 'N/A'}\n`;
       prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전월 수준 유지" 명시.\n`;
+    }
+
+    // steelmaker 전일 비교 컨텍스트 주입
+    if (tab === 'steelmaker' && prevSteelmaker) {
+      const pm = prevSteelmaker.data;
+      prompt += `\n\n【전일 브리핑 (${prevSteelmaker.date}) — 반드시 아래와 달라진 점 서술】\n`;
+      if (Array.isArray(pm.domestic_makers)) {
+        prompt += `전일 국내 제강사:\n`;
+        for (const m of pm.domestic_makers) {
+          prompt += `  ${m.name}: ${m.direction} — ${(m.status ?? '').slice(0, 60)}\n`;
+        }
+      }
+      if (Array.isArray(pm.overseas_makers)) {
+        prompt += `전일 해외 제강사:\n`;
+        for (const m of pm.overseas_makers) {
+          prompt += `  ${m.country}: ${m.direction} — ${(m.status ?? '').slice(0, 60)}\n`;
+        }
+      }
+      prompt += `→ 오늘 위 내용 대비 달라진 direction·수치·이슈 구체적으로 서술. 변화 없으면 "전일 대비 보합" 명시.\n`;
     }
 
     // steelmaker KRW/USD 환율 주입
