@@ -1,5 +1,112 @@
 # commodity-news 고도화 계획 세션 요약
-> 작성일: 2026-03-27 | 상태: 진행 중
+> 최초 작성: 2026-03-27 | 최종 업데이트: 2026-04-06 | 상태: 합금철 탭 리팩토링 완료
+
+---
+
+## 세션 2 — 합금철 탭 프롬프트 전면 리팩토링 (2026-04-06)
+
+### 발단: 합금철 탭 품질 문제
+FeMn·SiMn 섹션에 "정보 부재", "최신 동향 미확보", "구체적 데이터 미확보" 등 placeholder 텍스트 다수 노출.
+
+**근본 원인**
+1. 단일 `ferroalloy.js` 프롬프트에서 FeSi·FeMn·SiMn 3품목을 한 번에 요청 → FeSi가 토큰을 선점, FeMn·SiMn 품질 저하
+2. 검색 쿼리가 FeSi 중심 → FeMn·SiMn 데이터 수집 미흡
+3. placeholder 텍스트 금지 규칙 부재
+
+---
+
+### 구조 변경: 단일 파일 → 4파일 분리
+
+| 기존 | 신규 | maxTokens |
+|------|------|-----------|
+| `api/_prompts/ferroalloy.js` (삭제) | `api/_prompts/fesi.js` | 2,500 |
+| `api/_prompts/ferrosilicon.js` (삭제, 미사용 dead code) | `api/_prompts/femn.js` | 2,000 |
+| — | `api/_prompts/simn.js` | 2,000 |
+| — | `api/_prompts/ferroalloy-summary.js` | 1,000 |
+
+**호출 방식 변경** (`api/get-news.js`)
+- Step 1: fesi / femn / simn **병렬** `Promise.allSettled` (각 55s AbortSignal)
+- Step 2: ferroalloy-summary **순차** (3품목 결과 주입 후 cross-product 요약 생성)
+- 개별 실패 시 `_latest` fallback, 전체 실패 시 latestData 반환
+
+---
+
+### 각 프롬프트 파일 핵심 스펙
+
+#### fesi.js (페로실리콘 75)
+- 고유 필드: `hbis_bid_price`(null 금지, 닝샤 현물가 fallback), `hbis_bid_month`, `hbis_bid_change`, `ningxia_spot`, `china_production_status`
+- 비중국 생산국: 노르웨이(Elkem), 러시아(ChEZ·RUSAL), 인도(IMFA·Shyam Ferro)
+- 검색 쿼리: 河钢 硅铁 招标价 + SMM + 닝샤 현물 + 비중국 4쿼리
+
+#### femn.js (페로망간 HC78)
+- 고유 필드: `hbis_bid_price`(null 허용), `mn_ore_cif_korea`(USD/MT 예외 명시), `ore_to_femn_spread`
+- 비중국 생산국: 카자흐스탄(TNC Kazchrome), 남아프리카(Samancor), 가봉(Eramet/Comilog)
+- 검색 쿼리: 河钢 高碳锰铁 招标价 + 망간광석 CIF + MOIL
+
+#### simn.js (실리망간 6517)
+- 고유 필드: `hbis_bid_price`(null 허용), `china_overcapacity_note`, `dual_input_cost`
+- 비중국 생산국: 말레이시아(OM Materials), 인도(Nava Bharat·FACOR), **남아프리카(Transalloys·Hernic)**
+  - 카자흐스탄(TNC Kazchrome)은 FeMn과 중복이므로 남아프리카로 교체
+- 검색 쿼리: SMM 硅锰 6517 价格 + 上海有色 硅锰 现货价 추가
+
+#### ferroalloy-summary.js (cross-product 요약)
+- 3품목 분석 결과를 주입받아 `intl_context`, `non_china_summary`, `outlook` 3개 필드만 생성
+- 서버에서 `market_summary = { fesi: context, femn: context, simn: context, intl_context, non_china_summary, outlook }` 조립
+- 슬라이스: context 200자, supply_cause 150자 (한국어 문장 단절 방지)
+
+---
+
+### 공통 규칙 강화 (3개 프롬프트 동일 적용)
+
+1. `price_cny`: 숫자만, null 절대 금지 / 참고 범위 + 중간값 fallback 명시
+2. placeholder 텍스트 금지: "정보 부재", "최신 동향 미확보", "구체적 데이터 미확보", "데이터 없음", "확인 불가" 등
+3. `key_issues`: **정확히 1개, 빈 배열 금지**
+4. `non_china_producers`: 반드시 3개국, 완전한 문장 (단어·구 나열 금지), 수치 포함
+5. 종결어미 금지: ~이다/~했다/~있다/~된다
+6. 텍스트 필드 가격: CNY x,xxx/MT 형식만 (USD 직접 표기 금지)
+   - 예외: `mn_ore_cif_korea`는 USD/MT (업계 관행)
+
+---
+
+### UI 수정 (FerroalloyTab.tsx)
+
+| 추가 | 제거 |
+|------|------|
+| `FesiExtra` 컴포넌트: HBIS 입찰가 + 닝샤 현물 + 중국 생산 동향 | `SUMMARY_ROWS`에서 fesi/femn/simn 행 제거 (개별 카드 중복) |
+| `FemnExtra` 컴포넌트: 망간광석 CIF + 마진 | — |
+| `SimnExtra` 컴포넌트: 공급구조 + 원가 | — |
+
+합금철 시장 종합 섹션은 이제 `국제 정세 / 비중국 생산 / 단기 전망` 3행만 표시.
+
+---
+
+### 수정된 파일 목록
+
+| 파일 | 변경 |
+|------|------|
+| `api/_prompts/fesi.js` | 신규 생성 |
+| `api/_prompts/femn.js` | 신규 생성 |
+| `api/_prompts/simn.js` | 신규 생성 |
+| `api/_prompts/ferroalloy-summary.js` | 신규 생성 |
+| `api/_prompts/ferroalloy.js` | 삭제 |
+| `api/_prompts/ferrosilicon.js` | 삭제 (dead code) |
+| `api/get-news.js` | ferroalloy 멀티콜 브랜치 추가, maxTokens 조건 정리 |
+| `src/tabs/FerroalloyTab.tsx` | FesiExtra/FemnExtra/SimnExtra 추가, SUMMARY_ROWS 정리 |
+| `src/types.ts` | FerroItem에 제품별 optional 필드 7개 추가 |
+
+---
+
+### 보류 중인 작업 (다음 세션)
+
+| 항목 | 이유 |
+|------|------|
+| summary.js `key_signals` 확장 | 효과 대비 작업량 검토 필요 |
+| steelmaker.js `key_issues` 추가 | 현재 미요청 |
+| aluminum.js rule 5 fallback 강화 | 전일 데이터 없을 때 hallucination 위험 |
+| recarburizer.js CIF 범위 재검토 ($10~15 → $15~25) | 시장가 대비 낮은 기본값 |
+| 전체 프롬프트 placeholder 금지 규칙 통일 | ferroalloy 외 탭 미적용 상태 |
+
+---
 
 ## 목표
 코리아에이원이 운영하는 원자재 뉴스 서비스를 멀티 업체 제공 플랫폼으로 고도화.
