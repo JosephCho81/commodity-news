@@ -26,6 +26,7 @@ export function getFesiPrompt(date, prevData = null) {
 【절대 규칙】
 1. price_cny: 숫자만 (예: 5950). null 금지.
 1-a. hbis_bid_price: 숫자만. HBIS 입찰가 우선, 없으면 닝샤 현물가 숫자 사용. null 금지.
+1-b. china_export_tariff_pct: 숫자만(%). 현재 관세 없으면 0. 조회 불가면 최근 발표 기준값 사용. null 금지.
 2. direction: UP / DOWN / NEUTRAL 중 하나만.
 3. steel_signal: DEMAND_STRONG / DEMAND_WEAK / SUPPLY_SHOCK / MIXED 중 하나만.
 4. non_china_producers: 반드시 3개국 작성. issue/cause/outlook 각 필드는 완전한 문장 1~2개. 단어·구 나열 절대 금지. 수치(생산량 톤, 가동률%, 전년比%, 가격) 포함.
@@ -68,6 +69,9 @@ export function getFesiPrompt(date, prevData = null) {
 ${prevSection}
 {
   "price_cny": 5950,
+  "china_export_tariff_pct": 25,
+  "china_export_misc_usd": 15,
+  "china_export_tariff_ref": "2026-04 MOFCOM 고시 기준",
   "reference": "HBIS Group ${ym} 입찰가 또는 닝샤 현물가",
   "hbis_bid_price": 5950,
   "hbis_bid_month": "${ym}",
@@ -101,9 +105,6 @@ ${prevSection}
       "outlook": "실제 검색값 — 내수 vs 수출 균형 전망 1~2문장"
     }
   ],
-  "china_export_tariff_pct": 25,
-  "china_export_misc_usd": 15,
-  "china_export_tariff_ref": "2026-04 MOFCOM 고시 기준",
   "key_issues": [
     {
       "title": "FeSi 핵심 이슈 제목 10자 이내",

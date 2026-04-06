@@ -171,9 +171,11 @@ export default async function handler(req, res) {
             product.price_usd = cnyToUsd(product.price_cny, exchangeRate);
           }
           // FOB 추정: (내수가 × 환율) × (1 + 수출관세) + 부대비용
-          const tariff = Number(product?.china_export_tariff_pct ?? NaN);
-          const misc   = Number(product?.china_export_misc_usd   ?? 15);
-          if (product?.price_cny && !isNaN(tariff) && tariff >= 0 && tariff <= 50) {
+          // tariff null → 0% 처리 (관세 없음 상태)
+          const tariffRaw = product?.china_export_tariff_pct;
+          const tariff = tariffRaw != null ? Number(tariffRaw) : 0;
+          const misc   = Number(product?.china_export_misc_usd ?? 15);
+          if (product?.price_cny && tariff >= 0 && tariff <= 50) {
             const fob = Number(product.price_cny) * exchangeRate * (1 + tariff / 100) + misc;
             product.fob_est_usd = Math.round(fob);
           }
