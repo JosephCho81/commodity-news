@@ -26,7 +26,6 @@ export function getFesiPrompt(date, prevData = null) {
 【절대 규칙】
 1. price_cny: 숫자만 (예: 5950). null 금지.
 1-a. hbis_bid_price: 숫자만. HBIS 입찰가 우선, 없으면 닝샤 현물가 숫자 사용. null 금지.
-1-b. china_export_tariff_pct: 숫자만(%). 현재 관세 없으면 0. 조회 불가면 최근 발표 기준값 사용. null 금지.
 2. direction: UP / DOWN / NEUTRAL 중 하나만.
 3. steel_signal: DEMAND_STRONG / DEMAND_WEAK / SUPPLY_SHOCK / MIXED 중 하나만.
 4. non_china_producers: 반드시 3개국 작성. issue/cause/outlook 각 필드는 완전한 문장 1~2개. 단어·구 나열 절대 금지. 수치(생산량 톤, 가동률%, 전년比%, 가격) 포함.
@@ -62,18 +61,9 @@ export function getFesiPrompt(date, prevData = null) {
 - "China ferrosilicon export policy ${date}"
 - "steel raw materials FeSi supply disruption ${date}"
 
-【검색 — 중국 수출 관세율】
-※ 반드시 중국이 자국 수출 시 부과하는 수출세(出口关税)를 검색. 한국 수입 관세 아님.
-- "China ferrosilicon export duty tax rate MOFCOM 2026"
-- "中国 硅铁 出口关税 税率 MOFCOM 2025 2026"
-- "ferrosilicon China export tax customs tariff schedule 2026"
-→ 숫자(%)만 반환. 못 찾으면 최근 공표 기준값 사용. null 금지.
 ${prevSection}
 {
   "price_cny": 5950,
-  "china_export_tariff_pct": 25,
-  "china_export_misc_usd": 15,
-  "china_export_tariff_ref": "2026-04 MOFCOM 고시 기준",
   "reference": "HBIS Group ${ym} 입찰가 또는 닝샤 현물가",
   "hbis_bid_price": 5950,
   "hbis_bid_month": "${ym}",

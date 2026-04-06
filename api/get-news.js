@@ -14,6 +14,7 @@ import {
 import { callPerplexity, parseJSON } from './_lib/perplexity.js';
 import { fetchLmePrice, fetchAluminumOutlook, fetchScrapPrices, fetchJapanScrapPrices } from './_lib/aluminum-data.js';
 import { fetchCNYUSDRate, fetchUSDKRWRate, cnyToUsd } from './_lib/exchange-rate.js';
+import { FERRO_EXPORT_TARIFFS } from './_lib/tariff-rates.js';
 import { getAluminumPrompt }          from './_prompts/aluminum.js';
 import { getFesiPrompt }              from './_prompts/fesi.js';
 import { getFemnPrompt }              from './_prompts/femn.js';
@@ -164,19 +165,20 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: '합금철 3품목 호출 전체 실패' });
       }
 
-      // 3-4. CNY → USD 환율 적용 + FOB 추정 계산
+      // 3-4. CNY → USD 환율 적용 + FOB 추정 계산 (tariff-rates.js 상수 사용)
       if (exchangeRate) {
-        for (const product of [fesi, femn, simn]) {
-          if (product?.price_cny) {
+        const productMap = { fesi, femn, simn };
+        for (const [key, product] of Object.entries(productMap)) {
+          if (!product) continue;
+          if (product.price_cny) {
             product.price_usd = cnyToUsd(product.price_cny, exchangeRate);
           }
-          // FOB 추정: (내수가 × 환율) × (1 + 수출관세) + 부대비용
-          // tariff null → 0% 처리 (관세 없음 상태)
-          const tariffRaw = product?.china_export_tariff_pct;
-          const tariff = tariffRaw != null ? Number(tariffRaw) : 0;
-          const misc   = Number(product?.china_export_misc_usd ?? 15);
-          if (product?.price_cny && tariff >= 0 && tariff <= 50) {
-            const fob = Number(product.price_cny) * exchangeRate * (1 + tariff / 100) + misc;
+          const t = FERRO_EXPORT_TARIFFS[key];
+          if (product.price_cny && t) {
+            product.china_export_tariff_pct = t.pct;
+            product.china_export_misc_usd   = t.misc_usd;
+            product.china_export_tariff_ref = t.ref;
+            const fob = Number(product.price_cny) * exchangeRate * (1 + t.pct / 100) + t.misc_usd;
             product.fob_est_usd = Math.round(fob);
           }
         }

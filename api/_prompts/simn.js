@@ -63,12 +63,6 @@ export function getSimnPrompt(date, prevData = null) {
 - "SiMn supply disruption ${date}"
 - "silicomanganese steel demand ${date}"
 
-【검색 — 중국 수출 관세율】
-※ 반드시 중국이 자국 수출 시 부과하는 수출세(出口关税)를 검색. 한국 수입 관세 아님.
-- "China silicomanganese export duty tax rate MOFCOM 2026"
-- "中国 硅锰 出口关税 税率 MOFCOM 2025 2026"
-- "silicomanganese China export tax customs tariff schedule 2026"
-→ 숫자(%)만 반환. 못 찾으면 최근 공표 기준값 사용. null 금지.
 ${prevSection}
 {
   "price_cny": 5400,
@@ -105,9 +99,6 @@ ${prevSection}
       "outlook": "실제 검색값 — 아시아 수출 방향·공급 영향 전망 1~2문장"
     }
   ],
-  "china_export_tariff_pct": 20,
-  "china_export_misc_usd": 15,
-  "china_export_tariff_ref": "2026-04 MOFCOM 고시 기준",
   "key_issues": [
     {
       "title": "SiMn 핵심 이슈 제목 10자 이내",
