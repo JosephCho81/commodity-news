@@ -366,7 +366,7 @@ if (tab === 'recarburizer' && prevRecarburizer) {
     // steelmaker 전일 비교 컨텍스트 주입
     if (tab === 'steelmaker' && prevSteelmaker) {
       const pm = prevSteelmaker.data;
-      prompt += `\n\n【전일 브리핑 (${prevSteelmaker.date}) — 반드시 아래와 달라진 점 서술】\n`;
+      prompt += `\n\n【전일 브리핑 (${prevSteelmaker.date}) — direction·수치 변화 감지용 참고 데이터】\n`;
       if (Array.isArray(pm.domestic_makers)) {
         prompt += `전일 국내 제강사:\n`;
         for (const m of pm.domestic_makers) {
@@ -379,7 +379,10 @@ if (tab === 'recarburizer' && prevRecarburizer) {
           prompt += `  ${m.country}: ${m.direction} — ${(m.status ?? '').slice(0, 60)}\n`;
         }
       }
-      prompt += `→ 오늘 위 내용 대비 달라진 direction·수치·이슈 구체적으로 서술. 변화 없으면 "전일 대비 보합" 명시.\n`;
+      prompt += `\n[적용 규칙]\n`;
+      prompt += `- direction이 전일과 달라진 경우: recent_issues에 "전일 ${prevSteelmaker.date} 대비 direction 변화" 명시.\n`;
+      prompt += `- direction이 동일한 경우: recent_issues에 별도 언급 불필요. status/reason은 오늘 검색 결과 기반으로 독립 작성.\n`;
+      prompt += `- "전일 대비 보합" 표현을 status·reason·outlook 필드에 절대 포함하지 말 것.\n`;
     }
 
     // steelmaker KRW/USD 환율 주입
