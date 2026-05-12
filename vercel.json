@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/get-news.js": { "maxDuration": 60 },
+    "api/get-news.js": { "maxDuration": 120 },
     "api/cron-refresh.js": { "maxDuration": 300 }
   },
   "crons": [

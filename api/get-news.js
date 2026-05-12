@@ -136,8 +136,9 @@ export default async function handler(req, res) {
         callPerplexity(getSimnPrompt(todayKST, prevData?.simn), { maxTokens: 2000 }),
       ]);
 
-      // 3-3. 개별 파싱 + 품목별 fallback
-      const latestDoc = await readLatest(token, 'ferroalloy');
+      // 3-3. 개별 파싱 + 품목별 fallback (실패한 호출이 있을 때만 readLatest 조회)
+      const anyFailed = [fesiSettled, femnSettled, simnSettled].some(s => s.status === 'rejected');
+      const latestDoc = anyFailed ? await readLatest(token, 'ferroalloy') : null;
       const latestData = latestDoc?.data ? JSON.parse(latestDoc.data) : null;
 
       function parseProduct(settled, fallback, name) {
@@ -433,7 +434,7 @@ if (tab === 'recarburizer' && prevRecarburizer) {
 
     // ── 6. Perplexity 호출 ────────────────────────────────────────────────
     console.log(`[Perplexity] 호출 시작: ${tab}`);
-    const raw = await callPerplexity(prompt, { maxTokens: tab === 'steelmaker' ? 6000 : 3000 });
+    const raw = await callPerplexity(prompt, { maxTokens: tab === 'steelmaker' ? 4000 : 3000 });
 
     let parsed;
     try {

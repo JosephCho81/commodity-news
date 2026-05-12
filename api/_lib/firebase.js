@@ -47,17 +47,12 @@ export const FIREBASE_ENABLED = !!(
 );
 
 // ─── 진단 로그 ───────────────────────────────────────────────────────────────
-console.log('=== [Firebase Diagnostics] ===');
-console.log('[Firebase] ENABLED:', FIREBASE_ENABLED);
-console.log('[Firebase] PROJECT_ID:', FIREBASE_PROJECT_ID ? `✅ ${FIREBASE_PROJECT_ID}` : '❌ 없음');
-console.log('[Firebase] CLIENT_EMAIL:', FIREBASE_CLIENT_EMAIL ? `✅ ${FIREBASE_CLIENT_EMAIL}` : '❌ 없음');
-console.log('[Firebase] PRIVATE_KEY length:', FIREBASE_PRIVATE_KEY.length);
-console.log('[Firebase] KEY_VALID:', KEY_VALID);
-console.log('[Firebase] KEY_HEADER (first 60):', FIREBASE_PRIVATE_KEY.slice(0, 60).replace(/\n/g, '↵'));
-console.log('[Firebase] KEY_FOOTER (last 30):', FIREBASE_PRIVATE_KEY.slice(-30).replace(/\n/g, '↵'));
-console.log('=== [End Diagnostics] ===');
+console.log(`[Firebase] ENABLED:${FIREBASE_ENABLED} PROJECT:${FIREBASE_PROJECT_ID ?? '❌'}`);
 
 // ─── JWT / Firestore 헬퍼 ──────────────────────────────────────────────────
+let _token = null;
+let _tokenExp = 0;
+
 function pemToBinary(pem) {
   const b64 = pem
     .replace(/-----BEGIN[^-]*-----/g, '')
@@ -82,6 +77,8 @@ function bufToBase64Url(buf) {
 }
 
 export async function getFirestoreToken() {
+  if (_token && Date.now() < _tokenExp - 60_000) return _token;
+
   const header = toBase64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
   const payload = toBase64Url(
@@ -132,8 +129,10 @@ export async function getFirestoreToken() {
   if (!data.access_token) {
     throw new Error(`Firebase 토큰 발급 실패: ${JSON.stringify(data)}`);
   }
+  _token = data.access_token;
+  _tokenExp = (now + 3600) * 1000;
   console.log('[Firebase] ✅ 토큰 발급 성공');
-  return data.access_token;
+  return _token;
 }
 
 export async function saveToFirestore(token, collection, docId, data) {
@@ -186,15 +185,16 @@ export async function getFromFirestore(token, collection, docId) {
 export async function fetchPrevDayData(token, tab) {
   if (!token) return null;
   try {
-    for (let i = 1; i <= 3; i++) {
-      const d = new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10);
-      const doc = await getFromFirestore(token, 'commodity_cache', `${tab}_${d}`).catch(() => null);
-      if (doc?.data) {
-        const parsed = JSON.parse(doc.data);
-        console.log(`[PrevDay] ${tab} 전일 데이터 로드: ${d}`);
-        return { date: d, data: parsed };
-      }
-    }
+    const days = [1, 2, 3].map(i =>
+      new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10)
+    );
+    const docs = await Promise.all(
+      days.map(d => getFromFirestore(token, 'commodity_cache', `${tab}_${d}`).catch(() => null))
+    );
+    const idx = docs.findIndex(doc => doc?.data);
+    if (idx === -1) return null;
+    console.log(`[PrevDay] ${tab} 전일 데이터 로드: ${days[idx]}`);
+    return { date: days[idx], data: JSON.parse(docs[idx].data) };
   } catch (e) {
     console.warn('[PrevDay] 전일 데이터 로드 실패:', e.message);
   }

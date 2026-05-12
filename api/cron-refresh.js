@@ -19,33 +19,30 @@ export default async function handler(req, res) {
 
   const results = {};
 
-  for (const tab of TABS) {
-    try {
-      console.log(`[Cron] 갱신 시작: ${tab}`);
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'https://commodity-news-topaz.vercel.app';
 
-      const baseUrl = process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'https://commodity-news-topaz.vercel.app';
-
-      const url = `${baseUrl}/api/get-news?tab=${tab}&force=true&secret=${process.env.ADMIN_SECRET}`;
-      const r = await fetch(url);
-      const json = await r.json();
-
-      if (json.error) {
-        console.error(`[Cron] ${tab} 실패:`, json.error);
-        results[tab] = { ok: false, error: json.error };
-      } else {
-        console.log(`[Cron] ${tab} 갱신 완료`);
-        results[tab] = { ok: true };
+  await Promise.allSettled(
+    TABS.map(async (tab) => {
+      try {
+        console.log(`[Cron] 갱신 시작: ${tab}`);
+        const url = `${baseUrl}/api/get-news?tab=${tab}&force=true&secret=${process.env.ADMIN_SECRET}`;
+        const r = await fetch(url, { signal: AbortSignal.timeout(55000) });
+        const json = await r.json();
+        if (json.error) {
+          console.error(`[Cron] ${tab} 실패:`, json.error);
+          results[tab] = { ok: false, error: json.error };
+        } else {
+          console.log(`[Cron] ${tab} 갱신 완료`);
+          results[tab] = { ok: true };
+        }
+      } catch (e) {
+        console.error(`[Cron] ${tab} 예외:`, e.message);
+        results[tab] = { ok: false, error: e.message };
       }
-    } catch (e) {
-      console.error(`[Cron] ${tab} 예외:`, e.message);
-      results[tab] = { ok: false, error: e.message };
-    }
-
-    // 탭 간 2초 딜레이 — Perplexity rate limit 방지
-    await new Promise(r => setTimeout(r, 2000));
-  }
+    })
+  );
 
   const successCount = Object.values(results).filter(r => r.ok).length;
   console.log(`[Cron] 완료: ${successCount}/${TABS.length} 성공`);
