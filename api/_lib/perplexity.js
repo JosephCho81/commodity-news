@@ -28,6 +28,8 @@ export async function callPerplexity(prompt, { maxTokens = 3000 } = {}) {
     throw new Error(`Perplexity HTTP ${res.status}: ${text.slice(0, 200)}`);
   }
   const data = await res.json();
+  const u = data.usage;
+  if (u) console.log(`[Perplexity] usage — prompt:${u.prompt_tokens} completion:${u.completion_tokens} total:${u.total_tokens} max_tokens:${maxTokens}`);
   return data.choices?.[0]?.message?.content ?? '';
 }
 
