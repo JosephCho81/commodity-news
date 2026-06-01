@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TabId, AluminumData, FerroalloyData, RecarburizerData, SummaryData, SteelmakerData } from './types';
 import { TABS } from './types';
-import { Logo, LoadingState, ErrorState } from './components/ui';
+import { Logo, LoadingState, ErrorState, TabErrorBoundary } from './components/ui';
 import { SteelmakerTab }  from './tabs/SteelmakerTab';
 import { AluminumTab }    from './tabs/AluminumTab';
 import { FerroalloyTab }  from './tabs/FerroalloyTab';
@@ -46,6 +46,20 @@ export default function App() {
     }
   }, [activeTab, fetchTab]);
 
+  // 최초 1회: 활성 탭 로드 직후 나머지 탭을 백그라운드 프리페치 → 탭 전환 즉시화.
+  // 캐시(_latest)가 있으면 빠르게 채워지고, 없을 때만 서버가 갱신을 트리거한다.
+  const prefetched = useRef(false);
+  useEffect(() => {
+    if (prefetched.current) return;
+    prefetched.current = true;
+    const timer = setTimeout(() => {
+      for (const tab of TABS) {
+        if (tab.id !== activeTab) fetchTab(tab.id);
+      }
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [fetchTab, activeTab]);
+
   const tabData  = data[activeTab] as never;
   const isLoading = loading[activeTab];
   const isError   = error[activeTab];
@@ -81,7 +95,9 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        {renderContent()}
+        <TabErrorBoundary key={activeTab} onReset={() => fetchTab(activeTab)}>
+          {renderContent()}
+        </TabErrorBoundary>
       </main>
 
       <nav className="bottom-nav">

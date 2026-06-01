@@ -76,7 +76,19 @@ const FERRO_FALLBACK_RANGE: Record<string, string> = {
   SiMn: 'CNY 4,800~6,500',
 };
 
-function TopCard({ abbr, name, item }: { abbr: string; name: string; item: FerroItem }) {
+function TopCard({ abbr, name, item }: { abbr: string; name: string; item: FerroItem | null }) {
+  if (!item) {
+    return (
+      <div className="ferro-top-card">
+        <div className="ferro-top-name">{name} ({abbr})</div>
+        <div className="ferro-top-price-row">
+          <span className="ferro-top-usd">{FERRO_FALLBACK_RANGE[abbr] ?? '—'}</span>
+          <span className="ferro-dir neutral">—</span>
+        </div>
+      </div>
+    );
+  }
+
   const changeColor = item.change_cny
     ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
     : 'var(--text3)';
@@ -322,8 +334,9 @@ function FobNote({ item }: { item: FerroItem }) {
 function FerroItemCard({
   name, abbr, item, accent,
 }: {
-  name: string; abbr: string; item: FerroItem; accent: string;
+  name: string; abbr: string; item: FerroItem | null; accent: string;
 }) {
+  if (!item) return null;
   return (
     <SectionCard title={`${name} (${abbr})`} accent={accent}>
       <FerroPrice item={item} abbr={abbr} />

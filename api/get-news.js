@@ -50,6 +50,18 @@ async function readLatest(token, tab) {
   return null;
 }
 
+// ─── 백그라운드 갱신 트리거 (fire-and-forget) ───────────────────────────────
+// stale 응답을 즉시 돌려준 뒤, 자기 자신을 force 호출해 캐시를 새로 채운다.
+function triggerBackgroundRefresh(tab) {
+  if (!process.env.ADMIN_SECRET) return;
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'https://commodity-news-topaz.vercel.app';
+  const url = `${baseUrl}/api/get-news?tab=${tab}&force=true&secret=${process.env.ADMIN_SECRET}`;
+  console.log(`[SWR] 백그라운드 갱신 트리거: ${tab}`);
+  fetch(url).catch(() => {});
+}
+
 async function saveWithLatest(token, tab, docId, saveData) {
   await Promise.all([
     saveToFirestore(token, 'commodity_cache', docId, saveData),
@@ -105,7 +117,20 @@ export default async function handler(req, res) {
           console.log(`[Cache] HIT: ${docId}, age: ${ageMin}분`);
           return res.status(200).json({ ...JSON.parse(cached.data), _cached: true, _age_min: ageMin });
         }
-        console.log(`[Cache] MISS: ${docId} → Perplexity 호출`);
+        console.log(`[Cache] MISS: ${docId}`);
+
+        // stale-while-revalidate: 오늘 캐시가 없으면 _latest를 즉시 반환하고
+        // 백그라운드로 갱신 → 사용자는 20초 동기 호출을 기다리지 않는다.
+        const latest = await readLatest(token, tab);
+        if (latest?.data) {
+          const ageMin = latest.cached_at
+            ? Math.round((Date.now() - Number(latest.cached_at)) / 60000)
+            : 0;
+          console.log(`[Cache] STALE 반환 + 백그라운드 갱신: ${tab} (age: ${ageMin}분)`);
+          triggerBackgroundRefresh(tab);
+          return res.status(200).json({ ...JSON.parse(latest.data), _cached: true, _stale: true, _age_min: ageMin });
+        }
+        console.log(`[Cache] _latest 없음 → Perplexity 동기 호출`);
       } catch (e) {
         console.warn('[Firestore] 캐시 읽기 실패:', e.message);
       }
@@ -228,11 +253,12 @@ export default async function handler(req, res) {
       };
 
       // 3-8. 유효성 검사 + Firestore 저장
+      //  - 3품목 모두 존재해야 저장 (하나라도 null이면 깨진 데이터로 _latest 오염 방지)
       if (token) {
         try {
-          const isValid = !!(parsed.fesi?.price_cny || parsed.market_summary);
+          const isValid = !!(parsed.fesi?.price_cny && parsed.femn?.price_cny && parsed.simn?.price_cny);
           if (!isValid) {
-            console.warn('[Firestore] ferroalloy 유효성 검사 실패');
+            console.warn('[Firestore] ferroalloy 품목 누락 — 저장 생략, _latest 보존');
             if (latestData) {
               return res.status(200).json({ ...latestData, _cached: true, _fallback: true, _age_min: 0 });
             }
