@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       try {
         console.log(`[Cron] 갱신 시작: ${tab}`);
         const url = `${baseUrl}/api/get-news?tab=${tab}&force=true&secret=${process.env.ADMIN_SECRET}`;
-        const r = await fetch(url, { signal: AbortSignal.timeout(55000) });
+        const r = await fetch(url, { signal: AbortSignal.timeout(110000) });
         const json = await r.json();
         if (json.error) {
           console.error(`[Cron] ${tab} 실패:`, json.error);
