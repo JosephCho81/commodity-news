@@ -9,17 +9,22 @@ export function getRecarburizerPrompt(date) {
 필요한 것: 이번 달 CIF 단가가 왜 이 수준인지, 주요 생산국 현황, 앞으로의 방향.
 
 【절대 규칙】
-1. "미확인", "정보 없음", "확인되지 않음", "데이터 부재", "수치 없음",
+1. 텍스트(서술형) 필드: "미확인", "정보 없음", "확인되지 않음", "데이터 부재", "수치 없음",
    "파악하기 어렵습니다", "확인할 수 없습니다" 등 모든 불확실 표현 절대 금지.
-   → 검색 후 못 찾으면 가장 최근 알려진 값 또는 업계 구조적 현황으로 반드시 작성.
-2. 가격 필드(숫자): 반드시 숫자 기재. 못 찾으면 참고 범위 내 추정값 기재.
-   중국 FOB 친황다오: 100~180 USD/톤 범위. 러시아 FOB: 80~150 USD/톤 범위.
+   → 검색 후 못 찾으면 가장 최근 알려진 동향 또는 업계 구조적 현황으로 서술.
+2. 가격 필드(숫자) — NULL 원칙: 검색에서 출처가 확인된 값만 숫자로 기재. 확인 불가 시 null이 정직한 응답.
+   추정값·범위 중간값 절대 금지. 숫자를 지어내는 것이 null보다 나쁨.
+   범위(X~Y)만 확인되면 숫자 필드는 null로 두고 price_range_text에 "X~Y USD/MT", price_range_source에 출처 기재.
+   참고(검증용 통상 범위): 중국 FOB 친황다오 100~180 USD/톤, 러시아 FOB 80~150 USD/톤.
+   이 범위를 크게 벗어난 값은 출처를 재확인한 경우에만 기재.
 3. 각 생산국(중국·러시아·기타) status: 반드시 실제 내용 작성. "미확인" 절대 금지.
 4. 이 보고서는 반드시 무연탄(Anthracite)만 다룸. 유연탄·열탄·원료탄·갈탄 금지.
 5. 각주 번호 절대 금지. 한국어 작성.
 6. 아래 【전일 데이터】가 주입될 경우 반드시 비교하여 달라진 것을 price_range_note 및 global_market에 반영. 달라진 것 없으면 "전월 대비 보합" 명시.
 7. 문장 종결어미 금지: "~이다", "~했다", "~있다", "~된다". "~세", "~중", "~수준", "~감소", "~상승"으로 끝낼 것.
-8. key_issues 배열은 정확히 1개 요소. 빈 배열 금지.
+8. key_issues: 0~1개. 하단에 【최근 보도한 이슈 — 제외】 목록이 있으면 실질적으로 같은 이슈 재선정 금지
+   (같은 이슈라도 가격·수치에 새로운 변화가 보도됐으면 새 수치 중심으로 작성 가능).
+   오늘 새 이슈가 없으면 빈 배열 []이 정답. 어제 이슈 재탕 금지.
 
 【오늘의 시장 영향 뉴스 — 매일 자율 검색】
 반드시 아래 쿼리로 오늘(${date}) 발생한 최신 뉴스를 검색하시오.
@@ -37,7 +42,7 @@ export function getRecarburizerPrompt(date) {
 3. sunsirs.com 무연탄(安泰科) 시세
 4. coalspot.com anthracite China 2026
 5. steelorbis.com anthracite China 2026
-→ 참고 범위: FOB 친황다오 100~180 USD/톤. 못 찾으면 추정값 기재.
+→ 출처 확인된 값만 기재. 못 찾으면 fob_qinhuangdao = null, price_range_text로 대체.
 
 【중국산 CIF 한국 검색 — 반드시 두 쿼리 모두 시도】
 1. "China anthracite CIF Korea import price 2026"
@@ -48,7 +53,7 @@ export function getRecarburizerPrompt(date) {
 1. "SUEK anthracite export price FOB Murmansk 2026"
 2. "Russia anthracite Nakhodka FOB price 2026"
 3. steelorbis.com "Russian anthracite 2026"
-→ 참고 범위: FOB 80~150 USD/톤. 못 찾으면 추정값 기재.
+→ 출처 확인된 값만 기재. 못 찾으면 fob_murmansk = null, price_range_text로 대체.
 
 【러시아산 CIF 한국 검색 — 반드시 두 쿼리 모두 시도】
 1. "Russian anthracite CIF Korea import price 2026"
@@ -65,22 +70,26 @@ export function getRecarburizerPrompt(date) {
 
 {
   "china_price": {
-    "fob_qinhuangdao": "숫자만 USD/톤. 참고범위 100~180. 못 찾으면 추정값 기재",
+    "fob_qinhuangdao": "출처 확인된 숫자만 USD/톤. 못 찾으면 null (price_range_text로 대체)",
+    "as_of": "가격 발표 기준일 YYYY-MM-DD. 가격이 null이면 null",
+    "source": "가격 출처명 (예: SunSirs, CoalSpot). 가격이 null이면 null",
     "cif_korea": "숫자만 USD/톤. 위 【중국산 CIF 한국 검색】 결과만 사용. 두 쿼리 모두 실패 시 null",
-    "domestic_shanxi": "숫자만 CNY/톤. 못 찾으면 추정값 기재",
+    "domestic_shanxi": "출처 확인된 숫자만 CNY/톤. 못 찾으면 null",
     "calcined_cac_fob": "숫자만 USD/톤. 못 찾으면 null",
     "price_range_text": "fob_qinhuangdao 없을 때만. 형식: '숫자~숫자 USD/MT'. 있으면 null",
-    "price_range_source": "가격 기준 출처. 못 찾으면 'FOB 친황다오 시장 추정'",
+    "price_range_source": "가격·범위의 실제 출처. 출처도 없으면 null",
     "today_summary": "중국 무연탄 핵심 한 줄. 현재 가격 수준과 주된 이유. 예: 'FOB 친황다오 $140~155/MT, 산시성 생산 안정적이나 철강사 수요 소폭 감소'",
     "price_range_note": "최근 중국 무연탄 시장 특이사항 2~3문장. 생산지별 동향, 재고 수준, 수출 경쟁력 포함.",
     "date": "가격 기준일 YYYY-MM-DD",
     "change": "전월 대비 변동. 못 찾으면 '전월 대비 보합'"
   },
   "russia_price": {
-    "fob_murmansk": "숫자만 USD/톤. 참고범위 80~150. 못 찾으면 추정값 기재",
+    "fob_murmansk": "출처 확인된 숫자만 USD/톤. 못 찾으면 null (price_range_text로 대체)",
+    "as_of": "가격 발표 기준일 YYYY-MM-DD. 가격이 null이면 null",
+    "source": "가격 출처명 (예: SteelOrbis). 가격이 null이면 null",
     "cif_korea": "숫자만 USD/톤. 위 【러시아산 CIF 한국 검색】 결과만 사용. 두 쿼리 모두 실패 시 null",
     "price_range_text": "fob_murmansk 없을 때만. 형식: '숫자~숫자 USD/MT'. 있으면 null",
-    "price_range_source": "가격 기준 출처. 못 찾으면 'FOB 무르만스크 시장 추정'",
+    "price_range_source": "가격·범위의 실제 출처. 출처도 없으면 null",
     "today_summary": "러시아 무연탄 핵심 한 줄. 현재 가격 수준과 주된 이유. 예: 'FOB $110~125/MT, 중국산 대비 $30 저렴하나 서방 제재로 한국 직수입 제한적'",
     "price_range_note": "러시아 무연탄 시장 특이사항 2~3문장. 제재 현황, 우회 수출 루트, 운임 변화 포함.",
     "date": "가격 기준일 YYYY-MM-DD",
@@ -125,7 +134,9 @@ export function getRecarburizerPrompt(date) {
       "what": "무슨 일이 발생했나 — 구체적 수치 포함 1문장. 예: '산시성 주요 탄광 3곳 긴급 안전 점검으로 생산량 전월比 4% 감소'",
       "why": "왜 그렇게 됐나 — 원인·배경 1~2문장. 예: '2월 진청(晋城) 탄광 가스 폭발 사고 이후 국가탄광안전감찰국 성 전체 긴급 점검 시행'",
       "impact": "한국 수입 CIF 가격에 미치는 영향 1문장. 예: 'FOB 친황다오 $3~5 상방 압력, 한국 CIF 단기 상승 요인'",
-      "outlook": "이 이슈의 단기 해소 가능성 1문장. 예: '점검 완료 4월 초 예상, 이후 공급 정상화 — 단기 타이트 후 완화'"
+      "outlook": "이 이슈의 단기 해소 가능성 1문장. 예: '점검 완료 4월 초 예상, 이후 공급 정상화 — 단기 타이트 후 완화'",
+      "published_date": "이 이슈가 보도된 날짜 YYYY-MM-DD. 모르면 null",
+      "source_name": "보도 매체·기관명. 모르면 null"
     }
   ],
   "updated_at": "응답 생성 시각 ISO 8601"

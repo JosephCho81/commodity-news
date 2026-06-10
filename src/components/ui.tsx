@@ -1,5 +1,6 @@
 import { useState, Component } from 'react';
 import type { ReactNode } from 'react';
+import type { ApiMeta, SourceInfo } from '../types';
 
 export function Logo() {
   const [failed, setFailed] = useState(false);
@@ -36,6 +37,68 @@ export function TextBlock({ text }: { text: string | null | undefined }) {
     .replace(/Yuan/g, 'CNY')
     .replace(/\/톤/g, '/MT');
   return <p className="text-block">{cleaned}</p>;
+}
+
+// ─── 신뢰성 표기 ─────────────────────────────────────────────────────────────
+
+// 가격 카드용 출처·기준일·이월 배지. 표시할 정보가 없으면 아무것도 그리지 않음.
+export function PriceMeta({ source, asOf, carriedOver }: {
+  source?: string | null; asOf?: string | null; carriedOver?: boolean;
+}) {
+  if (!source && !asOf && !carriedOver) return null;
+  return (
+    <span className="price-meta">
+      {carriedOver && <span className="price-meta-carried">전일 데이터</span>}
+      {asOf && <span className="price-meta-asof">{asOf} 기준</span>}
+      {source && <span className="price-meta-source">{source}</span>}
+    </span>
+  );
+}
+
+// 헤더용 데이터 신선도 배지. _fallback이면 경고 톤으로 이전 데이터임을 명시.
+export function FreshnessBadge({ meta }: { meta: ApiMeta | null | undefined }) {
+  const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  if (!meta) return <span className="cache-badge">{todayKST}</span>;
+
+  const dataDate = meta._data_date ?? todayKST;
+  if (meta._fallback) {
+    return <span className="cache-badge cache-badge--stale">⚠ {dataDate} 데이터 표시 중</span>;
+  }
+  const timeLabel = meta._cached_at
+    ? new Date(meta._cached_at + 9 * 60 * 60 * 1000).toISOString().slice(11, 16)
+    : null;
+  return (
+    <span className="cache-badge">
+      {dataDate}{timeLabel ? ` ${timeLabel}` : ''} 기준
+    </span>
+  );
+}
+
+// 탭 하단 참고 출처 접이식 목록 (Perplexity search_results 기반)
+export function SourcesList({ sources }: { sources?: SourceInfo[] | null }) {
+  const [open, setOpen] = useState(false);
+  if (!Array.isArray(sources) || sources.length === 0) return null;
+  const valid = sources.filter(s => s?.url);
+  if (valid.length === 0) return null;
+  return (
+    <div className="sources-list">
+      <button className="sources-toggle" onClick={() => setOpen(o => !o)}>
+        참고 출처 {valid.length}건 {open ? '▲' : '▼'}
+      </button>
+      {open && (
+        <ul className="sources-items">
+          {valid.map((s, i) => (
+            <li key={i}>
+              <a href={s.url} target="_blank" rel="noreferrer">
+                {s.title || s.url.replace(/^https?:\/\//, '').slice(0, 60)}
+              </a>
+              {s.date && <span className="sources-date"> ({s.date})</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 export function LoadingState() {

@@ -1,6 +1,6 @@
 import type { RecarburizerData } from '../types';
 import { hasText } from '../utils/format';
-import { SectionCard, TextBlock } from '../components/ui';
+import { SectionCard, TextBlock, PriceMeta, SourcesList } from '../components/ui';
 import { KeyIssuesSection } from '../components/KeyIssues';
 
 export function RecarburizerTab({ data }: { data: RecarburizerData }) {
@@ -56,7 +56,8 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <div className="recab-price-tags">
             {cp.fob_qinhuangdao && <span className="recab-tag">FOB 친황다오</span>}
             {cp.cif_korea && <span className="recab-tag">CIF 한국 {cp.cif_korea}</span>}
-            {cp.date && <span className="recab-tag-date">{cp.date}</span>}
+            {(cp.as_of || cp.date) && <span className="recab-tag-date">{cp.as_of ?? cp.date} 기준</span>}
+            <PriceMeta source={cp.source} carriedOver={cp.carried_over} />
           </div>
         </div>
 
@@ -87,7 +88,8 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <div className="recab-price-tags">
             {rp.fob_murmansk && <span className="recab-tag">FOB 무르만스크</span>}
             {rp.cif_korea && <span className="recab-tag">CIF 한국 {rp.cif_korea}</span>}
-            {rp.date && <span className="recab-tag-date">{rp.date}</span>}
+            {(rp.as_of || rp.date) && <span className="recab-tag-date">{rp.as_of ?? rp.date} 기준</span>}
+            <PriceMeta source={rp.source} carriedOver={rp.carried_over} />
           </div>
         </div>
       </div>
@@ -145,6 +147,8 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <TextBlock text={market_summary} />
         </SectionCard>
       )}
+
+      <SourcesList sources={d._sources} />
     </div>
   );
 }

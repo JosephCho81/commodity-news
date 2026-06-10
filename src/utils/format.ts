@@ -28,3 +28,11 @@ export function isValidLmePrice(val: string | null | undefined): boolean {
 export function hasText(v: unknown): boolean {
   return typeof v === 'string' && v.trim().length > 4;
 }
+
+// 기준일(as_of)이 N일보다 오래됐는지 — 이월 가격의 범위 표시 강등 판단용
+export function isOlderThanDays(dateStr: string | null | undefined, days: number): boolean {
+  if (!dateStr) return false;
+  const t = Date.parse(String(dateStr));
+  if (isNaN(t)) return false;
+  return Date.now() - t > days * 86400000;
+}

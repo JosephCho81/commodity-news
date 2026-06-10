@@ -19,18 +19,23 @@ export function getFemnPrompt(date, prevData = null) {
 대상 품목: 페로망간 HC78 (FeMn HC78)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【⚠️ 가격 필드 절대 규칙】
-- price_cny: 반드시 숫자. null 절대 금지.
-- 참고 범위: FeMn HC78 중국 내수가 6,500~8,500 CNY/MT
-- 검색 후 정확한 값 불가 시 범위 중간값(7,500) 사용. reference에 출처·날짜 명시.
+【⚠️ 가격 필드 절대 규칙 — NULL 원칙】
+- price_cny: 검색 결과에서 출처·날짜가 확인된 숫자만 기재. 확인 불가 시 null이 정직한 응답.
+- 추정값·범위 중간값·"약 X"·과거 기억값 절대 금지. 숫자를 지어내는 것이 null보다 나쁨.
+- 범위(X~Y)만 확인되면 price_cny는 null로 두고 reference에 범위와 출처를 텍스트로 기재.
+- price_as_of: 그 가격이 발표·보도된 기준일 YYYY-MM-DD. price_cny가 null이면 null.
+- price_source: 출처명 1개 (예: "SMM", "HBIS 공시"). price_cny가 null이면 null.
+- 참고: FeMn HC78 중국 내수가는 통상 6,500~8,500 CNY/MT 범위. 이 범위를 크게 벗어난 값은 출처를 재확인한 경우에만 기재.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 【절대 규칙】
-1. price_cny: 숫자만 (예: 7200). null 금지.
+1. price_cny: 출처 확인된 숫자 또는 null.
 2. direction: UP / DOWN / NEUTRAL 중 하나만.
 3. steel_signal: DEMAND_STRONG / DEMAND_WEAK / SUPPLY_SHOCK / MIXED 중 하나만.
 4. non_china_producers: 반드시 3개국 작성. issue/cause/outlook 각 필드는 완전한 문장 1~2개. 단어·구 나열 절대 금지. 수치(생산량 톤, 가동률%, 전년比%, 가격) 포함.
-5. key_issues: 실제 FeMn 시장 이슈 정확히 1개. 빈 배열 금지. "데이터 부재" 금지.
+5. key_issues: 0~1개. 하단에 【최근 보도한 이슈 — 제외】 목록이 있으면 실질적으로 같은 이슈 재선정 금지
+   (같은 이슈라도 가격·수치에 새로운 변화가 보도됐으면 새 수치 중심으로 작성 가능).
+   오늘 새 이슈가 없으면 빈 배열 []이 정답. 어제 이슈 재탕 금지. "데이터 부재" 금지.
 6. supply_cause, demand_cause, context, non_china_producers의 issue/cause/outlook 필드에 "정보 부재", "최신 동향 미확보", "구체적 데이터 미확보", "데이터 없음", "확인 불가" 절대 금지.
    최신 데이터 검색 실패 시 → 가장 최근 공개 수치 + 구조적 배경으로 대체. "최근 분기 기준" 등으로 추정 명시.
 7. 각주 번호 [1][2] 금지. 한국어.
@@ -70,8 +75,10 @@ export function getFemnPrompt(date, prevData = null) {
 
 ${prevSection}
 {
-  "price_cny": 7200,
-  "reference": "HBIS 입찰가 또는 중국 내수 현물 ${ym}",
+  "price_cny": "출처 확인된 숫자만 (예: 7200). 못 찾으면 null",
+  "price_as_of": "가격 발표 기준일 YYYY-MM-DD. price_cny가 null이면 null",
+  "price_source": "출처명 (예: SMM, HBIS 공시). price_cny가 null이면 null",
+  "reference": "가격 근거 — 출처·날짜·범위 텍스트. 예: HBIS 입찰가 또는 중국 내수 현물 ${ym}",
   "hbis_bid_price": "HBIS 고탄소망간철 입찰가 숫자만 CNY/MT. 못 찾으면 null",
   "hbis_bid_month": "${ym} 또는 실제 입찰 연월. 못 찾으면 null",
   "hbis_bid_change": "전월 대비 변동 CNY. 못 찾으면 null",
@@ -110,7 +117,9 @@ ${prevSection}
       "what": "무슨 일인지 1문장. 수치 포함.",
       "why": "원인 1~2문장",
       "impact": "제강 원가·구매 단가 영향 1문장",
-      "outlook": "단기 해소 가능성 1문장"
+      "outlook": "단기 해소 가능성 1문장",
+      "published_date": "이 이슈가 보도된 날짜 YYYY-MM-DD. 모르면 null",
+      "source_name": "보도 매체·기관명. 모르면 null"
     }
   ],
   "updated_at": "응답 생성 시각 ISO 8601"

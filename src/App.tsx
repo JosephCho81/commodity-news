@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TabId, AluminumData, FerroalloyData, RecarburizerData, SummaryData, SteelmakerData } from './types';
 import { TABS } from './types';
-import { Logo, LoadingState, ErrorState, TabErrorBoundary } from './components/ui';
+import { Logo, LoadingState, ErrorState, TabErrorBoundary, FreshnessBadge } from './components/ui';
+import type { ApiMeta } from './types';
 import { SteelmakerTab }  from './tabs/SteelmakerTab';
 import { AluminumTab }    from './tabs/AluminumTab';
 import { FerroalloyTab }  from './tabs/FerroalloyTab';
@@ -77,8 +78,6 @@ export default function App() {
     }
   }
 
-  const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
   return (
     <div className="app">
       <header className="app-header">
@@ -90,7 +89,7 @@ export default function App() {
           </div>
         </div>
         <div className="header-actions">
-          <span className="cache-badge">{todayKST}</span>
+          <FreshnessBadge meta={data[activeTab] as ApiMeta | undefined} />
         </div>
       </header>
 

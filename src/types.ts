@@ -7,10 +7,30 @@ export type OperatingRate = 'HIGH' | 'MID' | 'LOW';
 export type SteelSignal = 'DEMAND_STRONG' | 'DEMAND_WEAK' | 'SUPPLY_SHOCK' | 'MIXED';
 
 
+export interface SourceInfo {
+  title?: string | null;
+  url: string;
+  date?: string | null;
+}
+
+export interface KeyIssue {
+  title: string;
+  what?: string;
+  why?: string;
+  impact?: string;
+  outlook?: string;
+  published_date?: string | null;
+  source_name?: string | null;
+  url?: string | null;
+}
+
 export interface ApiMeta {
   _cached?: boolean;
   _fallback?: boolean;
   _age_min?: number;
+  _data_date?: string | null;   // 이 데이터가 생성된 KST 날짜
+  _cached_at?: number | null;   // 캐시 저장 시각 (ms)
+  _sources?: SourceInfo[];      // Perplexity search_results 기반 참고 출처
   updated_at?: string;
 }
 
@@ -25,6 +45,10 @@ export interface AluminumData extends ApiMeta {
     outlook: string;
     lme_verified?: boolean | string;
     lme_verify_source?: string;
+    source?: string | null;        // 'westmetall' | 'perplexity' | 'carried' 등
+    carried_over?: boolean;        // 전일값 이월 여부
+    holiday_note?: string | null;
+    key_issues?: KeyIssue[];
   };
   scrap: {
     weekly_summary: string;
@@ -53,8 +77,11 @@ export interface FerroProducer {
 }
 
 export interface FerroItem {
-  price_cny: string | null;
+  price_cny: string | number | null;
   price_usd: string | null;        // 서버에서 환율 적용 후 계산
+  price_as_of?: string | null;     // 가격 발표 기준일 (YYYY-MM-DD)
+  price_source?: string | null;    // 가격 출처명 (SMM, HBIS 공시 등)
+  carried_over?: boolean;          // 검증 실패/미확인으로 전일값 이월 여부
   reference: string;               // "HBIS Group 2026년 3월 입찰가"
   direction: Direction;
   change_cny: string | null;       // "+190" or "-80" or null
@@ -99,13 +126,7 @@ export interface FerroalloyData extends ApiMeta {
   femn: FerroItem;
   simn: FerroItem;
   market_summary: FerroMarketSummary | string;
-  key_issues?: Array<{
-    title: string;
-    what: string;
-    why: string;
-    impact: string;
-    outlook: string;
-  }>;
+  key_issues?: KeyIssue[];
 }
 
 // ─── 가탄제 ─────────────────────────────────────────────────────────────────
@@ -113,6 +134,9 @@ export interface FerroalloyData extends ApiMeta {
 export interface RecarburizerData extends ApiMeta {
   china_price: {
     fob_qinhuangdao?: number | string | null;
+    as_of?: string | null;
+    source?: string | null;
+    carried_over?: boolean;
     cif_korea?: number | string | null;
     domestic_shanxi?: number | string | null;
     calcined_cac_fob?: number | string | null;
@@ -124,6 +148,9 @@ export interface RecarburizerData extends ApiMeta {
   };
   russia_price: {
     fob_murmansk?: number | string | null;
+    as_of?: string | null;
+    source?: string | null;
+    carried_over?: boolean;
     cif_korea?: number | string | null;
     price_range_text?: string | null;
     price_range_source?: string | null;
@@ -158,6 +185,7 @@ export interface RecarburizerData extends ApiMeta {
   };
   asia_flows?: any;
   market_summary: string;
+  key_issues?: KeyIssue[];
 }
 
 // ─── 제강사 ─────────────────────────────────────────────────────────────────

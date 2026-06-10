@@ -1,5 +1,5 @@
 import type { SteelmakerData, DomesticMaker, OverseasMaker, IndustryStatus, Direction } from '../types';
-import { SectionCard } from '../components/ui';
+import { SectionCard, SourcesList } from '../components/ui';
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────────────
 
@@ -123,6 +123,7 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
         </SectionCard>
       )}
 
+      <SourcesList sources={data._sources} />
     </div>
   );
 }

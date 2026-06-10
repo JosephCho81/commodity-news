@@ -17,6 +17,7 @@ export function getSummaryPrompt(date) {
 
 【절대 규칙】
 - 모든 필드 반드시 작성. null 또는 빈 문자열 금지.
+- 가격 숫자: 아래 【오늘 수집된 각 탭 실제 데이터】에 주입된 수치만 사용. 직접 검색하거나 기억하는 가격 숫자를 기재하는 것 절대 금지. 주입 데이터에 없는 품목 가격은 숫자 없이 방향성만 서술.
 - one_liner: 따옴표(\\") 절대 포함 금지. 순수 텍스트만.
 - key_signals: 4개 품목 모두 반드시 작성. signal 필드는 최근 시황 기반 1문장.
 - direction: 반드시 UP, DOWN, NEUTRAL 중 하나.

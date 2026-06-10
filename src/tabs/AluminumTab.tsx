@@ -1,12 +1,20 @@
 import type { AluminumData } from '../types';
 import { formatNum, isValidLmePrice } from '../utils/format';
-import { SectionCard, TextBlock } from '../components/ui';
+import { SectionCard, TextBlock, PriceMeta, SourcesList } from '../components/ui';
 import { KeyIssuesSection } from '../components/KeyIssues';
+
+// 내부 소스 식별자 → 사용자 표시용 출처명
+const LME_SOURCE_LABEL: Record<string, string> = {
+  westmetall: 'westmetall.com 공식',
+  perplexity: '웹 검색 기반',
+  carried: '전일 데이터',
+};
 
 export function AluminumTab({ data }: { data: AluminumData }) {
   const { lme, scrap } = data;
   const isUp = lme.change != null && !String(lme.change).startsWith('-');
   const priceValid = isValidLmePrice(lme.price);
+  const sourceLabel = lme.source ? (LME_SOURCE_LABEL[lme.source] ?? lme.source) : null;
 
   return (
     <div className="tab-content">
@@ -24,14 +32,16 @@ export function AluminumTab({ data }: { data: AluminumData }) {
             </span>
           )}
         </div>
-        {lme.date && (
+        {(lme.date || sourceLabel || lme.carried_over) && (
           <span className="price-hero-date">
-            기준: {lme.date}
+            {lme.date && <>기준: {lme.date}</>}
             {(lme as any).holiday_note && (
               <span className="price-hero-holiday">
                 {' · '}{(lme as any).holiday_note}
               </span>
             )}
+            {' '}
+            <PriceMeta source={sourceLabel} carriedOver={lme.carried_over} />
           </span>
         )}
       </div>
@@ -76,6 +86,8 @@ export function AluminumTab({ data }: { data: AluminumData }) {
           ))}
         </div>
       </SectionCard>
+
+      <SourcesList sources={data._sources} />
     </div>
   );
 }

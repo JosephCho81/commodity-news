@@ -705,6 +705,41 @@ body {
   margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border2);
 }
 
+/* ── 신뢰성 표기 (출처 · 기준일 · 이월 배지) ── */
+.cache-badge--stale { background: #fdf0e7; border-color: #f0c9a8; color: #b05c10; }
+
+.price-meta { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.price-meta-carried {
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  background: #fdf0e7; border: 1px solid #f0c9a8; color: #b05c10;
+  padding: 1px 5px; border-radius: 3px; white-space: nowrap;
+}
+.price-meta-asof   { font-family: var(--mono); font-size: 9px; color: var(--text3); white-space: nowrap; }
+.price-meta-source {
+  font-family: var(--mono); font-size: 9px;
+  background: var(--green-subtle); border: 1px solid var(--border); color: var(--text2);
+  padding: 1px 5px; border-radius: 3px; white-space: nowrap;
+}
+
+.sources-list   { margin-top: 4px; }
+.sources-toggle {
+  background: none; border: none; font-family: var(--mono); font-size: 10px;
+  color: var(--text3); cursor: pointer; padding: 4px 0;
+}
+.sources-items {
+  list-style: none; margin: 4px 0 0; padding: 8px 10px;
+  background: var(--green-subtle); border: 1px solid var(--border); border-radius: 5px;
+}
+.sources-items li { font-size: 10px; line-height: 1.8; }
+.sources-items a  { color: var(--green-dark); text-decoration: none; word-break: break-all; }
+.sources-items a:hover { text-decoration: underline; }
+.sources-date { color: var(--text3); font-family: var(--mono); font-size: 9px; }
+
+.key-issue-source { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-top: 3px; }
+.key-issue-source a { color: var(--green-dark); text-decoration: none; }
+.key-issue-source a:hover { text-decoration: underline; }
+.key-issue-title a { color: inherit; text-decoration: underline dotted; text-underline-offset: 2px; }
+
 /* ── 반응형 ── */
 @media (max-width: 360px) {
   .production-grid { grid-template-columns: 1fr; }

@@ -1,6 +1,12 @@
 import type { FerroalloyData, FerroItem, FerroProducer, SteelSignal, Direction } from '../types';
-import { SectionCard, TextBlock } from '../components/ui';
+import { SectionCard, TextBlock, PriceMeta, SourcesList } from '../components/ui';
 import { KeyIssuesSection } from '../components/KeyIssues';
+import { isOlderThanDays } from '../utils/format';
+
+// 이월 가격이 7일 넘게 오래되면 숫자 대신 통상 범위 표시로 강등
+function isStalePrice(item: FerroItem): boolean {
+  return item.carried_over === true && isOlderThanDays(item.price_as_of, 7);
+}
 
 // ─── 합금철 시장 종합 ─────────────────────────────────────────────────────────
 
@@ -93,11 +99,15 @@ function TopCard({ abbr, name, item }: { abbr: string; name: string; item: Ferro
     ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
     : 'var(--text3)';
 
+  const stale = isStalePrice(item);
+
   return (
     <div className="ferro-top-card">
       <div className="ferro-top-name">{name} ({abbr})</div>
       <div className="ferro-top-price-row">
-        {item.price_usd ? (
+        {stale ? (
+          <span className="ferro-top-usd">{FERRO_FALLBACK_RANGE[abbr] ?? '—'}</span>
+        ) : item.price_usd ? (
           <span className="ferro-top-usd">USD {item.price_usd}</span>
         ) : item.price_cny ? (
           <span className="ferro-top-usd">CNY {fmtCny(item.price_cny)}</span>
@@ -106,15 +116,26 @@ function TopCard({ abbr, name, item }: { abbr: string; name: string; item: Ferro
         )}
         {dirArrow(item.direction)}
       </div>
-      {item.price_cny && item.price_usd && (
-        <div className="ferro-top-cny">
-          CNY {fmtCny(item.price_cny)}/MT <span className="ferro-top-domestic">중국 내수가</span>
-        </div>
-      )}
-      {item.change_cny && (
-        <div className="ferro-top-change" style={{ color: changeColor }}>
-          전월比 {item.change_cny} CNY
-        </div>
+      {stale ? (
+        <div className="ferro-top-cny">시장 통상 범위 (실시간 아님)</div>
+      ) : (
+        <>
+          {item.price_cny && item.price_usd && (
+            <div className="ferro-top-cny">
+              CNY {fmtCny(item.price_cny)}/MT <span className="ferro-top-domestic">중국 내수가</span>
+            </div>
+          )}
+          {item.change_cny && (
+            <div className="ferro-top-change" style={{ color: changeColor }}>
+              전월比 {item.change_cny} CNY
+            </div>
+          )}
+          {(item.carried_over || item.price_as_of) && (
+            <div className="ferro-top-cny">
+              <PriceMeta asOf={item.price_as_of} carriedOver={item.carried_over} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -126,6 +147,23 @@ function FerroPrice({ item, abbr }: { item: FerroItem; abbr: string }) {
   const changeColor = item.change_cny
     ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
     : 'var(--text3)';
+  const stale = isStalePrice(item);
+
+  if (stale) {
+    return (
+      <div className="ferro-item-header">
+        <div className="ferro-price-row">
+          <span className="ferro-price-main ferro-price-cny-only">
+            {FERRO_FALLBACK_RANGE[abbr] ?? '—'}<small>/MT</small>
+          </span>
+          {dirArrow(item.direction)}
+        </div>
+        <div className="ferro-meta-row">
+          <span className="ferro-cny-ref">시장 통상 범위 (실시간 아님 — 최근 확인가 {item.price_as_of} 기준)</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ferro-item-header">
@@ -153,11 +191,14 @@ function FerroPrice({ item, abbr }: { item: FerroItem; abbr: string }) {
         )}
         {dirArrow(item.direction)}
       </div>
-      {item.change_cny && (
+      {(item.change_cny || item.price_source || item.price_as_of || item.carried_over) && (
         <div className="ferro-meta-row">
-          <span className="ferro-change" style={{ color: changeColor }}>
-            전월比 {item.change_cny} CNY
-          </span>
+          {item.change_cny && (
+            <span className="ferro-change" style={{ color: changeColor }}>
+              전월比 {item.change_cny} CNY{' '}
+            </span>
+          )}
+          <PriceMeta source={item.price_source} asOf={item.price_as_of} carriedOver={item.carried_over} />
         </div>
       )}
     </div>
@@ -419,6 +460,8 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
       <SectionCard title="합금철 시장 종합" accent="SUM">
         <MarketSummary summary={market_summary} />
       </SectionCard>
+
+      <SourcesList sources={data._sources} />
     </div>
   );
 }
