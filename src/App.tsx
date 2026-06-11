@@ -20,7 +20,7 @@ const EMPTY_ERROR: Record<TabId, boolean> = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabId>('steelmaker');
+  const [activeTab, setActiveTab] = useState<TabId>('summary');
   const [data, setData] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState<Record<TabId, boolean>>(EMPTY_LOADING);
   const [error, setError]   = useState<Record<TabId, boolean>>(EMPTY_ERROR);
@@ -29,6 +29,16 @@ export default function App() {
     setLoading(p => ({ ...p, [tab]: true }));
     setError(p => ({ ...p, [tab]: false }));
     try {
+      // index.html 인라인 스크립트가 미리 띄운 첫 탭 요청 재사용 (1회성)
+      const preload = tab === 'summary' ? (window as any).__preloadSummary : null;
+      if (preload) {
+        (window as any).__preloadSummary = null;
+        const json = await preload;
+        if (json && !json.error) {
+          setData(p => ({ ...p, [tab]: json }));
+          return;
+        }
+      }
       const res = await fetch(`${API_BASE}?tab=${tab}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -61,6 +71,12 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [fetchTab, activeTab]);
 
+  // 탭 전환 시 스크롤 최상단으로 (스크롤 컨테이너는 .app-main)
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [activeTab]);
+
   const tabData  = data[activeTab] as never;
   const isLoading = loading[activeTab];
   const isError   = error[activeTab];
@@ -74,7 +90,7 @@ export default function App() {
       case 'aluminum':     return <AluminumTab     data={tabData as AluminumData} />;
       case 'ferroalloy':   return <FerroalloyTab   data={tabData as FerroalloyData} />;
       case 'recarburizer': return <RecarburizerTab data={tabData as RecarburizerData} />;
-      case 'summary':      return <SummaryTab      data={tabData as SummaryData} />;
+      case 'summary':      return <SummaryTab      data={tabData as SummaryData} allData={data} />;
     }
   }
 
@@ -93,7 +109,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="app-main">
+      <main className="app-main" ref={mainRef}>
         <TabErrorBoundary key={activeTab} onReset={() => fetchTab(activeTab)}>
           {renderContent()}
         </TabErrorBoundary>

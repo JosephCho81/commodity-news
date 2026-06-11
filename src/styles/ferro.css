@@ -1,0 +1,116 @@
+/* 분할 파일 — app.css(배럴)가 순서대로 @import. 순서 변경 금지(캐스케이드). */
+/* ── 합금철 탭 ── */
+.ferro-top-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.ferro-top-card {
+  background: var(--green-subtle); border: 1px solid var(--border);
+  border-radius: 5px; padding: 10px 8px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.ferro-top-abbr  { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--text); }
+.ferro-top-name  { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--text); }
+.ferro-top-price-row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.ferro-top-usd   { font-size: 13px; font-weight: 600; color: var(--text); font-family: var(--sans); }
+.ferro-top-usd small { font-size: 9px; color: var(--text3); font-weight: 400; margin-left: 1px; }
+.ferro-top-na    { font-size: 12px; color: var(--text3); font-family: var(--sans); }
+.ferro-top-cny   { font-size: 9px; color: var(--text3); font-family: var(--mono); }
+.ferro-top-domestic { color: var(--green-primary); font-weight: 600; }
+.ferro-top-change { font-size: 9px; font-family: var(--mono); }
+.ferro-exrate-note {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  text-align: right; padding-top: 6px; border-top: 1px solid var(--border2); margin-top: 4px;
+}
+.ferro-fob-note {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  padding: 5px 0 2px; border-top: 1px solid var(--border2); margin-top: 6px;
+  line-height: 1.5;
+}
+
+.ferro-dir { font-size: 11px; font-weight: 700; }
+.ferro-dir.up      { color: var(--up); }
+.ferro-dir.down    { color: var(--down); }
+.ferro-dir.neutral { color: var(--neutral); }
+
+.ferro-item-header {
+  padding: 4px 0 10px;
+  border-bottom: 1px solid var(--border2);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.ferro-price-row        { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ferro-price-main       { font-size: 16px; font-weight: 600; color: var(--text); font-family: var(--sans); line-height: 1.3; }
+.ferro-price-main small { font-size: 11px; color: var(--text2); font-weight: 400; margin-left: 2px; }
+.ferro-price-cny-only   { color: var(--text2); }
+.ferro-price-cny-inline { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.ferro-price-na         { font-size: 14px; color: var(--text3); }
+.ferro-meta-row         { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.ferro-cny-ref          { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.ferro-change           { font-family: var(--mono); font-size: 10px; font-weight: 600; }
+
+.steel-signal-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 3px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+}
+.signal-demand-strong { background: #e8f5ec; color: #1a6b32;  border: 1px solid #a3d9b3; }
+.signal-demand-weak   { background: #fdf2f2; color: #b32020;  border: 1px solid #f5b0b0; }
+.signal-supply-shock  { background: #fff8e8; color: #8a5a00;  border: 1px solid #e8d080; }
+.signal-mixed         { background: var(--green-subtle); color: var(--text2); border: 1px solid var(--border); }
+
+.cause-block { display: flex; flex-direction: column; gap: 8px; }
+.cause-row   { display: flex; gap: 8px; align-items: flex-start; }
+.cause-label {
+  flex-shrink: 0; font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 3px; margin-top: 2px;
+  white-space: nowrap; font-family: var(--sans);
+}
+.cause-supply { background: #fff8e8; color: #8a5a00; border: 1px solid #e8d080; }
+.cause-demand { background: #e8f5ec; color: #1a6b32; border: 1px solid #a3d9b3; }
+.cause-text   { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+/* 섹션 간 구분 블록 — 위 공백 + 구분선 */
+.ferro-section-block {
+  border-top: 1px solid var(--border2);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.ferro-signal-block {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.ferro-signal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ferro-signal-title  { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text2); }
+.ferro-signal-reason { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+/* 비중국 생산국 */
+.non-china-block {
+  /* border-top은 부모 .ferro-section-block이 담당 */
+}
+.non-china-title {
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.non-china-list { display: flex; flex-direction: column; gap: 6px; }
+.non-china-row {
+  border: 1px solid var(--border); border-radius: 5px;
+  overflow: hidden;
+}
+.non-china-header {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  background: var(--green-subtle);
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.non-china-country {
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  color: var(--green-dark);
+}
+.non-china-company { font-size: 10px; color: var(--text2); }
+.non-china-share {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  background: var(--green-subtle); border: 1px solid var(--border);
+  padding: 0 5px; border-radius: 2px; margin-left: auto;
+}
+.non-china-status { font-size: 11px; color: var(--text); line-height: 1.55; margin: 0; }
+.non-china-detail { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; }

@@ -1,0 +1,175 @@
+/* 분할 파일 — app.css(배럴)가 순서대로 @import. 순서 변경 금지(캐스케이드). */
+/* ── 제강사 탭 ── */
+.maker-row {
+  padding: 12px 0; border-bottom: 1px solid var(--border2);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.maker-row:last-child { border-bottom: none; }
+.maker-header  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.maker-name    { font-family: var(--sans); font-size: 15px; font-weight: 700; color: var(--text); }
+.maker-rate-badge {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 2px 7px; border-radius: 3px;
+}
+.rate-high { background: #e8f5ec; color: #1a6b32; border: 1px solid #a3d9b3; }
+.rate-mid  { background: #fff8e8; color: #8a5a00; border: 1px solid #e8d080; }
+.rate-low  { background: #fdf2f2; color: #b32020; border: 1px solid #f5b0b0; }
+.maker-eaf       { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+.maker-cut-badge {
+  font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 3px;
+  background: #fdf2f2; color: #b32020; border: 1px solid #f5b0b0;
+}
+.maker-note { font-size: 12px; color: var(--text); line-height: 1.65; }
+.maker-detail-block { display: flex; flex-direction: column; gap: 5px; }
+.maker-info-row { display: flex; gap: 8px; align-items: flex-start; }
+.maker-info-label {
+  flex-shrink: 0; font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px; margin-top: 2px;
+  white-space: nowrap; font-family: var(--mono);
+}
+.maker-info-text { font-size: 12px; color: var(--text); line-height: 1.65; }
+.summary-label-fixed { min-width: 68px; text-align: center; }
+.maker-impact-box {
+  display: flex; gap: 8px; align-items: flex-start;
+  background: var(--green-subtle); border-radius: 3px; padding: 6px 10px;
+}
+.maker-impact-label {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  color: var(--green-primary); white-space: nowrap; margin-top: 2px;
+  padding: 1px 5px; border: 1px solid var(--green-mid); border-radius: 2px; background: #fff;
+}
+.maker-impact-text { font-size: 11px; color: var(--text2); line-height: 1.6; }
+
+.maker-metric {
+  display: inline-flex; align-items: center;
+  background: #f0f8f3; border: 1px solid var(--green-mid);
+  border-radius: 4px; padding: 3px 10px; margin: 1px 0;
+}
+.maker-metric-text {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--green-dark);
+}
+
+.maker-recent-issues {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 6px 8px; border-radius: 4px; margin-bottom: 6px;
+}
+.maker-recent-issues.has-news {
+  background: #fffbe6; border: 1px solid #ffe58f;
+}
+.maker-recent-issues.no-news {
+  background: var(--green-subtle); border: 1px solid var(--border2);
+}
+.maker-recent-label {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 2px; white-space: nowrap; margin-top: 1px;
+}
+.has-news .maker-recent-label { color: #ad6800; background: #fff3b8; border: 1px solid #ffe58f; }
+.no-news  .maker-recent-label { color: var(--text3); background: #fff; border: 1px solid var(--border); }
+.maker-recent-text { font-size: 11px; line-height: 1.6; }
+.has-news .maker-recent-text { color: #5c3d00; }
+.no-news  .maker-recent-text { color: var(--text3); }
+
+/* legacy grid (kept for fallback) */
+.demand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.demand-cell {
+  background: var(--green-subtle); border: 1px solid var(--border);
+  border-radius: 5px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.demand-label-row { display: flex; align-items: center; justify-content: space-between; }
+.demand-label  { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.5px; }
+.demand-status { font-size: 12px; color: var(--text); line-height: 1.5; }
+.demand-basis  { font-size: 10px; color: var(--text2); line-height: 1.5; }
+
+/* 수요 산업 리포트 형식 */
+.steelmaker-date-note {
+  font-size: 10px; color: var(--text3); text-align: right;
+  margin: -4px 0 8px; padding: 0;
+}
+.demand-report-list { display: flex; flex-direction: column; gap: 10px; }
+.demand-report-item {
+  border: 1px solid var(--border); border-radius: 5px; overflow: hidden;
+}
+.demand-report-header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--green-subtle); padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.demand-report-title {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.3px;
+}
+.demand-report-body { padding: 8px 12px; display: flex; flex-direction: column; gap: 5px; }
+.demand-report-row { display: flex; gap: 8px; align-items: flex-start; }
+.demand-report-label {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  color: var(--green-primary); padding: 1px 5px; border-radius: 2px;
+  border: 1px solid var(--green-mid); background: #fff;
+  white-space: nowrap; margin-top: 2px; min-width: 28px; text-align: center;
+}
+.demand-report-text { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+.dir-badge {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 2px;
+}
+.dir-up      { color: var(--up);      background: #fdecec; border: 1px solid #f3c2c2; }
+.dir-down    { color: var(--down);    background: #eaf1fd; border: 1px solid #bfd4f7; }
+.dir-neutral { color: var(--neutral); background: var(--surface2); border: 1px solid var(--border); }
+
+.forecast-box {
+  background: var(--green-subtle); border-left: 3px solid var(--green-primary);
+  padding: 10px 12px; border-radius: 0 5px 5px 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.forecast-item  { display: flex; gap: 8px; align-items: flex-start; }
+.forecast-label {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  color: var(--green-primary); padding: 2px 6px;
+  border: 1px solid var(--green-mid); border-radius: 2px; background: #fff;
+  white-space: nowrap; margin-top: 2px;
+}
+.forecast-text { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+.shipping-routes { display: flex; flex-direction: column; }
+.shipping-routes-header {
+  display: flex; justify-content: space-between;
+  padding: 4px 0 8px; border-bottom: 2px solid var(--border);
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.shipping-route-row {
+  display: grid; grid-template-columns: 1fr auto auto 1fr; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--border2);
+  align-items: center;
+}
+.shipping-route-row:last-child { border-bottom: none; }
+.shipping-route-name { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+.shipping-price-val  { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
+.shipping-note       { font-size: 10px; color: var(--text3); line-height: 1.5; }
+.shipping-outlook    {
+  font-size: 12px; color: var(--text2); line-height: 1.65;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border2);
+}
+
+/* ── 신뢰성 표기 (출처 · 기준일 · 이월 배지) ── */
+.cache-badge--stale { background: #fdf0e7; border-color: #f0c9a8; color: #b05c10; }
+
+.price-meta { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.price-meta-carried {
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  background: #fdf0e7; border: 1px solid #f0c9a8; color: #b05c10;
+  padding: 1px 5px; border-radius: 3px; white-space: nowrap;
+}
+.price-meta-asof   { font-family: var(--mono); font-size: 9px; color: var(--text3); white-space: nowrap; }
+.price-meta-source {
+  font-family: var(--mono); font-size: 9px;
+  background: var(--green-subtle); border: 1px solid var(--border); color: var(--text2);
+  padding: 1px 5px; border-radius: 3px; white-space: nowrap;
+}
+
+.key-issue-source { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-top: 3px; }
+.key-issue-source a { color: var(--green-dark); text-decoration: none; }
+.key-issue-source a:hover { text-decoration: underline; }
+.key-issue-title a { color: inherit; text-decoration: underline dotted; text-underline-offset: 2px; }

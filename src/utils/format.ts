@@ -5,6 +5,14 @@ export function formatNum(val: string | null | undefined) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// 정수 천단위 콤마 — 숫자 변환 불가 시 원본 문자열, 빈 값은 '—' (구 FerroalloyTab fmtCny 통합)
+export function formatInt(val: string | number | null | undefined): string {
+  if (val === null || val === undefined || val === '') return '—';
+  const n = Number(String(val).replace(/,/g, ''));
+  if (isNaN(n)) return String(val);
+  return n.toLocaleString('en-US');
+}
+
 export function directionColor(d: string | null | undefined) {
   if (d === 'UP') return 'var(--up)';
   if (d === 'DOWN') return 'var(--down)';

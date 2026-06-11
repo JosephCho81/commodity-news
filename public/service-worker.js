@@ -1,25 +1,25 @@
-// service-worker.js — 오프라인 캐시
-const CACHE_NAME = 'a1-commodity-v3';
+// service-worker.js ???�프?�인 캐시
+const CACHE_NAME = 'a1-commodity-v4';
 
-// 앱 shell (정적 파일)
+// ??shell (?�적 ?�일)
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/logo.png',
 ];
 
-// 설치: 정적 파일 캐시
+// ?�치: ?�적 ?�일 캐시
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] 정적 파일 캐시');
+      console.log('[SW] ?�적 ?�일 캐시');
       return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
 });
 
-// 활성화: 이전 캐시 삭제
+// ?�성?? ?�전 캐시 ??��
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -31,19 +31,19 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// fetch 인터셉트
+// fetch ?�터?�트
 self.addEventListener('fetch', (event) => {
-  // http/https 요청만 처리 — chrome-extension 등 다른 스킴 무시
+  // http/https ?�청�?처리 ??chrome-extension ???�른 ?�킴 무시
   if (!event.request.url.startsWith('http')) return;
 
   const url = new URL(event.request.url);
 
-  // API 요청 (/api/get-news): Network First → 실패 시 캐시
+  // API ?�청 (/api/get-news): Network First ???�패 ??캐시
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // 성공하면 캐시에 저장
+          // ?�공?�면 캐시???�??
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, clone);
@@ -51,15 +51,15 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // 오프라인 → 캐시된 마지막 데이터 반환
+          // ?�프?�인 ??캐시??마�?�??�이??반환
           return caches.match(event.request).then((cached) => {
             if (cached) {
-              console.log('[SW] 오프라인 — 캐시 데이터 반환:', url.pathname);
+              console.log('[SW] ?�프?�인 ??캐시 ?�이??반환:', url.pathname);
               return cached;
             }
-            // 캐시도 없으면 오프라인 응답
+            // 캐시???�으�??�프?�인 ?�답
             return new Response(
-              JSON.stringify({ error: 'offline', message: '오프라인 상태입니다.' }),
+              JSON.stringify({ error: 'offline', message: '?�프?�인 ?�태?�니??' }),
               { headers: { 'Content-Type': 'application/json' } }
             );
           });
@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 정적 파일: Network First → 실패 시 캐시
+  // ?�적 ?�일: Network First ???�패 ??캐시
   event.respondWith(
     fetch(event.request)
       .then((response) => {

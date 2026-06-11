@@ -1,6 +1,8 @@
+// 앱 셸 공용 컴포넌트 — 로고·섹션 카드·텍스트·로딩/에러·신선도 배지
+// 데이터 표시 요소(칩·필·스파크라인 등)는 data-viz.tsx 참조.
 import { useState, Component } from 'react';
 import type { ReactNode } from 'react';
-import type { ApiMeta, SourceInfo } from '../types';
+import type { ApiMeta } from '../types';
 
 export function Logo() {
   const [failed, setFailed] = useState(false);
@@ -17,13 +19,13 @@ export function Logo() {
   );
 }
 
-export function SectionCard({ title, accent, children }: {
+// V2: 영문 액센트 칩은 장식 노이즈라 렌더링하지 않음 (accent prop은 호출부 호환용으로 수용만)
+export function SectionCard({ title, children }: {
   title: string; accent?: string; children: React.ReactNode;
 }) {
   return (
     <div className="section-card">
       <div className="section-header">
-        {accent && <span className="section-accent">{accent}</span>}
         <span className="section-title">{title}</span>
       </div>
       <div className="section-body">{children}</div>
@@ -37,22 +39,6 @@ export function TextBlock({ text }: { text: string | null | undefined }) {
     .replace(/Yuan/g, 'CNY')
     .replace(/\/톤/g, '/MT');
   return <p className="text-block">{cleaned}</p>;
-}
-
-// ─── 신뢰성 표기 ─────────────────────────────────────────────────────────────
-
-// 가격 카드용 출처·기준일·이월 배지. 표시할 정보가 없으면 아무것도 그리지 않음.
-export function PriceMeta({ source, asOf, carriedOver }: {
-  source?: string | null; asOf?: string | null; carriedOver?: boolean;
-}) {
-  if (!source && !asOf && !carriedOver) return null;
-  return (
-    <span className="price-meta">
-      {carriedOver && <span className="price-meta-carried">전일 데이터</span>}
-      {asOf && <span className="price-meta-asof">{asOf} 기준</span>}
-      {source && <span className="price-meta-source">{source}</span>}
-    </span>
-  );
 }
 
 // 헤더용 데이터 신선도 배지. _fallback이면 경고 톤으로 이전 데이터임을 명시.
@@ -74,38 +60,13 @@ export function FreshnessBadge({ meta }: { meta: ApiMeta | null | undefined }) {
   );
 }
 
-// 탭 하단 참고 출처 접이식 목록 (Perplexity search_results 기반)
-export function SourcesList({ sources }: { sources?: SourceInfo[] | null }) {
-  const [open, setOpen] = useState(false);
-  if (!Array.isArray(sources) || sources.length === 0) return null;
-  const valid = sources.filter(s => s?.url);
-  if (valid.length === 0) return null;
-  return (
-    <div className="sources-list">
-      <button className="sources-toggle" onClick={() => setOpen(o => !o)}>
-        참고 출처 {valid.length}건 {open ? '▲' : '▼'}
-      </button>
-      {open && (
-        <ul className="sources-items">
-          {valid.map((s, i) => (
-            <li key={i}>
-              <a href={s.url} target="_blank" rel="noreferrer">
-                {s.title || s.url.replace(/^https?:\/\//, '').slice(0, 60)}
-              </a>
-              {s.date && <span className="sources-date"> ({s.date})</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 export function LoadingState() {
   return (
-    <div className="loading-state">
-      <div className="loading-spinner" />
-      <p>시장 데이터 수집 중…</p>
+    <div className="skeleton-wrap" aria-busy="true" aria-label="시장 데이터 수집 중">
+      <div className="skeleton skeleton-hero" />
+      <div className="skeleton skeleton-card" />
+      <div className="skeleton skeleton-card" />
+      <div className="skeleton skeleton-card tall" />
     </div>
   );
 }

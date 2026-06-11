@@ -122,6 +122,7 @@ export async function getFirestoreToken() {
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
+    signal: AbortSignal.timeout(8000),
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
   });
@@ -146,6 +147,7 @@ export async function saveToFirestore(token, collection, docId, data) {
   }
   const res = await fetch(url, {
     method: 'PATCH',
+    signal: AbortSignal.timeout(8000),
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -162,6 +164,7 @@ export async function saveToFirestore(token, collection, docId, data) {
 export async function getFromFirestore(token, collection, docId) {
   const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}`;
   const res = await fetch(url, {
+    signal: AbortSignal.timeout(8000),
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 404) {
@@ -182,21 +185,4 @@ export async function getFromFirestore(token, collection, docId) {
   return out;
 }
 
-export async function fetchPrevDayData(token, tab) {
-  if (!token) return null;
-  try {
-    const days = [1, 2, 3].map(i =>
-      new Date(Date.now() + 9 * 60 * 60 * 1000 - i * 86400000).toISOString().slice(0, 10)
-    );
-    const docs = await Promise.all(
-      days.map(d => getFromFirestore(token, 'commodity_cache', `${tab}_${d}`).catch(() => null))
-    );
-    const idx = docs.findIndex(doc => doc?.data);
-    if (idx === -1) return null;
-    console.log(`[PrevDay] ${tab} 전일 데이터 로드: ${days[idx]}`);
-    return { date: days[idx], data: JSON.parse(docs[idx].data) };
-  } catch (e) {
-    console.warn('[PrevDay] 전일 데이터 로드 실패:', e.message);
-  }
-  return null;
-}
+// fetchPrevDayData는 cache-store.js로 이동 (캐시 헬퍼 — 2026-06-11 구조 정리)

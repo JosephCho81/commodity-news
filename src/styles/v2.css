@@ -1,0 +1,123 @@
+/* 분할 파일 — app.css(배럴)가 순서대로 @import. 순서 변경 금지(캐스케이드). */
+/* ════════════════════════════════════════════════════════════════════════════
+   V2 레이어 — 신규 컴포넌트 + 기존 그린 잔재 타깃 오버라이드
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 출처 칩 — 모든 핵심 숫자의 신원 증명 ── */
+.source-chip {
+  display: inline-flex; align-items: center;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.3px;
+  padding: 1px 6px; border-radius: 3px; white-space: nowrap;
+}
+.source-chip--brand { color: var(--green-dark); border: 1px solid #b9e4cb; background: var(--green-light); }
+.source-chip--muted { color: var(--text3); border: 1px solid var(--border); background: var(--surface); }
+
+/* ── 변동 필 — 상승 빨강 / 하락 파랑 ── */
+.delta-pill {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 7px; border-radius: 10px; white-space: nowrap;
+  width: fit-content;
+}
+.delta-up   { color: var(--up);   background: #fdecec; }
+.delta-down { color: var(--down); background: #eaf1fd; }
+.delta-flat { color: var(--neutral); background: var(--surface2); }
+
+/* ── 스파크라인 ── */
+.sparkline { display: block; flex-shrink: 0; }
+.ferro-top-spark-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+
+.bid-baseline-chip {
+  font-size: 10px; font-weight: 700; color: var(--green-dark);
+  background: var(--green-light); border: 1px solid #b9e4cb;
+  padding: 2px 8px; border-radius: 3px;
+}
+
+/* ── 중국 선물 스트립 ── */
+.futures-strip {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px 10px;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.futures-strip-title { font-size: 12px; font-weight: 700; color: var(--text); }
+.futures-strip-row {
+  display: flex; gap: 14px; overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.futures-cell {
+  display: flex; flex-direction: column; gap: 3px;
+  min-width: 76px; flex-shrink: 0;
+}
+.futures-cell-name  { font-size: 10px; font-weight: 600; color: var(--text3); }
+.futures-cell-price { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.1; }
+.futures-strip-meta { font-size: 9px; color: var(--text3); display: flex; align-items: center; gap: 5px; }
+
+/* ── 국내 전문지 헤드라인 ── */
+.kr-news-list { list-style: none; display: flex; flex-direction: column; }
+.kr-news-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 0; border-bottom: 1px solid var(--border2);
+}
+.kr-news-item:last-child { border-bottom: none; padding-bottom: 2px; }
+.kr-news-item:first-child { padding-top: 2px; }
+.kr-news-title {
+  font-size: 12px; font-weight: 600; color: var(--text);
+  text-decoration: none; line-height: 1.5;
+}
+.kr-news-title:hover { color: var(--green-dark); text-decoration: underline; }
+.kr-news-meta { font-size: 10px; color: var(--text3); }
+
+/* ── 브리핑 홈 ── */
+.brief-strip { display: flex; flex-direction: column; gap: 6px; }
+.brief-strip-row {
+  display: flex; gap: 14px; overflow-x: auto;
+  padding: 10px 2px 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.brief-cell { display: flex; flex-direction: column; gap: 3px; min-width: 88px; flex-shrink: 0; }
+.brief-cell-name  { font-size: 10px; font-weight: 700; color: var(--text2); }
+.brief-cell-value { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.1; }
+.brief-cell-value small { font-size: 10px; font-weight: 500; color: var(--text3); }
+.brief-cell-foot  { display: flex; align-items: center; gap: 5px; min-height: 16px; }
+.brief-strip-meta { font-size: 10px; color: var(--text3); }
+
+.brief-no-news {
+  font-size: 12px; color: var(--text2); line-height: 1.6;
+  background: var(--surface2); border: 1px dashed var(--border);
+  border-radius: 6px; padding: 12px 14px; text-align: center;
+}
+.brief-issue-list { display: flex; flex-direction: column; gap: 8px; }
+.brief-issue-item { display: flex; gap: 8px; align-items: flex-start; }
+.brief-issue-tag {
+  flex-shrink: 0; font-size: 9px; font-weight: 700;
+  color: var(--green-dark); background: var(--green-light);
+  border: 1px solid #b9e4cb; border-radius: 3px;
+  padding: 2px 6px; margin-top: 1px; white-space: nowrap;
+}
+.brief-issue-body  { display: flex; flex-direction: column; gap: 1px; }
+.brief-issue-title { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.5; }
+.brief-issue-title a { color: inherit; text-decoration: underline dotted; text-underline-offset: 2px; }
+.brief-issue-what  { font-size: 11px; color: var(--text2); line-height: 1.55; }
+
+/* ── 스켈레톤 로딩 ── */
+.skeleton-wrap { display: flex; flex-direction: column; gap: 10px; padding: 2px 0; }
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface2) 25%, #e9ecee 37%, var(--surface2) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-wave 1.3s ease infinite;
+}
+.skeleton-hero { height: 110px; }
+.skeleton-card { height: 88px; }
+.skeleton-card.tall { height: 180px; }
+@keyframes skeleton-wave { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* ── 반응형 ── */
+@media (max-width: 360px) {
+  .production-grid { grid-template-columns: 1fr; }
+  .flow-table-header, .flow-table-row { grid-template-columns: 58px 1fr 58px 58px; }
+  .ferro-top-grid { grid-template-columns: 1fr; }
+  .demand-grid    { grid-template-columns: 1fr; }
+}

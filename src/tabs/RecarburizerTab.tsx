@@ -1,6 +1,7 @@
 import type { RecarburizerData } from '../types';
 import { hasText } from '../utils/format';
-import { SectionCard, TextBlock, PriceMeta, SourcesList } from '../components/ui';
+import { SectionCard, TextBlock } from '../components/ui';
+import { PriceMeta, FuturesStrip, KrNewsList } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
 
 export function RecarburizerTab({ data }: { data: RecarburizerData }) {
@@ -94,6 +95,10 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
         </div>
       </div>
 
+      <FuturesStrip futures={d._china_futures} title="원가 신호 — 중국 원료탄·코크스 선물" />
+
+      <KrNewsList items={d._kr_news} title="국내 동향 (전문지 1차 보도)" />
+
       <KeyIssuesSection issues={d.key_issues ?? []} />
 
       {(hasText(gm.headline) || hasText(gm.current_level) || hasText(gm.key_drivers)) && (
@@ -147,8 +152,6 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <TextBlock text={market_summary} />
         </SectionCard>
       )}
-
-      <SourcesList sources={d._sources} />
     </div>
   );
 }

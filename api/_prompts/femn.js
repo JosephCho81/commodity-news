@@ -36,7 +36,7 @@ export function getFemnPrompt(date, prevData = null) {
 5. key_issues: 0~1개. 하단에 【최근 보도한 이슈 — 제외】 목록이 있으면 실질적으로 같은 이슈 재선정 금지
    (같은 이슈라도 가격·수치에 새로운 변화가 보도됐으면 새 수치 중심으로 작성 가능).
    오늘 새 이슈가 없으면 빈 배열 []이 정답. 어제 이슈 재탕 금지. "데이터 부재" 금지.
-6. supply_cause, demand_cause, context, non_china_producers의 issue/cause/outlook 필드에 "정보 부재", "최신 동향 미확보", "구체적 데이터 미확보", "데이터 없음", "확인 불가" 절대 금지.
+6. supply_cause, demand_cause, context, non_china_producers의 issue/cause/outlook 필드에 "정보 부재", "최신 동향 미확보", "구체적 데이터 미확보", "데이터 없음", "확인 불가", "확인되지 않음", "이번 검색 결과에 확인되지 않으며" 절대 금지. 검색 행위 자체를 본문에 언급 금지 — 해당 문구 포함 문장은 서버가 통째로 삭제함.
    최신 데이터 검색 실패 시 → 가장 최근 공개 수치 + 구조적 배경으로 대체. "최근 분기 기준" 등으로 추정 명시.
 7. 각주 번호 [1][2] 금지. 한국어.
 8. 문장 종결어미 금지: "~이다", "~했다", "~있다", "~된다". "~세", "~중", "~수준", "~감소", "~상승"으로 끝낼 것.
@@ -68,6 +68,14 @@ export function getFemnPrompt(date, prevData = null) {
 - "MOIL India ferromanganese export supply ${y}"
 - "SMM ferromanganese non-China supply market ${ym}"
 
+【검색 — 한국 국내 FeMn 공급 (중요 — 국내 제강사 직결)】
+- "동부메탈 페로망간"
+- "동부메탈 가동 중단 셧다운"
+- "Dongbu Metal ferromanganese shutdown"
+- "국내 페로망간 수급 제강사"
+- "심팩 SIMPAC 페로망간"
+※ 동부메탈 등 국내 생산사의 가동 중단·재개·구조조정은 국내 제강사 수급에 직결 — 확인되면 korea_supply에 반드시 반영.
+
 【검색 — 시장 영향 뉴스】
 - "ferromanganese market news ${date}"
 - "manganese supply disruption ${date}"
@@ -84,6 +92,7 @@ ${prevSection}
   "hbis_bid_change": "전월 대비 변동 CNY. 못 찾으면 null",
   "mn_ore_cif_korea": "망간광석 CIF 한국 숫자만 USD/MT. 못 찾으면 null",
   "ore_to_femn_spread": "망간광석 원가 대비 FeMn 마진 동향 1문장. CNY 기준.",
+  "korea_supply": "한국 국내 FeMn 공급 동향 2~3문장 — 동부메탈·심팩 등 국내 생산사 가동·중단 상황과 국내 제강사 수급 영향. 검색에서 국내 관련 보도를 못 찾으면 null (메타 문구 금지)",
   "direction": "UP 또는 DOWN 또는 NEUTRAL",
   "change_cny": "전월 대비 변동 또는 null",
   "supply_cause": "망간광석 원가, 주요 생산국(남아공·호주·가봉) 공급 동향. 수치 포함. 2~3문장.",

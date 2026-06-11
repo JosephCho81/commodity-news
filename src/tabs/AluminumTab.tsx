@@ -1,20 +1,47 @@
 import type { AluminumData } from '../types';
 import { formatNum, isValidLmePrice } from '../utils/format';
-import { SectionCard, TextBlock, PriceMeta, SourcesList } from '../components/ui';
+import { SectionCard, TextBlock } from '../components/ui';
+import { PriceMeta, SourceChip, Sparkline, KrNewsList } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
 
-// 내부 소스 식별자 → 사용자 표시용 출처명
-const LME_SOURCE_LABEL: Record<string, string> = {
-  westmetall: 'westmetall.com 공식',
-  perplexity: '웹 검색 기반',
-  carried: '전일 데이터',
-};
+// 스크랩 가격 — 한 줄에 한 품목, 품목명/단가 컬럼 정렬.
+// price_items(서버 직접 수집값)가 우선, 없으면 구형 price_range 문자열을 분해해 표시.
+function ScrapPriceLines({ items, fallback }: {
+  items?: Array<{ grade: string; price: string }> | null;
+  fallback?: string | null;
+}) {
+  let rows: Array<{ grade: string; price: string }> = [];
+  if (Array.isArray(items) && items.length > 0) {
+    rows = items.filter(it => it?.grade && it?.price);
+  } else if (fallback && fallback !== 'null') {
+    rows = String(fallback)
+      .split(/,\s+/)
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(seg => {
+        const m = seg.match(/^(.+?)\s+((?:US)?\$|CNY|JPY|¥|약\s|[\d,]+)(.*)$/);
+        return m
+          ? { grade: m[1], price: `${m[2]}${m[3]}` }
+          : { grade: seg, price: '' };
+      });
+  }
+  if (rows.length === 0) return null;
+  return (
+    <div className="region-price-table">
+      {rows.map((r, i) => (
+        <div key={i} className="region-price-line">
+          <span className="region-price-grade">{r.grade}</span>
+          <span className="region-price-value">{r.price}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function AluminumTab({ data }: { data: AluminumData }) {
   const { lme, scrap } = data;
   const isUp = lme.change != null && !String(lme.change).startsWith('-');
   const priceValid = isValidLmePrice(lme.price);
-  const sourceLabel = lme.source ? (LME_SOURCE_LABEL[lme.source] ?? lme.source) : null;
 
   return (
     <div className="tab-content">
@@ -32,7 +59,7 @@ export function AluminumTab({ data }: { data: AluminumData }) {
             </span>
           )}
         </div>
-        {(lme.date || sourceLabel || lme.carried_over) && (
+        {(lme.date || lme.carried_over) && (
           <span className="price-hero-date">
             {lme.date && <>기준: {lme.date}</>}
             {(lme as any).holiday_note && (
@@ -41,10 +68,14 @@ export function AluminumTab({ data }: { data: AluminumData }) {
               </span>
             )}
             {' '}
-            <PriceMeta source={sourceLabel} carriedOver={lme.carried_over} />
+            {priceValid && lme.source === 'westmetall' && <SourceChip label="LME 공식" />}
+            <PriceMeta carriedOver={lme.carried_over} />
           </span>
         )}
+        <Sparkline history={data._price_history} valueKey="lme" width={120} height={26} />
       </div>
+
+      <KrNewsList items={data._kr_news} title="국내 동향 (전문지 1차 보도)" />
 
       <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
 
@@ -76,9 +107,7 @@ export function AluminumTab({ data }: { data: AluminumData }) {
               <div className="region-title-row">
                 <span className="region-name">{r.region}</span>
               </div>
-              {r.price_range && r.price_range !== 'null' && (
-                <div className="region-price-row">{r.price_range}</div>
-              )}
+              <ScrapPriceLines items={r.price_items} fallback={r.price_range} />
               {r.key_grades && <div className="region-grades-line">{r.key_grades}</div>}
               {r.price_driver && <p className="region-driver">{r.price_driver}</p>}
               {r.flow && <p className="region-flow-text">📦 {r.flow}</p>}
@@ -86,8 +115,6 @@ export function AluminumTab({ data }: { data: AluminumData }) {
           ))}
         </div>
       </SectionCard>
-
-      <SourcesList sources={data._sources} />
     </div>
   );
 }

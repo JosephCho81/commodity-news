@@ -1,17 +1,27 @@
-import type { SummaryData } from '../types';
+// 브리핑 탭 — 가격 스트립·신규 이슈는 components/BriefingWidgets 참조
+import type { SummaryData, FerroalloyData, AluminumData, RecarburizerData } from '../types';
 import { directionColor, urgencyBadge } from '../utils/format';
 import { SectionCard } from '../components/ui';
+import { IssueRow } from '../components/KeyIssues';
+import { PriceStrip, NewIssues } from '../components/BriefingWidgets';
 
-export function SummaryTab({ data }: { data: SummaryData }) {
+export function SummaryTab({ data, allData }: {
+  data: SummaryData;
+  allData?: Record<string, unknown>;
+}) {
   const { one_liner, key_signals, risk_signals, week_ahead } = data;
   const cleanOneLiner = (one_liner ?? '').replace(/^["'"']+|["'"']+$/g, '').trim();
   const weekAheadList: any[] = Array.isArray(week_ahead) ? week_ahead : [];
+
+  const fa = allData?.ferroalloy as FerroalloyData | undefined;
+  const al = allData?.aluminum as AluminumData | undefined;
+  const rec = allData?.recarburizer as RecarburizerData | undefined;
 
   return (
     <div className="tab-content">
       <div className="today-card">
         <div className="today-header">
-          <span className="today-label">TODAY</span>
+          <span className="today-label">오늘 브리핑</span>
           <span className="today-date">{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</span>
         </div>
         {cleanOneLiner ? (
@@ -19,7 +29,13 @@ export function SummaryTab({ data }: { data: SummaryData }) {
         ) : (
           <div className="today-summary">시장 데이터 수집 중</div>
         )}
-        {(key_signals ?? []).length > 0 && (
+        <PriceStrip fa={fa} al={al} rec={rec} />
+      </div>
+
+      <NewIssues fa={fa} al={al} rec={rec} />
+
+      {(key_signals ?? []).length > 0 && (
+        <SectionCard title="어제와 달라진 것">
           <div className="today-signals">
             {(key_signals ?? []).map((s, i) => (
               <div key={i} className="today-signal-item">
@@ -36,10 +52,10 @@ export function SummaryTab({ data }: { data: SummaryData }) {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </SectionCard>
+      )}
 
-      <SectionCard title="주요 리스크 신호" accent="RISK">
+      <SectionCard title="주요 리스크 신호">
         {(risk_signals ?? []).map((r, i) => (
           <div key={i} className="risk-row">
             <div className="risk-header">
@@ -49,46 +65,21 @@ export function SummaryTab({ data }: { data: SummaryData }) {
               </span>
             </div>
             {r.affected && <p className="risk-affected">영향: {r.affected}</p>}
-            {(r as any).why && (
-              <div className="key-issue-row" style={{ marginTop: 6 }}>
-                <span className="key-issue-label ki-why">원인</span>
-                <span className="key-issue-text">{(r as any).why}</span>
-              </div>
-            )}
-            {r.impact && (
-              <div className="key-issue-row">
-                <span className="key-issue-label ki-impact">영향</span>
-                <span className="key-issue-text">{r.impact}</span>
-              </div>
-            )}
-            {(r as any).outlook && (
-              <div className="key-issue-row">
-                <span className="key-issue-label ki-outlook">전망</span>
-                <span className="key-issue-text">{(r as any).outlook}</span>
-              </div>
-            )}
+            <IssueRow label="원인" cls="ki-why"     text={(r as any).why} />
+            <IssueRow label="영향" cls="ki-impact"  text={r.impact} />
+            <IssueRow label="전망" cls="ki-outlook" text={(r as any).outlook} />
           </div>
         ))}
       </SectionCard>
 
       {weekAheadList.length > 0 && (
-        <SectionCard title="이번 주 주목 변수" accent="WATCH">
+        <SectionCard title="이번 주 주목 변수">
           <div className="key-issues-list">
             {weekAheadList.map((w, i) => (
               <div key={i} className="key-issue-item">
                 <div className="key-issue-title">{w.variable}</div>
-                {w.why && (
-                  <div className="key-issue-row">
-                    <span className="key-issue-label ki-why">주목 이유</span>
-                    <span className="key-issue-text">{w.why}</span>
-                  </div>
-                )}
-                {w.expected && (
-                  <div className="key-issue-row">
-                    <span className="key-issue-label ki-outlook">예상</span>
-                    <span className="key-issue-text">{w.expected}</span>
-                  </div>
-                )}
+                <IssueRow label="주목 이유" cls="ki-why"     text={w.why} />
+                <IssueRow label="예상"      cls="ki-outlook" text={w.expected} />
               </div>
             ))}
           </div>

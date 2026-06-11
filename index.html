@@ -6,9 +6,13 @@
     <title>(주)한국에이원 | 오늘의 원자재 뉴스</title>
     <meta name="description" content="비철금속·부원료·해운 전문 시황 브리핑">
 
+    <!-- 폰트: CSS @import 체인 제거 — HTML에서 병렬 로드 (첫 페인트 단축) -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#1fa83c" />
+    <meta name="theme-color" content="#00a04a" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -36,6 +40,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // 첫 탭(브리핑) API 프리로드 — JS 번들 파싱을 기다리지 않고 즉시 요청 시작
+      window.__preloadSummary = fetch('/api/get-news?tab=summary')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       // 우클릭 금지

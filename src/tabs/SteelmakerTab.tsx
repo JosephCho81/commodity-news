@@ -1,5 +1,6 @@
 import type { SteelmakerData, DomesticMaker, OverseasMaker, IndustryStatus, Direction } from '../types';
-import { SectionCard, SourcesList } from '../components/ui';
+import { SectionCard } from '../components/ui';
+import { FuturesStrip, KrNewsList } from '../components/data-viz';
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────────────
 
@@ -98,6 +99,10 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
   return (
     <div className="tab-content">
 
+      <FuturesStrip futures={data._china_futures} title="중국 철강 체인 선물 정산가" />
+
+      <KrNewsList items={data._kr_news} title="국내 철강 헤드라인 (전문지 1차 보도)" />
+
       <SectionCard title="국내 제강사 동향" accent="KR">
         {['동국제강', '포스코', '현대제철'].map((name) => {
           const maker = domestic_makers.find((m) => m.name === name);
@@ -122,8 +127,6 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
           <DemandReport label="조선"        industry={demand_industries.shipbuilding} />
         </SectionCard>
       )}
-
-      <SourcesList sources={data._sources} />
     </div>
   );
 }

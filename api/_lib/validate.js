@@ -61,6 +61,51 @@ export function carryForward(prev, prevDate, { valueKey = 'price_cny', asOfKey =
   };
 }
 
+// ─── 검색 내레이션·불확실 표현 제거 (결정적 후처리) ─────────────────────────
+// "이번 검색 결과에 확인되지 않으며" 류 문구는 프롬프트 금지만으로 재발이 반복됨.
+// 절(clause) 단위로 먼저 걷어내고, 그래도 남으면 해당 문장 전체를 제거한다.
+
+// "…검색 결과에 확인되지 않으며, " 같은 연결절 — 콤마/세미콜론까지 제거
+const NARRATION_CLAUSES = [
+  /[^.,;]*검색[^.,;]*(?:확인|포착|발견)되지\s*않[^.,;]*[,;，]\s*/g,
+  /[^.,;]*검색\s*결과[^.,;]*(?:없|부재|불가)[^.,;]*[,;，]\s*/g,
+];
+
+// 절 제거 후에도 남아 있으면 문장째 제거할 패턴
+const UNCERTAINTY_PATTERN = new RegExp([
+  '확인되지\\s*않', '포착되지\\s*않', '발견되지\\s*않',
+  '확인\\s*불가', '미확인', '확인되지\\s*못',
+  '정보\\s*없음', '정보\\s*부재', '데이터\\s*부재', '데이터\\s*없음',
+  '구체적\\s*(?:데이터|수치)\\s*미확보', '최신\\s*동향\\s*미확보',
+  '이번\\s*검색', '검색\\s*결과에', '검색\\s*범위',
+].join('|'));
+
+export function stripUncertainty(text) {
+  if (typeof text !== 'string' || text.length === 0) return text;
+  let out = text;
+  for (const re of NARRATION_CLAUSES) out = out.replace(re, '');
+  out = out
+    .split(/(?<=\.)\s+/)
+    .filter(s => !UNCERTAINTY_PATTERN.test(s))
+    .join(' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  if (out !== text) console.log(`[Sanitize] 불확실 문구 제거: "${text.slice(0, 60)}…" → "${out.slice(0, 60)}…"`);
+  return out.length > 0 ? out : null;
+}
+
+// 객체·배열을 재귀 순회하며 모든 문자열 필드에 stripUncertainty 적용 (in-place 아님)
+export function stripUncertaintyDeep(value) {
+  if (typeof value === 'string') return stripUncertainty(value);
+  if (Array.isArray(value)) return value.map(stripUncertaintyDeep);
+  if (value !== null && typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = stripUncertaintyDeep(v);
+    return out;
+  }
+  return value;
+}
+
 // ─── 뉴스 중복 제거 (결정적) ────────────────────────────────────────────────
 export const NEWS_DUP_JACCARD_THRESHOLD = 0.6;
 

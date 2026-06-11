@@ -1,5 +1,16 @@
 import { SectionCard } from './ui';
 
+// 라벨 배지 + 본문 한 줄 — 핵심이슈·비중국 생산국·리스크 등 공용 (text 없으면 미렌더)
+export function IssueRow({ label, cls, text }: { label: string; cls: string; text?: string | null }) {
+  if (!text) return null;
+  return (
+    <div className="key-issue-row">
+      <span className={`key-issue-label ${cls}`}>{label}</span>
+      <span className="key-issue-text">{text}</span>
+    </div>
+  );
+}
+
 function KeyIssueCard({ issue }: { issue: any }) {
   if (!issue || !issue.title) return null;
   const hasMeta = issue.published_date || issue.source_name;
@@ -10,30 +21,10 @@ function KeyIssueCard({ issue }: { issue: any }) {
           ? <a href={issue.url} target="_blank" rel="noreferrer">{issue.title}</a>
           : issue.title}
       </div>
-      {issue.what && (
-        <div className="key-issue-row">
-          <span className="key-issue-label ki-what">무슨 일</span>
-          <span className="key-issue-text">{issue.what}</span>
-        </div>
-      )}
-      {issue.why && (
-        <div className="key-issue-row">
-          <span className="key-issue-label ki-why">원인</span>
-          <span className="key-issue-text">{issue.why}</span>
-        </div>
-      )}
-      {issue.impact && (
-        <div className="key-issue-row">
-          <span className="key-issue-label ki-impact">영향</span>
-          <span className="key-issue-text">{issue.impact}</span>
-        </div>
-      )}
-      {issue.outlook && (
-        <div className="key-issue-row">
-          <span className="key-issue-label ki-outlook">전망</span>
-          <span className="key-issue-text">{issue.outlook}</span>
-        </div>
-      )}
+      <IssueRow label="무슨 일" cls="ki-what"    text={issue.what} />
+      <IssueRow label="원인"   cls="ki-why"     text={issue.why} />
+      <IssueRow label="영향"   cls="ki-impact"  text={issue.impact} />
+      <IssueRow label="전망"   cls="ki-outlook" text={issue.outlook} />
       {hasMeta && (
         <div className="key-issue-source">
           {issue.published_date && <span>{issue.published_date} 보도</span>}

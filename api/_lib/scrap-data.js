@@ -1,136 +1,9 @@
-// api/lib/aluminum-data.js — 알루미늄 탭 전용 실시간 데이터 수집
-// LME 가격, 전망 텍스트, 스크랩 가격(미국/유럽/중국), 일본 스크랩 가격
+// api/_lib/scrap-data.js — 알루미늄 스크랩 가격 직접 수집 (scrapmonster·dokindokin)
 
-import { getLmeHolidayNote } from './uk-holidays.js';
 import { callPerplexity, parseJSON } from './perplexity.js';
+import { sendFailureAlert } from './alert.js';
 
 const LB_TO_TON = 2204.62;
-
-// ─── 1순위 실패 시 이메일 알림 (Resend) ──────────────────────────────────────
-async function sendFailureAlert(reason) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return; // 환경변수 없으면 조용히 skip
-  try {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        from: 'noreply@resend.dev',
-        to: 'joseph@a1kor.com',
-        subject: '[A1KOR 원자재] ScrapMonster 가격 수집 실패',
-        html: `
-          <h2>⚠️ ScrapMonster 스크랩 가격 수집 실패</h2>
-          <p><b>시각:</b> ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} (KST)</p>
-          <p><b>원인:</b> ${reason}</p>
-          <p>Perplexity 2순위 검색으로 fallback 처리됐습니다.</p>
-          <hr/>
-          <p style="color:#888;font-size:12px">(주)한국에이원 원자재 인텔리전스 시스템</p>
-        `,
-      }),
-    });
-    console.log('[Alert] 실패 알림 이메일 발송 완료');
-  } catch (e) {
-    console.warn('[Alert] 이메일 발송 실패 (무시):', e.message);
-  }
-}
-
-// ─── LME 알루미늄 Cash-Settlement 가격 fetch (westmetall.com) ──────────────
-// 소스: https://www.westmetall.com/en/markdaten.php?action=table&field=LME_Al_cash
-// westmetall.com은 독일 금속거래 회사가 운영하며 LME Cash-Settlement를 텍스트로 게시.
-// LME 공식 Cash Bid와 0.5 USD 이내 일치 확인됨.
-export async function fetchLmePrice() {
-  try {
-    const url = 'https://www.westmetall.com/en/markdaten.php?action=table&field=LME_Al_cash';
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
-    if (!res.ok) throw new Error(`westmetall HTTP ${res.status}`);
-    const html = await res.text();
-
-    // 테이블에서 최신 2개 행 파싱
-    // 패턴: <td>16. March 2026</td><td>3,440.00</td><td>...</td>
-    const rowRegex = /<tr[^>]*>\s*<td[^>]*>([\d]+\.\s*\w+\s*\d{4})<\/td>\s*<td[^>]*>([\d,]+\.\d+)<\/td>/g;
-    const rows = [];
-    let m;
-    while ((m = rowRegex.exec(html)) !== null) {
-      const dateStr = m[1].trim(); // "16. March 2026"
-      const priceStr = m[2].replace(/,/g, ''); // "3440.00"
-      const price = parseFloat(priceStr);
-      if (price > 1500 && price < 5000) {
-        rows.push({ dateStr, price });
-      }
-      if (rows.length >= 2) break;
-    }
-
-    if (rows.length === 0) throw new Error('westmetall: 가격 파싱 실패');
-
-    const latest = rows[0];
-    const prev   = rows[1] ?? null;
-
-    // 날짜 파싱: "16. March 2026" → "2026-03-16"
-    const dateObj = new Date(latest.dateStr.replace(/\.$/, ''));
-    const date = isNaN(dateObj) ? latest.dateStr : dateObj.toISOString().slice(0, 10);
-
-    const change = prev ? +(latest.price - prev.price).toFixed(2) : null;
-    const changePct = (change !== null && prev)
-      ? `${change >= 0 ? '+' : ''}${((change / prev.price) * 100).toFixed(2)}%`
-      : null;
-
-    const holidayNote = await getLmeHolidayNote(date);
-    if (holidayNote) console.log(`[LME] 공휴일 감지: ${holidayNote}`);
-    console.log(`[LME] Cash-Settlement: ${latest.price} USD/톤 (${date})`);
-    return {
-      price:        String(latest.price),
-      change:       change !== null ? String(change) : null,
-      change_pct:   changePct,
-      date,
-      holiday_note: holidayNote,
-      source:       'westmetall',
-    };
-  } catch (e) {
-    console.warn('[LME] westmetall fetch 실패 — Perplexity fallback:', e.message);
-    return null;
-  }
-}
-
-// ─── Trading Economics 전망 텍스트 fetch ──────────────────────────────────────
-export async function fetchAluminumOutlook() {
-  try {
-    const res = await fetch('https://tradingeconomics.com/commodity/aluminum', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
-    if (!res.ok) throw new Error(`TE HTTP ${res.status}`);
-    const html = await res.text();
-
-    // <h2> 태그의 첫 번째 시황 텍스트 추출
-    const h2Match = html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/g);
-    if (!h2Match) throw new Error('TE: h2 없음');
-
-    // 텍스트 정리 (HTML 태그 제거)
-    const texts = h2Match
-      .map(h => h.replace(/<[^>]+>/g, '').trim())
-      .filter(t => t.length > 50);
-
-    if (texts.length === 0) throw new Error('TE: 텍스트 없음');
-
-    console.log(`[TE] 전망 텍스트 fetch 성공 (${texts[0].slice(0, 50)}...)`);
-    return texts.slice(0, 2).join(' ');
-  } catch (e) {
-    console.warn('[TE] 전망 fetch 실패:', e.message);
-    return null;
-  }
-}
 
 // ─── ScrapMonster 스크랩 가격 fetch (전부 USD/톤으로 통일) ─────────────────────
 // 미국: USD/lb × 2204.62 = USD/톤 / 유럽: USD/톤 / 중국: CNY/톤
@@ -217,7 +90,7 @@ export async function fetchScrapPrices() {
   } catch (e) {
     console.warn('[ScrapMonster] 1순위 실패:', e.message);
     // 이메일 알림 (fire-and-forget — 메인 흐름 차단 안 함)
-    sendFailureAlert(e.message);
+    sendFailureAlert('ScrapMonster 가격 수집 실패', e.message, 'Perplexity 2순위 검색으로 fallback 처리됐습니다.');
   }
 
   // ── 2순위: Perplexity 검색으로 scrapmonster 기준 가격 수집 ───────────────
@@ -267,6 +140,7 @@ All US/EU prices in USD/MT, CN prices in CNY/MT. Convert from USD/lb if needed (
 export async function fetchJapanScrapPrices() {
   try {
     const res = await fetch('https://www.dokindokin.com/scrap_type/aluminum/', {
+      signal: AbortSignal.timeout(8000),
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html',

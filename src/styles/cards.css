@@ -1,0 +1,145 @@
+/* 분할 파일 — app.css(배럴)가 순서대로 @import. 순서 변경 금지(캐스케이드). */
+/* ── 가격 히어로 ── */
+.price-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--green-primary);
+  padding: 16px;
+  border-radius: 0 6px 6px 0;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.price-hero-main { display: flex; flex-direction: column; gap: 3px; }
+
+.price-hero-label {
+  font-size: 10px; font-family: var(--sans);
+  color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
+}
+
+.price-hero-value {
+  font-size: 28px; font-family: var(--sans);
+  font-weight: 700; color: var(--text); letter-spacing: -0.5px; line-height: 1.2;
+}
+.price-hero-value small { font-size: 13px; color: var(--text2); font-weight: 400; margin-left: 4px; }
+
+.price-hero-na { font-size: 18px; font-family: var(--sans); color: var(--text3); }
+
+.price-hero-change { font-family: var(--sans); font-size: 12px; font-weight: 500; }
+.price-hero-date   { font-family: var(--sans); font-size: 10px; color: var(--text2); }
+.price-hero-holiday { font-family: var(--sans); font-size: 10px; color: #e07b00; font-weight: 600; }
+
+.fsi-hbis-note {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  margin-top: 2px; display: block;
+}
+
+.fob-price-tag {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: #1a2e1f;
+  background: var(--green-mid);
+  padding: 2px 8px; border-radius: 3px;
+}
+.non-china-summary {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border2);
+  margin-bottom: 4px;
+}
+.price-hero-sub {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  font-family: var(--mono); font-size: 11px; color: var(--text);
+  padding-top: 6px; border-top: 1px solid var(--border2); margin-top: 2px;
+}
+
+/* ── 섹션 카드 ── */
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px 8px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
+}
+
+.section-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.section-body  { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ── 텍스트 / 인포 ── */
+.text-block { font-size: 13px; color: var(--text); line-height: 1.8; }
+
+.info-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border2); }
+.info-row:last-child { border-bottom: none; }
+.info-label { font-family: var(--mono); font-size: 10px; color: var(--text3); min-width: 64px; padding-top: 2px; flex-shrink: 0; }
+.info-value { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+/* ── 생산 그리드 ── */
+.production-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+
+.prod-region {
+  background: var(--green-subtle); border: 1px solid var(--border);
+  padding: 10px; border-radius: 4px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.prod-region-name {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text);
+  padding-bottom: 4px; border-bottom: 1px solid var(--green-mid); margin-bottom: 2px;
+}
+
+/* ── 국가 로우 ── */
+.country-row { border-bottom: 1px solid var(--border2); padding: 10px 0; display: flex; flex-direction: column; gap: 4px; }
+.country-row:last-child { border-bottom: none; }
+.country-header { display: flex; align-items: baseline; gap: 8px; }
+.country-name     { font-family: var(--sans); font-size: 15px; font-weight: 700; color: var(--text); }
+.country-producer { font-size: 10px; color: var(--text3); }
+.country-status   { font-size: 12px; color: var(--text); line-height: 1.6; }
+.outlook-box {
+  background: var(--green-subtle);
+  border-left: 3px solid var(--green-primary);
+  padding: 10px 12px;
+  border-radius: 0 4px 4px 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.outlook-label {
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  color: var(--text);
+}
+.outlook-text { font-size: 12px; color: var(--text); line-height: 1.7; }
+
+.country-price-tag {
+  font-family: var(--mono); font-size: 11px;
+  color: #1a2e1f; font-weight: 500;
+  background: var(--green-subtle);
+  border: 1px solid var(--green-mid);
+  padding: 3px 8px; border-radius: 3px;
+  display: inline-block; margin-top: 2px;
+}
+
+.country-flow-tag {
+  font-family: var(--mono); font-size: 10px; color: var(--green-primary);
+  border: 1px solid var(--green-mid); background: var(--green-subtle);
+  padding: 2px 7px; display: inline-block; margin-top: 2px; border-radius: 2px;
+}
+
+/* ── 물동량 테이블 ── */
+.flow-table { display: flex; flex-direction: column; }
+
+.flow-table-header {
+  display: grid; grid-template-columns: 72px 1fr 72px 72px; gap: 6px;
+  padding: 6px 0; border-bottom: 2px solid var(--border);
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+
+.flow-table-row {
+  display: grid; grid-template-columns: 72px 1fr 72px 72px; gap: 6px;
+  padding: 8px 0; border-bottom: 1px solid var(--border2);
+  font-size: 11px; color: var(--text); align-items: start;
+}
+.flow-table-row:last-child { border-bottom: none; }
+.flow-importer { font-family: var(--mono); font-size: 11px; color: var(--text); font-weight: 600; }

@@ -1,385 +1,21 @@
-import type { FerroalloyData, FerroItem, FerroProducer, SteelSignal, Direction } from '../types';
-import { SectionCard, TextBlock, PriceMeta, SourcesList } from '../components/ui';
+// 합금철 탭 메인 — 부품은 ferro/ 폴더 (shared·TopCard·PriceHeader·Sections)
+import type { FerroalloyData, FerroItem } from '../types';
+import { SectionCard } from '../components/ui';
+import { KrNewsList } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
-import { isOlderThanDays } from '../utils/format';
-
-// 이월 가격이 7일 넘게 오래되면 숫자 대신 통상 범위 표시로 강등
-function isStalePrice(item: FerroItem): boolean {
-  return item.carried_over === true && isOlderThanDays(item.price_as_of, 7);
-}
-
-// ─── 합금철 시장 종합 ─────────────────────────────────────────────────────────
-
-type MarketSummaryData = {
-  fesi?: string;
-  femn?: string;
-  simn?: string;
-  intl_context?: string;
-  non_china_summary?: string;
-  outlook?: string;
-} | string | null | undefined;
-
-const SUMMARY_ROWS: Array<{ key: string; label: string; labelCls: string }> = [
-  { key: 'intl_context',      label: '국제 정세',        labelCls: 'ki-outlook'},
-  { key: 'non_china_summary', label: '비중국 생산',      labelCls: 'ki-what'   },
-  { key: 'outlook',           label: '단기 전망',        labelCls: 'ki-outlook'},
-];
-
-function MarketSummary({ summary }: { summary: MarketSummaryData }) {
-  if (!summary) return null;
-
-  // 구형 캐시: 문자열로 왔을 때
-  if (typeof summary === 'string') {
-    return <TextBlock text={summary} />;
-  }
-
-  const obj = summary as Record<string, string>;
-  return (
-    <div className="market-summary-list">
-      {SUMMARY_ROWS.map(({ key, label, labelCls }) =>
-        obj[key] ? (
-          <div key={key} className="maker-info-row">
-            <span className={`maker-info-label ${labelCls} summary-label-fixed`}>{label}</span>
-            <span className="maker-info-text">{obj[key]}</span>
-          </div>
-        ) : null
-      )}
-    </div>
-  );
-}
-
-// ─── 헬퍼 ────────────────────────────────────────────────────────────────────
-
-function dirArrow(dir: Direction) {
-  if (dir === 'UP')   return <span className="ferro-dir up">▲</span>;
-  if (dir === 'DOWN') return <span className="ferro-dir down">▼</span>;
-  return <span className="ferro-dir neutral">—</span>;
-}
-
-function SteelSignalBadge({ signal }: { signal: SteelSignal }) {
-  const map: Record<SteelSignal, { label: string; cls: string }> = {
-    DEMAND_STRONG: { label: '수요 강함',  cls: 'signal-demand-strong' },
-    DEMAND_WEAK:   { label: '수요 약함',  cls: 'signal-demand-weak'   },
-    SUPPLY_SHOCK:  { label: '공급 영향',  cls: 'signal-supply-shock'  },
-    MIXED:         { label: '혼재',       cls: 'signal-mixed'         },
-  };
-  const { label, cls } = map[signal] ?? map.MIXED;
-  return <span className={`steel-signal-badge ${cls}`}>{label}</span>;
-}
-
-function fmtCny(val: string | number | null | undefined): string {
-  if (val === null || val === undefined || val === '') return '—';
-  const n = Number(String(val).replace(/,/g, ''));
-  if (isNaN(n)) return String(val);
-  return n.toLocaleString('en-US');
-}
-
-// ─── 상단 요약 카드 ────────────────────────────────────────────────────────────
-
-const FERRO_FALLBACK_RANGE: Record<string, string> = {
-  FeSi: 'CNY 5,500~7,000',
-  FeMn: 'CNY 6,500~8,500',
-  SiMn: 'CNY 4,800~6,500',
-};
-
-function TopCard({ abbr, name, item }: { abbr: string; name: string; item: FerroItem | null }) {
-  if (!item) {
-    return (
-      <div className="ferro-top-card">
-        <div className="ferro-top-name">{name} ({abbr})</div>
-        <div className="ferro-top-price-row">
-          <span className="ferro-top-usd">{FERRO_FALLBACK_RANGE[abbr] ?? '—'}</span>
-          <span className="ferro-dir neutral">—</span>
-        </div>
-      </div>
-    );
-  }
-
-  const changeColor = item.change_cny
-    ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
-    : 'var(--text3)';
-
-  const stale = isStalePrice(item);
-
-  return (
-    <div className="ferro-top-card">
-      <div className="ferro-top-name">{name} ({abbr})</div>
-      <div className="ferro-top-price-row">
-        {stale ? (
-          <span className="ferro-top-usd">{FERRO_FALLBACK_RANGE[abbr] ?? '—'}</span>
-        ) : item.price_usd ? (
-          <span className="ferro-top-usd">USD {item.price_usd}</span>
-        ) : item.price_cny ? (
-          <span className="ferro-top-usd">CNY {fmtCny(item.price_cny)}</span>
-        ) : (
-          <span className="ferro-top-usd">{FERRO_FALLBACK_RANGE[abbr] ?? '—'}</span>
-        )}
-        {dirArrow(item.direction)}
-      </div>
-      {stale ? (
-        <div className="ferro-top-cny">시장 통상 범위 (실시간 아님)</div>
-      ) : (
-        <>
-          {item.price_cny && item.price_usd && (
-            <div className="ferro-top-cny">
-              CNY {fmtCny(item.price_cny)}/MT <span className="ferro-top-domestic">중국 내수가</span>
-            </div>
-          )}
-          {item.change_cny && (
-            <div className="ferro-top-change" style={{ color: changeColor }}>
-              전월比 {item.change_cny} CNY
-            </div>
-          )}
-          {(item.carried_over || item.price_as_of) && (
-            <div className="ferro-top-cny">
-              <PriceMeta asOf={item.price_as_of} carriedOver={item.carried_over} />
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─── 가격 헤더 ────────────────────────────────────────────────────────────────
-
-function FerroPrice({ item, abbr }: { item: FerroItem; abbr: string }) {
-  const changeColor = item.change_cny
-    ? (String(item.change_cny).startsWith('-') ? 'var(--down)' : 'var(--up)')
-    : 'var(--text3)';
-  const stale = isStalePrice(item);
-
-  if (stale) {
-    return (
-      <div className="ferro-item-header">
-        <div className="ferro-price-row">
-          <span className="ferro-price-main ferro-price-cny-only">
-            {FERRO_FALLBACK_RANGE[abbr] ?? '—'}<small>/MT</small>
-          </span>
-          {dirArrow(item.direction)}
-        </div>
-        <div className="ferro-meta-row">
-          <span className="ferro-cny-ref">시장 통상 범위 (실시간 아님 — 최근 확인가 {item.price_as_of} 기준)</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="ferro-item-header">
-      <div className="ferro-price-row">
-        {item.price_usd ? (
-          <>
-            <span className="ferro-price-main">
-              USD {item.price_usd}<small>/MT</small>
-            </span>
-            <span className="ferro-price-cny-inline">
-              (CNY {fmtCny(item.price_cny)}/MT, 중국 내수가)
-            </span>
-          </>
-        ) : item.price_cny ? (
-          <>
-            <span className="ferro-price-main ferro-price-cny-only">
-              CNY {fmtCny(item.price_cny)}<small>/MT</small>
-            </span>
-            <span className="ferro-price-cny-inline">(내수가)</span>
-          </>
-        ) : (
-          <span className="ferro-price-main ferro-price-cny-only">
-            {FERRO_FALLBACK_RANGE[abbr] ?? '—'}<small>/MT</small>
-          </span>
-        )}
-        {dirArrow(item.direction)}
-      </div>
-      {(item.change_cny || item.price_source || item.price_as_of || item.carried_over) && (
-        <div className="ferro-meta-row">
-          {item.change_cny && (
-            <span className="ferro-change" style={{ color: changeColor }}>
-              전월比 {item.change_cny} CNY{' '}
-            </span>
-          )}
-          <PriceMeta source={item.price_source} asOf={item.price_as_of} carriedOver={item.carried_over} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── 비중국 생산국 (뉴스/이슈 중심) ──────────────────────────────────────────
-
-function NonChinaProducers({ producers }: { producers: FerroProducer[] }) {
-  if (!producers || producers.length === 0) return null;
-  return (
-    <div className="non-china-block">
-      <div className="non-china-title">비중국 주요 생산지 동향</div>
-      <div className="non-china-list">
-        {producers.map((p, i) => (
-          <div key={i} className="non-china-row">
-            <div className="non-china-header">
-              <span className="non-china-country">{p.country}</span>
-              <span className="non-china-company">{p.company}</span>
-            </div>
-            <div className="non-china-detail">
-              {p.issue && (
-                <div className="key-issue-row">
-                  <span className="key-issue-label ki-what">이슈</span>
-                  <span className="key-issue-text">{p.issue}</span>
-                </div>
-              )}
-              {p.cause && (
-                <div className="key-issue-row">
-                  <span className="key-issue-label ki-why">원인</span>
-                  <span className="key-issue-text">{p.cause}</span>
-                </div>
-              )}
-              {p.outlook && (
-                <div className="key-issue-row">
-                  <span className="key-issue-label ki-outlook">전망</span>
-                  <span className="key-issue-text">{p.outlook}</span>
-                </div>
-              )}
-              {/* backward compat: old status field */}
-              {!(p.issue || p.cause || p.outlook) && (p as any).status && (
-                <p className="non-china-status">{(p as any).status}</p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── FeSi 전용 — HBIS 입찰가 + 중국 생산 동향 ───────────────────────────────
-
-function FesiExtra({ item }: { item: FerroItem }) {
-  const hasBid  = item.hbis_bid_price != null;
-  const hasNingxia = item.ningxia_spot != null;
-  const hasProd = !!item.china_production_status;
-
-  if (!hasBid && !hasNingxia && !hasProd) return null;
-  return (
-    <>
-      {(hasBid || hasNingxia) && (
-        <div className="ferro-section-block">
-          <div className="cause-block">
-            {hasBid && (
-              <div className="cause-row">
-                <span className="cause-label cause-supply">HBIS 입찰</span>
-                <span className="key-issue-text">
-                  CNY {fmtCny(item.hbis_bid_price)}/MT
-                  {item.hbis_bid_month && <span className="ferro-cny-ref"> ({item.hbis_bid_month})</span>}
-                  {item.hbis_bid_change && (
-                    <span style={{ marginLeft: 6, color: String(item.hbis_bid_change).startsWith('-') ? 'var(--down)' : 'var(--up)', fontFamily: 'var(--mono)', fontSize: 10 }}>
-                      전월比 {item.hbis_bid_change} CNY
-                    </span>
-                  )}
-                </span>
-              </div>
-            )}
-            {hasNingxia && (
-              <div className="cause-row">
-                <span className="cause-label cause-demand">닝샤 현물</span>
-                <span className="key-issue-text">CNY {fmtCny(item.ningxia_spot)}/MT</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      {hasProd && (
-        <div className="ferro-section-block">
-          <div className="outlook-box">
-            <span className="outlook-label">중국 생산 동향</span>
-            <p className="key-issue-text">{item.china_production_status}</p>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-// ─── FeMn 전용 — 망간광석 원가 ───────────────────────────────────────────────
-
-function FemnExtra({ item }: { item: FerroItem }) {
-  const hasOre    = item.mn_ore_cif_korea != null;
-  const hasSpread = !!item.ore_to_femn_spread;
-
-  if (!hasOre && !hasSpread) return null;
-  return (
-    <div className="ferro-section-block">
-      <div className="cause-block">
-        {hasOre && (
-          <div className="cause-row">
-            <span className="cause-label cause-supply">망간광석</span>
-            <span className="key-issue-text">CIF 한국 USD {item.mn_ore_cif_korea}/MT</span>
-          </div>
-        )}
-        {hasSpread && (
-          <div className="cause-row">
-            <span className="cause-label cause-demand">마진</span>
-            <span className="key-issue-text">{item.ore_to_femn_spread}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── SiMn 전용 — 과잉공급 + 원가 구조 ───────────────────────────────────────
-
-function SimnExtra({ item }: { item: FerroItem }) {
-  const hasOvc  = !!item.china_overcapacity_note;
-  const hasCost = !!item.dual_input_cost;
-
-  if (!hasOvc && !hasCost) return null;
-  return (
-    <div className="ferro-section-block">
-      <div className="cause-block">
-        {hasOvc && (
-          <div className="cause-row">
-            <span className="cause-label cause-supply">공급구조</span>
-            <span className="key-issue-text">{item.china_overcapacity_note}</span>
-          </div>
-        )}
-        {hasCost && (
-          <div className="cause-row">
-            <span className="cause-label cause-demand">원가</span>
-            <span className="key-issue-text">{item.dual_input_cost}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── FOB 추정 footnote ────────────────────────────────────────────────────────
-
-function FobNote({ item }: { item: FerroItem }) {
-  if (item.fob_est_usd == null || item.china_export_tariff_pct == null) return null;
-  return (
-    <div className="ferro-fob-note">
-      <div>
-        * 한국 수입 시, 중국 수출 관세 {item.china_export_tariff_pct}%
-        {item.china_export_misc_usd != null && ` + 수출 부대비용 약 $${item.china_export_misc_usd}/톤`}
-        {' → '}FOB 추정 단가 USD {item.fob_est_usd.toLocaleString('en-US')}/톤
-      </div>
-      {item.china_export_tariff_ref && (
-        <div className="ferro-cny-ref">{item.china_export_tariff_ref}</div>
-      )}
-    </div>
-  );
-}
-
-// ─── 품목 카드 ────────────────────────────────────────────────────────────────
+import { SteelSignalBadge } from './ferro/shared';
+import { TopCard } from './ferro/TopCard';
+import { FerroPrice, FobNote } from './ferro/PriceHeader';
+import { FesiExtra, FemnExtra, SimnExtra, NonChinaProducers, MarketSummary } from './ferro/Sections';
 
 function FerroItemCard({
-  name, abbr, item, accent,
+  name, abbr, item,
 }: {
-  name: string; abbr: string; item: FerroItem | null; accent: string;
+  name: string; abbr: string; item: FerroItem | null;
 }) {
   if (!item) return null;
   return (
-    <SectionCard title={`${name} (${abbr})`} accent={accent}>
+    <SectionCard title={`${name} (${abbr})`}>
       <FerroPrice item={item} abbr={abbr} />
       <FobNote item={item} />
 
@@ -431,8 +67,6 @@ function FerroItemCard({
   );
 }
 
-// ─── 메인 탭 ────────────────────────────────────────────────────────────────
-
 export function FerroalloyTab({ data }: { data: FerroalloyData }) {
   const { fesi, femn, simn, market_summary, exchange_rate_cny_usd, exchange_rate_date } = data;
 
@@ -444,24 +78,24 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
     <div className="tab-content">
       <div className="price-hero">
         <div className="ferro-top-grid">
-          <TopCard abbr="FeSi" name="페로실리콘" item={fesi} />
-          <TopCard abbr="FeMn" name="페로망간"   item={femn} />
-          <TopCard abbr="SiMn" name="실리망간" item={simn} />
+          <TopCard abbr="FeSi" name="페로실리콘" item={fesi} history={data._price_history} />
+          <TopCard abbr="FeMn" name="페로망간"   item={femn} history={data._price_history} />
+          <TopCard abbr="SiMn" name="실리망간" item={simn} history={data._price_history} />
         </div>
         {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
       </div>
 
+      <KrNewsList items={data._kr_news} title="국내 합금철 동향 (전문지 1차 보도)" />
+
       <KeyIssuesSection issues={(data as any).key_issues ?? []} />
 
-      <FerroItemCard name="페로실리콘" abbr="FeSi" item={fesi} accent="FeSi" />
-      <FerroItemCard name="페로망간"   abbr="FeMn" item={femn} accent="FeMn" />
-      <FerroItemCard name="실리망간"   abbr="SiMn" item={simn} accent="SiMn" />
+      <FerroItemCard name="페로실리콘" abbr="FeSi" item={fesi} />
+      <FerroItemCard name="페로망간"   abbr="FeMn" item={femn} />
+      <FerroItemCard name="실리망간"   abbr="SiMn" item={simn} />
 
-      <SectionCard title="합금철 시장 종합" accent="SUM">
+      <SectionCard title="합금철 시장 종합">
         <MarketSummary summary={market_summary} />
       </SectionCard>
-
-      <SourcesList sources={data._sources} />
     </div>
   );
 }
