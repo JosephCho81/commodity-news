@@ -71,9 +71,14 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [fetchTab, activeTab]);
 
-  // 탭 전환 시 스크롤 최상단으로 (스크롤 컨테이너는 .app-main)
+  // 탭 전환 시 스크롤 최상단으로.
+  // .app이 min-height(고정 height 아님)라 내용이 길면 window(body)가 스크롤됨 —
+  // window와 .app-main 둘 다 리셋해야 모든 환경(PWA·브라우저)에서 동작.
   const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     mainRef.current?.scrollTo(0, 0);
   }, [activeTab]);
 
