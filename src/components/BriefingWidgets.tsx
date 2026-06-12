@@ -1,5 +1,5 @@
 // 브리핑 홈 위젯 — 가격 스트립(전 품목 결정적 수치) + 신규 이슈 집계
-import type { FerroalloyData, AluminumData, RecarburizerData, KeyIssue } from '../types';
+import type { FerroalloyData, AluminumData, RecarburizerData, KeyIssue, MacroEvent } from '../types';
 import { isValidLmePrice, formatNum } from '../utils/format';
 import { SectionCard } from './ui';
 import { SourceChip, DeltaPill, Sparkline } from './data-viz';
@@ -27,19 +27,32 @@ export function PriceStrip({ fa, al, rec }: {
 }) {
   const cells: React.ReactNode[] = [];
 
+  // 브리핑은 USD 단일 통화 — CNY 정산가는 당일 환율로 결정적 환산 (환율 없으면 CNY 그대로)
+  const cnyRate = fa?.exchange_rate_cny_usd ?? null;
+  const toUsd = (v?: number | null) =>
+    typeof v === 'number' && cnyRate ? Math.round(v * cnyRate) : null;
+  const cnyCell = (settle: number, change?: number | null) => {
+    const u = toUsd(settle);
+    return u !== null
+      ? { value: u.toLocaleString('en-US'), unit: 'USD', change: toUsd(change) }
+      : { value: settle.toLocaleString('en-US'), unit: 'CNY', change };
+  };
+
   if (fa?.fesi?.futures) {
     const f = fa.fesi.futures;
+    const c = cnyCell(f.settle, f.change);
     cells.push(
-      <PriceStripCell key="sf" name="FeSi" value={f.settle.toLocaleString('en-US')} unit="CNY"
-        change={f.change} changePct={f.change_pct} chip="ZCE"
+      <PriceStripCell key="sf" name="FeSi" value={c.value} unit={c.unit}
+        change={c.change} changePct={f.change_pct} chip="ZCE"
         spark={<Sparkline history={fa._price_history} valueKey="sf" width={56} height={16} />} />
     );
   }
   if (fa?.simn?.futures) {
     const f = fa.simn.futures;
+    const c = cnyCell(f.settle, f.change);
     cells.push(
-      <PriceStripCell key="sm" name="SiMn" value={f.settle.toLocaleString('en-US')} unit="CNY"
-        change={f.change} changePct={f.change_pct} chip="ZCE"
+      <PriceStripCell key="sm" name="SiMn" value={c.value} unit={c.unit}
+        change={c.change} changePct={f.change_pct} chip="ZCE"
         spark={<Sparkline history={fa._price_history} valueKey="sm" width={56} height={16} />} />
     );
   }
@@ -51,9 +64,10 @@ export function PriceStrip({ fa, al, rec }: {
     );
   }
   for (const f of rec?._china_futures ?? []) {
+    const c = cnyCell(f.settle, f.change);
     cells.push(
-      <PriceStripCell key={f.product} name={f.label ?? f.product ?? ''} value={f.settle.toLocaleString('en-US')}
-        unit="CNY" change={f.change} changePct={f.change_pct} chip={f.exchange} />
+      <PriceStripCell key={f.product} name={f.label ?? f.product ?? ''} value={c.value}
+        unit={c.unit} change={c.change} changePct={f.change_pct} chip={f.exchange} />
     );
   }
 
@@ -72,10 +86,15 @@ export function PriceStrip({ fa, al, rec }: {
 }
 
 // 신규 이슈 집계 — 없으면 "없음"을 떳떳하게 표시 (재탕보다 신뢰)
-export function NewIssues({ fa, al, rec }: {
+// 긴급 시황(macro_event)이 있으면 신규 이슈 목록에도 첫 줄로 노출 — 위 카드와 불일치 방지
+export function NewIssues({ fa, al, rec, macro, macroUrl }: {
   fa?: FerroalloyData; al?: AluminumData; rec?: RecarburizerData;
+  macro?: MacroEvent | null; macroUrl?: string | null;
 }) {
   const tagged: Array<{ tag: string; issue: KeyIssue }> = [
+    ...(macro?.headline
+      ? [{ tag: '긴급', issue: { title: macro.headline, what: macro.what ?? undefined, url: macroUrl ?? undefined } }]
+      : []),
     ...(fa?.key_issues ?? []).map(issue => ({ tag: '합금철', issue })),
     ...(al?.lme?.key_issues ?? []).map(issue => ({ tag: '알루미늄', issue })),
     ...(rec?.key_issues ?? []).map(issue => ({ tag: '가탄제', issue })),

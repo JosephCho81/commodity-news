@@ -64,7 +64,9 @@ export function getSimnPrompt(date, prevData = null) {
 【검색 — SiMn 비중국 생산국】
 - "OM Materials Malaysia silicomanganese output ${y}"
 - "Nava Bharat FACOR silicon manganese production ${y}"
-- "Transalloys Hernic South Africa silicomanganese output ${y}"
+- "Russia silicomanganese production export ${y}"
+- "CHEMK Chelyabinsk ferroalloy silicomanganese ${y}"
+- "러시아 실리망간 수출 ${y}"
 - "SMM silicon manganese 6517 non-China supply ${ym}"
 - "India SiMn export domestic demand ${y}"
 
@@ -105,10 +107,10 @@ ${prevSection}
       "outlook": "실제 검색값 — 내수 소비 증가에 따른 수출 여력 전망 1~2문장"
     },
     {
-      "country": "남아프리카", "company": "Transalloys·Hernic 등",
-      "issue": "실제 검색값 — SiMn 생산량·가동률 수치 포함 1~2문장",
-      "cause": "실제 검색값 — Eskom 전력 불안정·원가 부담 변화 1~2문장",
-      "outlook": "실제 검색값 — 아시아 수출 방향·공급 영향 전망 1~2문장"
+      "country": "러시아", "company": "CHEMK(첼랴빈스크) 등",
+      "issue": "실제 검색값 — SiMn 생산·수출 동향 수치 포함 1~2문장",
+      "cause": "실제 검색값 — 제재·물류·루블 환율 등 원가·수출 여건 변화 1~2문장",
+      "outlook": "실제 검색값 — 한국·아시아향 수출 여력과 가격 경쟁력 전망 1~2문장"
     }
   ],
   "key_issues": [

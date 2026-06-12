@@ -1,7 +1,7 @@
 import type { AluminumData } from '../types';
 import { formatNum, isValidLmePrice } from '../utils/format';
 import { SectionCard, TextBlock } from '../components/ui';
-import { PriceMeta, SourceChip, Sparkline, KrNewsList } from '../components/data-viz';
+import { PriceMeta, SourceChip, Sparkline } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
 
 // 스크랩 가격 — 한 줄에 한 품목, 품목명/단가 컬럼 정렬.
@@ -75,8 +75,6 @@ export function AluminumTab({ data }: { data: AluminumData }) {
         <Sparkline history={data._price_history} valueKey="lme" width={120} height={26} />
       </div>
 
-      <KrNewsList items={data._kr_news} title="국내 동향 (전문지 1차 보도)" />
-
       <KeyIssuesSection issues={(lme as any).key_issues ?? []} />
 
       <SectionCard title="가격 변동 이유" accent="WHY">
@@ -101,11 +99,12 @@ export function AluminumTab({ data }: { data: AluminumData }) {
             </div>
           </div>
         )}
+        <div className="region-basis-note">※ 아래 가격은 각 대륙별 내수 거래가 기준 — 한국 수입 단가 아님</div>
         <div className="region-list">
           {scrap.regions.map((r) => (
             <div key={r.region} className="region-item">
               <div className="region-title-row">
-                <span className="region-name">{r.region}</span>
+                <span className="region-name">{r.region} 내수가</span>
               </div>
               <ScrapPriceLines items={r.price_items} fallback={r.price_range} />
               {r.key_grades && <div className="region-grades-line">{r.key_grades}</div>}

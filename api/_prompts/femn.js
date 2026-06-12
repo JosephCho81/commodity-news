@@ -64,13 +64,16 @@ export function getFemnPrompt(date, prevData = null) {
 【검색 — FeMn 비중국 생산국】
 - "TNC Kazchrome ferromanganese production output ${y}"
 - "Samancor South Africa ferromanganese loadshedding ${y}"
-- "Eramet Comilog Gabon manganese ferromanganese ${y}"
+- "Russia ferromanganese export price Korea ${y}"
+- "Kosogorsky KMZ ferromanganese production ${y}"
+- "러시아 페로망간 수출 ${y}"
 - "MOIL India ferromanganese export supply ${y}"
 - "SMM ferromanganese non-China supply market ${ym}"
 
 【검색 — 한국 국내 FeMn 공급 (중요 — 국내 제강사 직결)】
 - "동부메탈 페로망간"
 - "동부메탈 가동 중단 셧다운"
+- "DB메탈 페로망간 셧다운"
 - "Dongbu Metal ferromanganese shutdown"
 - "국내 페로망간 수급 제강사"
 - "심팩 SIMPAC 페로망간"
@@ -114,10 +117,10 @@ ${prevSection}
       "outlook": "실제 검색값 — 가동률 회복 가능성·공급 영향 1~2문장"
     },
     {
-      "country": "가봉", "company": "Eramet/Comilog",
-      "issue": "실제 검색값 — 망간광석 채굴·FeMn 생산 동향 수치 포함 1~2문장",
-      "cause": "실제 검색값 — 원가·물류·정치 리스크 변화 1~2문장",
-      "outlook": "실제 검색값 — 수출 방향·가격 영향 전망 1~2문장"
+      "country": "러시아", "company": "KMZ(코소고르스키)·사트카 등",
+      "issue": "실제 검색값 — FeMn 생산·수출 동향 수치 포함 1~2문장",
+      "cause": "실제 검색값 — 제재·물류·루블 환율 등 원가·수출 여건 변화 1~2문장",
+      "outlook": "실제 검색값 — 한국·아시아향 수출 여력과 가격 경쟁력 전망 1~2문장"
     }
   ],
   "key_issues": [

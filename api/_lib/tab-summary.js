@@ -47,12 +47,13 @@ export async function prefetch(token) {
     if (faData?.data) {
       const fa = JSON.parse(faData.data);
       summaryContext += `\n[합금철]\n`;
+      // 브리핑 본문은 USD 단일 통화 — 서버가 환산한 settle_usd/price_usd만 주입 (LLM 환산 금지)
       const futLine = (p, label) => p?.futures
-        ? `${label} ZCE 정산: CNY ${p.futures.settle}/MT (${p.futures.change_pct ?? ''})\n` : '';
+        ? `${label} ZCE 정산: ${p.futures.settle_usd ? `USD ${p.futures.settle_usd}/MT` : '(USD 환산 없음 — 숫자 생략)'} (${p.futures.change_pct ?? ''})\n` : '';
+      const spotLine = (p, label) =>
+        `${label} 내수: ${p?.price_usd ? `USD ${p.price_usd}/MT` : 'N/A'} ${p?.direction ?? ''}\n`;
       summaryContext += futLine(fa.fesi, 'FeSi') + futLine(fa.simn, 'SiMn');
-      summaryContext += `FeSi 내수: CNY ${fa.fesi?.price_cny ?? 'N/A'}/MT ${fa.fesi?.direction ?? ''}\n`;
-      summaryContext += `FeMn 내수: CNY ${fa.femn?.price_cny ?? 'N/A'}/MT ${fa.femn?.direction ?? ''}\n`;
-      summaryContext += `SiMn 내수: CNY ${fa.simn?.price_cny ?? 'N/A'}/MT ${fa.simn?.direction ?? ''}\n`;
+      summaryContext += spotLine(fa.fesi, 'FeSi') + spotLine(fa.femn, 'FeMn') + spotLine(fa.simn, 'SiMn');
       const faSummaryText = typeof fa.market_summary === 'string'
         ? fa.market_summary
         : [fa.market_summary?.fesi, fa.market_summary?.femn, fa.market_summary?.simn, fa.market_summary?.outlook]

@@ -63,7 +63,7 @@ export function SummaryTab({ data, allData }: {
         </div>
       )}
 
-      <NewIssues fa={fa} al={al} rec={rec} />
+      <NewIssues fa={fa} al={al} rec={rec} macro={macro_event} macroUrl={_macro_headlines?.[0]?.url} />
 
       {(key_signals ?? []).length > 0 && (
         <SectionCard title="어제와 달라진 것">

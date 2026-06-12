@@ -98,6 +98,10 @@
 .region-price-line { display: contents; }
 .region-price-grade { color: var(--text2); font-weight: 500; }
 .region-price-value { text-align: right; white-space: nowrap; }
+.region-basis-note {
+  font-size: 11px; color: var(--text3);
+  padding: 2px 0 6px;
+}
 .region-grades-line {
   font-family: var(--mono); font-size: 10px;
   color: var(--text3);
