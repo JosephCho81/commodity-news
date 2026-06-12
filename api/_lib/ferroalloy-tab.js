@@ -15,7 +15,7 @@ export async function handleFerroalloyTab(token, res) {
 
   // 1. 사전 데이터 수집 (환율·전일·히스토리·ZCE·RSS·시계열+백필 — ferro-fetch.js)
   const ctx = await prefetchFerroalloy(token);
-  const { newsHistory, zce, krNews, exchangeRate, krwRate, prevData, prevFerroalloy } = ctx;
+  const { newsHistory, zce, krNews, exchangeInfo, exchangeRate, krwRate, prevData, prevFerroalloy } = ctx;
   let { priceHistory } = ctx;
 
   // 2. 3품목 병렬 Perplexity 호출
