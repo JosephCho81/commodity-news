@@ -1,5 +1,5 @@
 // src/types/steel.ts — 타입 분할 파일 (index.ts 배럴로 재수출)
-import type { Direction, Urgency, Probability, ApiMeta } from './common';
+import type { Direction, Urgency, Probability, ApiMeta, KrNewsItem } from './common';
 
 // ─── 제강사 ─────────────────────────────────────────────────────────────────
 
@@ -42,8 +42,22 @@ export interface SteelmakerData extends ApiMeta {
 
 // ─── 시황 종합 ───────────────────────────────────────────────────────────────
 
+// 매크로 이벤트 — 글로벌 와이어 헤드라인(결정적 수집)에서 확인된 시장 주도 사안
+export interface MacroEvent {
+  headline: string;
+  what?: string | null;
+  impacts?: Array<{
+    commodity: string;
+    direction: Direction;
+    mechanism?: string | null;
+  }> | null;
+  watch?: string | null;
+}
+
 export interface SummaryData extends ApiMeta {
   date?: string | null;
+  macro_event?: MacroEvent | null;
+  _macro_headlines?: KrNewsItem[];   // 충격 판정 증거 헤드라인 (LLM 비경유 원본)
   one_liner: string;
   key_signals: Array<{
     commodity: string;

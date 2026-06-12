@@ -9,7 +9,7 @@ export function SummaryTab({ data, allData }: {
   data: SummaryData;
   allData?: Record<string, unknown>;
 }) {
-  const { one_liner, key_signals, risk_signals, week_ahead } = data;
+  const { one_liner, key_signals, risk_signals, week_ahead, macro_event, _macro_headlines } = data;
   const cleanOneLiner = (one_liner ?? '').replace(/^["'"']+|["'"']+$/g, '').trim();
   const weekAheadList: any[] = Array.isArray(week_ahead) ? week_ahead : [];
 
@@ -31,6 +31,37 @@ export function SummaryTab({ data, allData }: {
         )}
         <PriceStrip fa={fa} al={al} rec={rec} />
       </div>
+
+      {macro_event?.headline && (
+        <div className="macro-card">
+          <div className="macro-card-badge">긴급 시황</div>
+          <div className="macro-card-headline">{macro_event.headline}</div>
+          {macro_event.what && <p className="macro-card-what">{macro_event.what}</p>}
+          {(macro_event.impacts ?? []).length > 0 && (
+            <div className="macro-impacts">
+              {(macro_event.impacts ?? []).map((im, i) => (
+                <div key={i} className="macro-impact-row">
+                  <span className="macro-impact-name">{im.commodity}</span>
+                  <span className="macro-impact-arrow" style={{ color: directionColor(im.direction) }}>
+                    {im.direction === 'UP' ? '▲' : im.direction === 'DOWN' ? '▼' : '—'}
+                  </span>
+                  {im.mechanism && <span className="macro-impact-mech">{im.mechanism}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {macro_event.watch && <p className="macro-card-watch">주시: {macro_event.watch}</p>}
+          {(_macro_headlines ?? []).length > 0 && (
+            <div className="macro-card-sources">
+              {(_macro_headlines ?? []).slice(0, 3).map((h, i) => (
+                <a key={i} href={h.url} target="_blank" rel="noreferrer" title={h.title}>
+                  {h.source ?? '출처'}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <NewIssues fa={fa} al={al} rec={rec} />
 

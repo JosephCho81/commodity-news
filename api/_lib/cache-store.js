@@ -45,7 +45,7 @@ export async function readNewsHistory(token, tab) {
 export function buildExclusionSection(historyItems, productKey = null) {
   const items = productKey ? historyItems.filter(h => h.k === productKey) : historyItems;
   if (items.length === 0) return '';
-  let s = '\n\n【최근 보도한 이슈 — 제외】\n아래는 최근 7일 내 이미 보도한 이슈 목록. 실질적으로 같은 이슈는 다시 선정하지 말 것. 같은 이슈라도 가격·수치에 새로운 변화가 보도된 경우에만 새 수치 중심으로 작성 가능:\n';
+  let s = '\n\n【최근 보도한 이슈 — 제외】\n아래는 최근 7일 내 이미 보도한 이슈 목록. 실질적으로 같은 이슈는 다시 선정하지 말 것. 단, 같은 사안이라도 국면이 전환된 경우(예: 갈등→합의, 협상→결렬, 검토→시행)는 반복이 아니라 신규 이슈로 취급해 반드시 선정. 가격·수치에 새로운 변화가 보도된 경우도 새 수치 중심으로 작성 가능:\n';
   for (const h of items) s += `- (${h.d}) ${h.t}\n`;
   return s;
 }

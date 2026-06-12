@@ -114,6 +114,31 @@
 .skeleton-card.tall { height: 180px; }
 @keyframes skeleton-wave { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 
+/* ── 긴급 시황 (매크로 이벤트) 카드 ── */
+.macro-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--up);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.macro-card-badge {
+  align-self: flex-start;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--up); background: #fdecec;
+  border-radius: 4px; padding: 2px 7px;
+}
+.macro-card-headline { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.4; }
+.macro-card-what { font-size: 12px; color: var(--text2); line-height: 1.6; margin: 0; }
+.macro-impacts { display: flex; flex-direction: column; gap: 5px; }
+.macro-impact-row { display: flex; align-items: baseline; gap: 6px; font-size: 12px; line-height: 1.5; }
+.macro-impact-name  { font-weight: 700; color: var(--text); white-space: nowrap; }
+.macro-impact-arrow { font-size: 11px; }
+.macro-impact-mech  { color: var(--text2); }
+.macro-card-watch { font-size: 11px; color: var(--text2); margin: 0; }
+.macro-card-sources { display: flex; gap: 10px; font-size: 10px; }
+.macro-card-sources a { color: var(--text3); text-decoration: underline dotted; text-underline-offset: 2px; }
+
 /* ── 반응형 ── */
 @media (max-width: 360px) {
   .production-grid { grid-template-columns: 1fr; }

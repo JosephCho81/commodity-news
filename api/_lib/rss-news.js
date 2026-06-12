@@ -15,7 +15,7 @@ export const NEWS_KEYWORDS = {
   aluminum:     ['알루미늄', '알미늄', 'LME', '비철'],
 };
 
-function decodeEntities(s) {
+export function decodeEntities(s) {
   return String(s)
     .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&apos;/g, "'")
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')

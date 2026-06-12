@@ -71,6 +71,23 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [fetchTab, activeTab]);
 
+  // PWA 포그라운드 복귀 시 30분 이상 묵은 활성 탭 재요청 —
+  // 센티널이 장중 갱신한 브리핑(긴급 시황)이 앱 재실행 없이 반영되게 한다.
+  const dataRef = useRef(data);
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => { dataRef.current = data; activeTabRef.current = activeTab; });
+  useEffect(() => {
+    const STALE_MS = 30 * 60 * 1000;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      const meta = dataRef.current[activeTabRef.current] as ApiMeta | undefined;
+      const at = meta?._cached_at;
+      if (at && Date.now() - at > STALE_MS) fetchTab(activeTabRef.current);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchTab]);
+
   // 탭 전환 시 스크롤 최상단으로.
   // .app이 min-height(고정 height 아님)라 내용이 길면 window(body)가 스크롤됨 —
   // window와 .app-main 둘 다 리셋해야 모든 환경(PWA·브라우저)에서 동작.

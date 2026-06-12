@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "node api/_lib/validate.test.mjs"
+    "test": "node api/_lib/validate.test.mjs && node api/_lib/macro-news.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",

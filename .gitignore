@@ -6,4 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
-"glove-news/" 
+glove-news/
+.aider*

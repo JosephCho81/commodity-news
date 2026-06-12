@@ -11,7 +11,8 @@ const FINAL_TAB = 'summary';
 export default async function handler(req, res) {
   // Vercel Cron 인증 헤더 검증
   const authHeader = req.headers['authorization'];
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // CRON_SECRET 미설정 시 'Bearer undefined'로 통과되는 것 방지
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     console.warn('[Cron] 인증 실패');
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -21,9 +22,9 @@ export default async function handler(req, res) {
 
   const results = {};
 
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'https://commodity-news-topaz.vercel.app';
+  // VERCEL_URL(배포 생성 URL)은 Vercel Authentication으로 보호되어 self-fetch가
+  // 로그인 HTML을 받고 json 파싱에 실패한다 — 반드시 공개 커스텀 도메인 사용
+  const baseUrl = process.env.PUBLIC_BASE_URL ?? 'https://news.a1kor.com';
 
   const refreshTab = async (tab) => {
     try {

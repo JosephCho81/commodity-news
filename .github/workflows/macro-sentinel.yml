@@ -1,0 +1,19 @@
+# 매시간 매크로 이벤트 센티널 호출 — Vercel Hobby cron(일 1회) 한계 보완
+# 필요 시크릿: CRON_SECRET (Vercel 환경변수의 CRON_SECRET와 동일 값으로 등록)
+name: macro-sentinel
+
+on:
+  schedule:
+    - cron: '5 * * * *'   # 매시 5분 (UTC) — 정시 혼잡 회피
+  workflow_dispatch:        # 수동 실행 (테스트용)
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call sentinel endpoint
+        run: |
+          curl -sS --fail-with-body --max-time 180 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://news.a1kor.com/api/macro-sentinel"
