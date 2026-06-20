@@ -173,6 +173,20 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
   // 2. 선물 스트립 — 전해/주조 (거래소 공식)
   parsed.futures = [futures?.al, futures?.ad].filter(Boolean);
 
+  // 2-1. 원료(공급)은 드로스만 — '스크랩' 포함 문장을 결정적으로 제거(LLM 잔여 멘션 차단).
+  //      한국어 종결('다.') 경계로 분리 후 스크랩 문장 삭제. 비면 null.
+  const dropScrap = (txt) => {
+    if (!txt || !String(txt).includes('스크랩')) return txt ?? null;
+    const kept = String(txt).split(/(?<=다\.)\s+/).filter(s => !s.includes('스크랩'));
+    const out = kept.join(' ').trim();
+    return out || null;
+  };
+  if (parsed.supply) {
+    parsed.supply.signal = dropScrap(parsed.supply.signal);
+    parsed.supply.drivers = dropScrap(parsed.supply.drivers);
+    parsed.supply.outlook = dropScrap(parsed.supply.outlook);
+  }
+
   // 3. 스크랩 — 품목(폐기물)별 × 대륙 비교 매트릭스 (전부 USD 환산, 결정적)
   //    중국(CNY)·일본(JPY)은 당일 환율로 USD 환산, 원통화는 보조표시용으로 보존.
   parsed.scrap = parsed.scrap ?? {};
