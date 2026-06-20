@@ -9,3 +9,5 @@ coverage/
 glove-news/
 .aider*
 .vercel
+
+vercel-live-logs.txt
