@@ -1,45 +1,14 @@
+import { useState } from 'react';
 import type { AluminumData } from '../types';
 import { formatNum, isValidLmePrice } from '../utils/format';
 import { SectionCard, TextBlock } from '../components/ui';
 import { PriceMeta, SourceChip, Sparkline } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
+import { SecondaryAluminumTab } from './SecondaryAluminumTab';
 
-// 스크랩 가격 — 한 줄에 한 품목, 품목명/단가 컬럼 정렬.
-// price_items(서버 직접 수집값)가 우선, 없으면 구형 price_range 문자열을 분해해 표시.
-function ScrapPriceLines({ items, fallback }: {
-  items?: Array<{ grade: string; price: string }> | null;
-  fallback?: string | null;
-}) {
-  let rows: Array<{ grade: string; price: string }> = [];
-  if (Array.isArray(items) && items.length > 0) {
-    rows = items.filter(it => it?.grade && it?.price);
-  } else if (fallback && fallback !== 'null') {
-    rows = String(fallback)
-      .split(/,\s+/)
-      .map(s => s.trim())
-      .filter(Boolean)
-      .map(seg => {
-        const m = seg.match(/^(.+?)\s+((?:US)?\$|CNY|JPY|¥|약\s|[\d,]+)(.*)$/);
-        return m
-          ? { grade: m[1], price: `${m[2]}${m[3]}` }
-          : { grade: seg, price: '' };
-      });
-  }
-  if (rows.length === 0) return null;
-  return (
-    <div className="region-price-table">
-      {rows.map((r, i) => (
-        <div key={i} className="region-price-line">
-          <span className="region-price-grade">{r.grade}</span>
-          <span className="region-price-value">{r.price}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function AluminumTab({ data }: { data: AluminumData }) {
-  const { lme, scrap } = data;
+// 1차 알루미늄(LME 신지금) — 기존 LME 시황. 스크랩·드로스는 '2차 알루미늄'으로 분리됨.
+function PrimaryAluminumView({ data }: { data: AluminumData }) {
+  const { lme } = data;
   const isUp = lme.change != null && !String(lme.change).startsWith('-');
   const priceValid = isValidLmePrice(lme.price);
 
@@ -86,34 +55,35 @@ export function AluminumTab({ data }: { data: AluminumData }) {
       <SectionCard title="가격 전망" accent="NEXT">
         <TextBlock text={lme.outlook} />
       </SectionCard>
+    </div>
+  );
+}
 
-      <SectionCard title="알루미늄 스크랩 주간 시황" accent="SCRAP">
-        <TextBlock text={scrap.weekly_summary} />
-        {(scrap.us_premium || scrap.eu_premium || scrap.japan_premium) && (
-          <div className="premium-row">
-            <span className="premium-label">P1020A 프리미엄</span>
-            <div className="premium-values">
-              {scrap.us_premium && <span><em>미국</em> {scrap.us_premium}</span>}
-              {scrap.eu_premium && <span><em>유럽</em> {scrap.eu_premium}</span>}
-              {scrap.japan_premium && <span><em>일본</em> {scrap.japan_premium}</span>}
-            </div>
-          </div>
-        )}
-        <div className="region-basis-note">※ 아래 가격은 각 대륙별 내수 거래가 기준 — 한국 수입 단가 아님</div>
-        <div className="region-list">
-          {scrap.regions.map((r) => (
-            <div key={r.region} className="region-item">
-              <div className="region-title-row">
-                <span className="region-name">{r.region} 내수가</span>
-              </div>
-              <ScrapPriceLines items={r.price_items} fallback={r.price_range} />
-              {r.key_grades && <div className="region-grades-line">{r.key_grades}</div>}
-              {r.price_driver && <p className="region-driver">{r.price_driver}</p>}
-              {r.flow && <p className="region-flow-text">📦 {r.flow}</p>}
-            </div>
-          ))}
-        </div>
-      </SectionCard>
+export function AluminumTab({ data }: { data: AluminumData }) {
+  const [sub, setSub] = useState<'primary' | 'secondary'>('primary');
+
+  return (
+    <div>
+      <div className="subtab-bar" role="tablist">
+        <button
+          role="tab"
+          className={`subtab ${sub === 'primary' ? 'active' : ''}`}
+          onClick={() => setSub('primary')}
+        >
+          1차 알루미늄
+          <span className="subtab-sub">LME 신지금</span>
+        </button>
+        <button
+          role="tab"
+          className={`subtab ${sub === 'secondary' ? 'active' : ''}`}
+          onClick={() => setSub('secondary')}
+        >
+          2차 알루미늄
+          <span className="subtab-sub">스크랩·드로스·탈산제</span>
+        </button>
+      </div>
+
+      {sub === 'primary' ? <PrimaryAluminumView data={data} /> : <SecondaryAluminumTab />}
     </div>
   );
 }

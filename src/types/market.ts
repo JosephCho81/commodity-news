@@ -1,5 +1,5 @@
 // src/types/market.ts — 타입 분할 파일 (index.ts 배럴로 재수출)
-import type { Direction, ApiMeta, KeyIssue } from './common';
+import type { Direction, ApiMeta, KeyIssue, FuturesQuote } from './common';
 
 export interface AluminumData extends ApiMeta {
   lme: {
@@ -17,21 +17,66 @@ export interface AluminumData extends ApiMeta {
     holiday_note?: string | null;
     key_issues?: KeyIssue[];
   };
-  scrap: {
-    weekly_summary: string;
-    us_premium: string | null;
-    eu_premium: string | null;
-    japan_premium: string | null;
-    regions: Array<{
-      region: string;
-      key_grades: string;
-      price_range: string | null;
-      price_items?: Array<{ grade: string; price: string }> | null; // 서버 직접 수집값 — 한 줄에 한 품목
-      price_driver: string;
-      flow: string;
-      outlook?: string | null;
-    }>;
+  // 스크랩은 '2차 알루미늄'(DrossData) 탭으로 분리됨 — 구버전 캐시 호환용 optional
+  scrap?: AluminumScrap;
+}
+
+export interface AluminumScrap {
+  weekly_summary: string;
+  us_premium?: string | null;
+  eu_premium?: string | null;
+  japan_premium?: string | null;
+  regions: Array<{
+    region: string;
+    key_grades: string;
+    price_range?: string | null;
+    price_items?: Array<{ grade: string; price: string }> | null; // 서버 직접 수집값 — 한 줄에 한 품목
+    price_driver: string;
+    flow: string;
+    outlook?: string | null;
+  }>;
+}
+
+// ─── 2차 알루미늄 (스크랩·드로스·탈산제) ────────────────────────────────────
+
+export interface DrossNewsItem {
+  title: string;
+  url: string;
+  date?: string | null;
+  source?: string | null;
+  category?: string;            // 규제 | 공급 | 수요 | 가격 | 기타
+  scope?: string;               // KR | GLOBAL | CN | JP
+}
+
+export interface DrossData extends ApiMeta {
+  headline_judgment?: {
+    feedstock?: string | null;  // 빠듯 | 보통 | 여유
+    demand?: string | null;     // 강 | 중 | 약
+    spread?: string | null;     // 확대 | 축소 | 보합
+    summary?: string;
   };
+  spread?: {
+    lme_usd: number | null;            // LME 전해 신지금 (USD/MT)
+    primary_shfe: number | null;       // SHFE 전해(1차) 정산 (CNY/MT)
+    secondary_shfe: number | null;     // SHFE 주조(2차) 정산 (CNY/MT)
+    prim_sec_spread: number | null;    // 전해-주조 (CNY/MT)
+    prim_sec_spread_pct: string | null;
+    recovery_values: Array<{ grade: number; value_usd: number }>; // LME×함량%(가정)
+    note?: string;
+  };
+  futures?: FuturesQuote[];
+  scrap?: AluminumScrap;
+  supply?: { signal?: string; drivers?: string; outlook?: string };
+  demand?: { signal?: string; drivers?: string; outlook?: string };
+  regulation_watch?: Array<{
+    title: string; what?: string; impact?: string; region?: string;
+    published_date?: string | null; source_name?: string | null; url?: string | null;
+  }>;
+  market_summary?: string;
+  key_issues?: KeyIssue[];
+  _dross_news_kr?: DrossNewsItem[];
+  _dross_news_global?: DrossNewsItem[];
+  _dross_regulation?: DrossNewsItem[];
 }
 
 // ─── 가탄제 ─────────────────────────────────────────────────────────────────

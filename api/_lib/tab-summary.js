@@ -25,8 +25,9 @@ export async function prefetch(token) {
   ]);
   if (!token) return { summaryContext, macro, prevSummary };
   try {
-    const [alData, faData, recData, smData] = await Promise.all([
+    const [alData, drData, faData, recData, smData] = await Promise.all([
       readTab(token, 'aluminum'),
+      readTab(token, 'dross'),
       readTab(token, 'ferroalloy'),
       readTab(token, 'recarburizer'),
       readTab(token, 'steelmaker'),
@@ -41,7 +42,16 @@ export async function prefetch(token) {
       summaryContext += `변동: ${al.lme?.change ?? 'N/A'} USD/톤 (${al.lme?.change_pct ?? ''})\n`;
       summaryContext += `시장현황: ${al.lme?.market_status ?? ''}\n`;
       summaryContext += `전망: ${al.lme?.outlook ?? ''}\n`;
-      summaryContext += `스크랩: ${al.scrap?.weekly_summary ?? ''}\n`;
+    }
+
+    if (drData?.data) {
+      const dr = JSON.parse(drData.data);
+      summaryContext += `\n[2차 알루미늄·드로스·탈산제]\n`;
+      const hj = dr.headline_judgment ?? {};
+      summaryContext += `판단: 원료확보 ${hj.feedstock ?? 'N/A'} · 탈산제수요 ${hj.demand ?? 'N/A'} · 순알 대비 스프레드 ${hj.spread ?? 'N/A'}\n`;
+      if (dr.spread?.prim_sec_spread != null) summaryContext += `전해-주조 스프레드: ${dr.spread.prim_sec_spread} CNY/MT (${dr.spread.prim_sec_spread_pct ?? ''})\n`;
+      summaryContext += `스크랩: ${dr.scrap?.weekly_summary ?? ''}\n`;
+      summaryContext += `종합: ${dr.market_summary ?? ''}\n`;
     }
 
     if (faData?.data) {

@@ -15,6 +15,8 @@ export const ZCE_SYMBOLS = {
   i:  { sina: 'I0',  exch: 'DCE',  label: '철광석',     en: 'IronOre', bounds: [200, 1800] },
   jm: { sina: 'JM0', exch: 'DCE',  label: '원료탄',     en: 'CokingCoal', bounds: [400, 4000] },
   j:  { sina: 'J0',  exch: 'DCE',  label: '코크스',     en: 'Coke',  bounds: [800, 5000]  },
+  al: { sina: 'AL0', exch: 'SHFE', label: '전해알루미늄(1차)', en: 'PrimaryAl',   bounds: [12000, 35000] },
+  ad: { sina: 'AD0', exch: 'SHFE', label: '주조알루미늄합금(2차)', en: 'CastAlAlloy', bounds: [12000, 35000] },
 };
 
 // ─── sina 한 줄 파싱 (순수 함수 — 테스트 대상) ──────────────────────────────

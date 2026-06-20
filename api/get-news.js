@@ -13,6 +13,7 @@ import {
   getKSTDate, buildExclusionSection, saveNewsHistory, readLatest, saveWithLatest,
 } from './_lib/cache-store.js';
 import * as tabAluminum     from './_lib/tab-aluminum.js';
+import * as tabDross        from './_lib/tab-dross.js';
 import * as tabSteelmaker   from './_lib/tab-steelmaker.js';
 import * as tabRecarburizer from './_lib/tab-recarburizer.js';
 import * as tabSummary      from './_lib/tab-summary.js';
@@ -21,12 +22,13 @@ const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 
 const TAB_MODULES = {
   aluminum:     tabAluminum,
+  dross:        tabDross,
   steelmaker:   tabSteelmaker,
   recarburizer: tabRecarburizer,
   summary:      tabSummary,
 };
 
-const VALID_TABS = new Set(['steelmaker', 'aluminum', 'ferroalloy', 'recarburizer', 'summary']);
+const VALID_TABS = new Set(['steelmaker', 'aluminum', 'dross', 'ferroalloy', 'recarburizer', 'summary']);
 
 function sendLatestFallback(res, latest) {
   return res.status(200).json({
@@ -54,7 +56,7 @@ export default async function handler(req, res) {
 
   if (!VALID_TABS.has(tab)) {
     return res.status(400).json({
-      error: `Unknown tab: ${tab}. Use: steelmaker, aluminum, ferroalloy, recarburizer, summary`,
+      error: `Unknown tab: ${tab}. Use: steelmaker, aluminum, dross, ferroalloy, recarburizer, summary`,
     });
   }
 

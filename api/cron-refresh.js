@@ -5,7 +5,7 @@
 export const config = { maxDuration: 300 }; // 5분 (4개 탭 순차 호출)
 
 // summary는 4탭 캐시를 주입받으므로 4탭 완료 후 순차 호출 (병렬이면 어제 데이터 주입됨)
-const TABS = ['steelmaker', 'aluminum', 'ferroalloy', 'recarburizer'];
+const TABS = ['steelmaker', 'aluminum', 'dross', 'ferroalloy', 'recarburizer'];
 const FINAL_TAB = 'summary';
 
 export default async function handler(req, res) {

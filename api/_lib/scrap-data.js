@@ -150,10 +150,10 @@ export async function fetchJapanScrapPrices() {
     if (!res.ok) throw new Error(`dokindokin HTTP ${res.status}`);
     const html = await res.text();
 
-    // 날짜 추출: "2026年03月17日現在"
-    const dateMatch = html.match(/(\d{4})..(\d{2})..(\d{2})../);
+    // 날짜 추출: "2026年06月20日現在" — 年月日 리터럴로 고정(와일드카드는 숫자열 오매칭됨)
+    const dateMatch = html.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
     const date = dateMatch
-      ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
+      ? `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`
       : new Date().toISOString().slice(0, 10);
 
     // 일반 패턴: 【숫자円/㌧】 전체 HTML에서 순서대로 추출

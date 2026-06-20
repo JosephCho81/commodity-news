@@ -1,9 +1,9 @@
-// api/_lib/tab-aluminum.js — 알루미늄 탭 모듈
-// LME(westmetall)·스크랩(scrapmonster/dokindokin) 직접 수집값이 주 가격 — LLM은 해석만.
+// api/_lib/tab-aluminum.js — 1차 알루미늄(LME 신지금) 탭 모듈
+// LME(westmetall) 직접 수집값이 주 가격 — LLM은 해석만.
+// 스크랩·드로스·2차합금은 tab-dross.js(2차 알루미늄)로 분리됨.
 
 import { toNumber, validatePrice, dedupKeyIssues, attachSourceMeta } from './validate.js';
 import { fetchLmePrice, fetchAluminumOutlook } from './lme-data.js';
-import { fetchScrapPrices, fetchJapanScrapPrices } from './scrap-data.js';
 import { fetchKoreanSteelNews } from './rss-news.js';
 import { getKSTDate, fetchPrevDayData, readNewsHistory, issuesToHistory, readPriceHistory, savePriceHistory } from './cache-store.js';
 import { getAluminumPrompt } from '../_prompts/aluminum.js';
@@ -12,17 +12,15 @@ export const recency = 'week';
 export const maxTokens = 3000;
 
 export async function prefetch(token) {
-  const [lmeData, outlookText, scrapPrices, japanScrap, prev, newsHistory, krNews, priceHistory] = await Promise.all([
+  const [lmeData, outlookText, prev, newsHistory, krNews, priceHistory] = await Promise.all([
     fetchLmePrice(),
     fetchAluminumOutlook(),
-    fetchScrapPrices(),
-    fetchJapanScrapPrices(),
     fetchPrevDayData(token, 'aluminum'),
     readNewsHistory(token, 'aluminum'),
     fetchKoreanSteelNews('aluminum', 6).catch(() => []),
     readPriceHistory(token, 'aluminum'),
   ]);
-  return { lmeData, outlookText, scrapPrices, japanScrap, prev, newsHistory, krNews, priceHistory };
+  return { lmeData, outlookText, prev, newsHistory, krNews, priceHistory };
 }
 
 export function buildPrompt(ctx) {
@@ -33,13 +31,12 @@ export function buildPrompt(ctx) {
     prompt += `\n\n【전일 데이터 (${ctx.prev.date}) — 반드시 아래 수치와 오늘을 비교하여 달라진 것 서술】\n`;
     prompt += `전일 LME: ${p.lme?.price ?? 'N/A'} USD/MT (변동: ${p.lme?.change ?? 'N/A'} USD)\n`;
     prompt += `전일 move_reason 요약: ${p.lme?.move_reason?.slice(0, 80) ?? 'N/A'}\n`;
-    prompt += `전일 스크랩 요약: ${p.scrap?.weekly_summary?.slice(0, 100) ?? 'N/A'}\n`;
     prompt += `→ 오늘 위 수치 대비 달라진 것 구체적 서술. 달라진 것 없으면 "전일 대비 보합" 명시.\n`;
   }
 
-  // LME·스크랩 실시간 수집 데이터 주입
+  // LME 실시간 수집 데이터 주입
   let context = '\n\n【LME 실시간 수집 데이터 — move_reason/market_status 작성 시 반드시 아래 LME 공식 가격만 사용】\n';
-  const { lmeData, outlookText, scrapPrices, japanScrap } = ctx;
+  const { lmeData, outlookText } = ctx;
   if (lmeData) {
     const fmt = (v) => parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const priceFormatted = fmt(lmeData.price);
@@ -52,23 +49,11 @@ export function buildPrompt(ctx) {
     context += `[주의] move_reason 작성 시 반드시 위 ${priceFormatted} USD/MT 숫자 사용. 다른 수치 금지.\n`;
   }
   if (outlookText) context += `\n[가격 전망 참고]\n${outlookText}\n`;
-  const scrapSection = (title, obj, fmt) => {
-    if (!obj || Object.keys(obj).length === 0) return '';
-    let s = `\n[${title}]\n`;
-    for (const [k, v] of Object.entries(obj)) s += `${k}: ${fmt(v)}\n`;
-    return s;
-  };
-  context += scrapSection('미국 알루미늄 스크랩 (USD/톤, scrapmonster.com)', scrapPrices?.us, v => `$${v.toLocaleString('en-US')}/톤`);
-  context += scrapSection('유럽 알루미늄 스크랩 (USD/톤)', scrapPrices?.eu, v => `$${v.toLocaleString('en-US')}/톤`);
-  context += scrapSection('중국 알루미늄 스크랩 (CNY/톤)', scrapPrices?.cn, v => `${v.toLocaleString('en-US')} CNY/톤`);
-  if (japanScrap?.prices) {
-    context += scrapSection(`Japan Aluminum Scrap (JPY/톤, ${japanScrap.date})`, japanScrap.prices, v => `${v.toLocaleString('en-US')}円/톤`);
-  }
   return prompt + context;
 }
 
 export async function postProcess({ parsed, ctx, searchResults, token }) {
-  const { lmeData, scrapPrices, japanScrap } = ctx;
+  const { lmeData } = ctx;
 
   // 1. LME 가격 주입 — 직접 수집값 우선, 실패 시 Perplexity 값 검증 → 전일값 이월
   if (lmeData) {
@@ -106,22 +91,7 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
     }
   }
 
-  // 2. 스크랩 가격 직접 수집값 주입 (한 줄에 한 품목 — LLM 문자열 의존 제거)
-  if (Array.isArray(parsed.scrap?.regions)) {
-    const fmtNum = (v) => Number(v).toLocaleString('en-US');
-    const directItems = {
-      '미국': scrapPrices?.us ? Object.entries(scrapPrices.us).map(([grade, v]) => ({ grade, price: `$${fmtNum(v)}/MT` })) : null,
-      '유럽': scrapPrices?.eu ? Object.entries(scrapPrices.eu).map(([grade, v]) => ({ grade, price: `$${fmtNum(v)}/MT` })) : null,
-      '중국': scrapPrices?.cn ? Object.entries(scrapPrices.cn).map(([grade, v]) => ({ grade, price: `CNY ${fmtNum(v)}/MT` })) : null,
-      '일본': japanScrap?.prices ? Object.entries(japanScrap.prices).map(([grade, v]) => ({ grade, price: `JPY ${fmtNum(v)}/MT` })) : null,
-    };
-    for (const r of parsed.scrap.regions) {
-      const items = directItems[r.region];
-      if (items?.length) r.price_items = items;
-    }
-  }
-
-  // 3. key_issues 결정적 중복 제거 + 출처 부여
+  // 2. key_issues 결정적 중복 제거 + 출처 부여
   if (parsed.lme) {
     parsed.lme.key_issues = attachSourceMeta(
       dedupKeyIssues(parsed.lme.key_issues ?? [], ctx.newsHistory),
@@ -129,7 +99,7 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
     );
   }
 
-  // 4. 가격 시계열 적립 (westmetall 직접 수집값만 — LLM 무관) + 응답 부착
+  // 3. 가격 시계열 적립 (westmetall 직접 수집값만 — LLM 무관) + 응답 부착
   if (token && lmeData?.price && toNumber(lmeData.price)) {
     ctx.priceHistory = await savePriceHistory(token, 'aluminum', ctx.priceHistory, {
       d: lmeData.date ?? getKSTDate(),
