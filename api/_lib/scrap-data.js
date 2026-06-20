@@ -103,12 +103,26 @@ export async function fetchScrapPrices() {
     if (staleRegions.length > 0) {
       console.warn(`[ScrapMonster] 갱신지연(stale) 지역: ${staleRegions.join(',')} — 실시간 검색으로 교체 시도`);
       const fresh = await fetchScrapPricesViaSearch().catch(() => null);
+      // 양수 값만 추림 — Perplexity가 못 찾은 등급(null)으로 기존 값을 덮어쓰지 않게.
+      const cleanPos = (obj) => {
+        const out = {};
+        for (const [k, v] of Object.entries(obj ?? {})) {
+          const n = Number(String(v).replace(/,/g, ''));
+          if (Number.isFinite(n) && n > 0) out[k] = n;
+        }
+        return out;
+      };
       for (const r of staleRegions) {
-        if (fresh?.[r] && Object.keys(fresh[r]).length > 0) {
-          regions[r] = fresh[r];
-          stale[r] = false;
-          region_source[r] = 'perplexity_search';
-          console.log(`[ScrapMonster] ${r} → 실시간 검색값으로 교체 완료`);
+        const freshClean = cleanPos(fresh?.[r]);
+        const nFresh = Object.keys(freshClean).length;
+        if (nFresh > 0) {
+          // 머지: 스크랩몬스터 등급은 유지하고 신선값만 덮어쓴다(등급 유실 방지).
+          const staleGrades = Object.keys(regions[r]).filter(k => !(k in freshClean));
+          regions[r] = { ...regions[r], ...freshClean };
+          region_source[r] = 'scrapmonster+perplexity';
+          // 신선값으로 덮이지 않고 스크랩몬스터(동결)에 남은 등급이 있으면 여전히 갱신지연 표기.
+          stale[r] = staleGrades.length > 0;
+          console.log(`[ScrapMonster] ${r} 머지 갱신: 신선 ${nFresh}개 덮음, 동결잔존 ${staleGrades.length}개`);
         } else {
           console.warn(`[ScrapMonster] ${r} 실시간 교체 실패 — 갱신지연 표시로 유지`);
         }
