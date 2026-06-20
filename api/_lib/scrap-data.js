@@ -5,6 +5,41 @@ import { sendFailureAlert } from './alert.js';
 
 const LB_TO_TON = 2204.62;
 
+// ─── 미국 알루미늄 거래가 (recycleinme.com, 라이브) ──────────────────────────
+// recycleinme는 Inertia(data-page에 JSON 내장) — 헤드리스 불필요.
+// "US Metal Prices/Aluminum" = Trading Price(거래가, 도매급). USD/Lb → USD/MT.
+// scrapmonster 무료는 전 지역 3개월 지연이라 미국은 이쪽 라이브로 대체.
+export async function fetchUsAluminumPrice() {
+  try {
+    const res = await fetch('https://www.recycleinme.com/freepricedetailedlisting/US%20Metal%20Prices/Aluminum/6', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html',
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error(`recycleinme HTTP ${res.status}`);
+    const html = await res.text();
+    const m = html.match(/data-page="((?:[^"]|&quot;)*)"/);
+    if (!m) throw new Error('data-page 미발견');
+    const json = JSON.parse(
+      m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#039;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    );
+    const series = json?.props?.marketpricegraph_value;
+    if (!Array.isArray(series) || series.length === 0) throw new Error('가격 시리즈 없음');
+    const latest = series.find(x => String(x.Latest) === '1') ?? series[series.length - 1];
+    const perLb = parseFloat(latest.closePrice);
+    if (!(perLb > 0)) throw new Error('가격 파싱 실패');
+    const date = (latest.Dat || '').slice(0, 10) || null;
+    const usdPerMt = Math.round(perLb * LB_TO_TON);
+    console.log(`[recycleinme] ✅ 미국 알루미늄 거래가 $${perLb}/lb → $${usdPerMt}/MT (${date})`);
+    return { usd_per_mt: usdPerMt, per_lb: perLb, date, source: 'recycleinme' };
+  } catch (e) {
+    console.warn('[recycleinme] 미국 알루미늄 가격 실패:', e.message);
+    return null;
+  }
+}
+
 // ─── ScrapMonster 스크랩 가격 fetch (전부 USD/톤으로 통일) ─────────────────────
 // 미국: USD/lb × 2204.62 = USD/톤 / 유럽: USD/톤 / 중국: CNY/톤
 export async function fetchScrapPrices() {

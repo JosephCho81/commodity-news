@@ -1,6 +1,6 @@
 // 2차 알루미늄(스크랩·드로스·탈산제) 서브탭 — /api/get-news?tab=dross 를 독립 fetch.
-import { Fragment, useState, useEffect, useCallback } from 'react';
-import type { DrossData, ScrapMatrixData } from '../types';
+import { useState, useEffect, useCallback } from 'react';
+import type { DrossData, ScrapLiveData } from '../types';
 import { formatInt } from '../utils/format';
 import { SectionCard, TextBlock, LoadingState, ErrorState } from '../components/ui';
 import { Sparkline } from '../components/data-viz';
@@ -16,34 +16,29 @@ function JudgmentBadge({ label, value, tone }: { label: string; value?: string |
   );
 }
 
-// 품목(폐기물)별 × 대륙 비교표 — 전부 USD, 중국/일본은 원통화 병기, 데이터 없으면 '—'
-function ScrapMatrixTable({ matrix }: { matrix: ScrapMatrixData }) {
-  const { regions, rows } = matrix;
+// 지역별 라이브 시세 — 미국·중국·일본, 전부 USD(원통화는 작게 병기). 라이브 소스만.
+function ScrapLiveSnapshot({ live }: { live: ScrapLiveData }) {
   return (
-    <div
-      className="scrap-matrix"
-      style={{ gridTemplateColumns: `minmax(74px, 1.2fr) repeat(${regions.length}, 1fr)` }}
-    >
-      <div className="scrap-matrix-h scrap-matrix-grade">품목</div>
-      {regions.map((r) => <div key={r} className="scrap-matrix-h">{r}</div>)}
-      {rows.map((row) => (
-        <Fragment key={row.grade}>
-          <div className="scrap-matrix-grade">{row.grade}</div>
-          {regions.map((r) => {
-            const c = row.cells[r];
-            if (!c) return <div key={r} className="scrap-matrix-cell"><span className="scrap-matrix-na">—</span></div>;
-            return (
-              <div key={r} className="scrap-matrix-cell">
-                <span className="scrap-matrix-usd">
-                  {c.usd != null ? `$${formatInt(c.usd)}` : `${c.cur} ${formatInt(c.raw)}`}
+    <div className="region-list">
+      {live.regions.map((r) => (
+        <div key={r.region} className="region-item">
+          <div className="region-title-row">
+            <span className="region-name">{r.region}</span>
+            <span className="region-grades-line">{r.source}{r.date ? ` · ${r.date}` : ''}{r.note ? ` · ${r.note}` : ''}</span>
+          </div>
+          <div className="region-price-table">
+            {r.items.map((it, i) => (
+              <div key={i} className="region-price-line">
+                <span className="region-price-grade">{it.label}</span>
+                <span className="region-price-value">
+                  ${formatInt(it.usd)}<small>/MT</small>
+                  {it.cny != null && <em className="region-price-orig"> CNY {formatInt(it.cny)}</em>}
+                  {it.jpy != null && <em className="region-price-orig"> JPY {formatInt(it.jpy)}</em>}
                 </span>
-                {c.cur !== 'USD' && c.usd != null && (
-                  <span className="scrap-matrix-sub">{c.cur} {formatInt(c.raw)}</span>
-                )}
               </div>
-            );
-          })}
-        </Fragment>
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -137,12 +132,11 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
         </SectionCard>
       )}
 
-      {data.scrap?.matrix && data.scrap.matrix.rows.length > 0 && (
-        <SectionCard title="해외 스크랩 — 품목별 대륙 비교" accent="SCRAP">
+      {data.scrap?.live && data.scrap.live.regions.length > 0 && (
+        <SectionCard title="해외 시세 — 지역별 라이브" accent="SCRAP">
           <TextBlock text={data.scrap.weekly_summary} />
-          <div className="region-basis-note">※ 각 대륙 내수 거래가 · 전부 USD 환산(중국·일본은 원통화 병기) · 한국 수입 단가 아님</div>
-          <ScrapMatrixTable matrix={data.scrap.matrix} />
-          <div className="region-basis-note">※ 국내 스크랩은 공시 가격 소스가 없어 미표시</div>
+          <ScrapLiveSnapshot live={data.scrap.live} />
+          <div className="region-basis-note">※ 전부 USD 환산(원통화 병기) · 무료 라이브 소스만(미국 거래가·중국 SHFE·일본 딜러가) · 유럽은 무료 라이브 도매 부재로 미표시 · 국내 공시가 없음</div>
         </SectionCard>
       )}
 

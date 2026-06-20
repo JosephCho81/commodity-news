@@ -21,19 +21,26 @@ export interface AluminumData extends ApiMeta {
   scrap?: AluminumScrap;
 }
 
-export interface ScrapCell {
-  usd: number | null;            // USD/MT 환산값 (환율 부재 시 null)
-  raw: number;                   // 원통화 원값
-  cur: 'USD' | 'CNY' | 'JPY';
+export interface ScrapLiveItem {
+  label: string;
+  usd: number;                   // USD/MT (표시 기준)
+  cny?: number;                  // 원통화 보조표시 (중국)
+  jpy?: number;                  // 원통화 보조표시 (일본)
 }
-export interface ScrapMatrixData {
-  regions: string[];             // 데이터 있는 대륙만 (미국·유럽·중국·일본)
-  rows: Array<{ grade: string; cells: Record<string, ScrapCell> }>;
+export interface ScrapLiveRegion {
+  region: string;                // 미국 · 중국 · 일본
+  source: string;                // recycleinme · SHFE · dokindokin
+  date?: string | null;
+  note?: string;
+  items: ScrapLiveItem[];
+}
+export interface ScrapLiveData {
+  regions: ScrapLiveRegion[];    // 라이브 무료 소스만 (유럽 제외)
 }
 
 export interface AluminumScrap {
   weekly_summary: string;
-  matrix?: ScrapMatrixData | null;  // 품목별 × 대륙 비교 (결정적 수집값, USD 통일)
+  live?: ScrapLiveData | null;   // 지역별 라이브 시세 (미국·중국·일본, 전부 USD)
   us_premium?: string | null;
   eu_premium?: string | null;
   japan_premium?: string | null;
