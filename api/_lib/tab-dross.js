@@ -194,6 +194,16 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
     });
   }
   if (ctx.priceHistory?.length > 0) parsed._price_history = ctx.priceHistory;
+
+  // 7. 용어 결정적 치환 — LLM이 '신지금/재생/주조 알루미늄'을 쓰면 '1차/2차'로 강제(전 문자열 필드).
+  const TERMS = [[/신지금/g, '1차'], [/주조\s*알루미늄/g, '2차 알루미늄'], [/재생\s*알루미늄/g, '2차 알루미늄'], [/재생합금/g, '2차 알루미늄']];
+  const fixTerms = (o) => {
+    if (typeof o === 'string') { let s = o; for (const [re, rep] of TERMS) s = s.replace(re, rep); return s; }
+    if (Array.isArray(o)) return o.map(fixTerms);
+    if (o && typeof o === 'object') { for (const k of Object.keys(o)) o[k] = fixTerms(o[k]); return o; }
+    return o;
+  };
+  fixTerms(parsed);
 }
 
 export function isValid(parsed) {
