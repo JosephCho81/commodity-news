@@ -4,6 +4,35 @@ import { callPerplexity, parseJSON } from './perplexity.js';
 
 const LB_TO_TON = 2204.62;
 
+// ─── 미국·중국 스크랩 등급 (scrapmonster, 결정적 기준값) ─────────────────────
+// 무료 결정적 등급 소스. 값은 현실적(LME 밴드 내)이라 채택하되, 호출부가 검증+검색값으로 덮어씀.
+// (유럽 섹션은 동결값이라 의도적으로 수집 안 함.)
+export async function fetchScrapmonsterGrades() {
+  try {
+    const res = await fetch('https://www.scrapmonster.com/scrap-prices/category/Aluminum-Scrap/116/1/1', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36', 'Accept': 'text/html' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const html = await res.text();
+    const sec = (title, len = 8000) => { const i = html.indexOf(title); return i === -1 ? '' : html.slice(i, i + len); };
+    const usSec = sec('United States Aluminum Scrap');
+    const cnSec = sec('China Aluminum Scrap');
+    const dm = html.match(/updated on ([A-Za-z]+ \d{1,2}, \d{4})/);
+    const grabLb = (s, key) => { const i = s.indexOf('>' + key + '<'); if (i === -1) return null; const m = s.slice(i, i + 300).match(/>\s*([\d]+\.[\d]+)\s*\(/); return m ? Math.round(parseFloat(m[1]) * LB_TO_TON) : null; };
+    const grabMt = (s, key) => { const i = s.indexOf('>' + key + '<'); if (i === -1) return null; const m = s.slice(i, i + 300).match(/>\s*([\d,]+\.[\d]+)\s*</); return m ? parseFloat(m[1].replace(/,/g, '')) : null; };
+    const us = {}, cn = {};
+    for (const [k, l] of [['UBC', 'UBC'], ['6063 Extrusions', '6063 압출'], ['Old Cast', 'Old Cast'], ['Old Sheet', 'Old Sheet'], ['Zorba 90% NF', 'Zorba']]) { const v = grabLb(usSec, k); if (v > 0) us[l] = v; }
+    for (const [k, l] of [['UBC', 'UBC'], ['6063 Extrusions', '6063 압출'], ['Old Cast', 'Old Cast'], ['Old Sheet', 'Old Sheet']]) { const v = grabMt(cnSec, k); if (v > 0) cn[l] = v; }
+    if (!Object.keys(us).length && !Object.keys(cn).length) throw new Error('파싱 0');
+    console.log(`[ScrapMonster] 등급 US ${Object.keys(us).length}·CN ${Object.keys(cn).length} (${dm ? dm[1] : '?'})`);
+    return { us, cn, date: dm ? dm[1] : null };
+  } catch (e) {
+    console.warn('[ScrapMonster] 등급 수집 실패:', e.message);
+    return null;
+  }
+}
+
 // ─── 미국·중국 스크랩 등급별 현재 시세 (검색, 호출부에서 LME 정합 검증) ────────
 // 무료 결정적 등급별 도매 소스가 없어 검색으로 수집하되, 호출부가 LME 밴드로 비현실값 제거.
 // 미국 USD/MT, 중국 CNY/MT.
