@@ -48,8 +48,8 @@ export async function prefetch(token) {
       const dr = JSON.parse(drData.data);
       summaryContext += `\n[2차 알루미늄·드로스·탈산제]\n`;
       const hj = dr.headline_judgment ?? {};
-      summaryContext += `판단: 원료확보 ${hj.feedstock ?? 'N/A'} · 탈산제수요 ${hj.demand ?? 'N/A'} · 순알 대비 스프레드 ${hj.spread ?? 'N/A'}\n`;
-      if (dr.spread?.prim_sec_spread != null) summaryContext += `전해-주조 스프레드: ${dr.spread.prim_sec_spread} CNY/MT (${dr.spread.prim_sec_spread_pct ?? ''})\n`;
+      summaryContext += `판단: 원료확보 ${hj.feedstock ?? 'N/A'} · 탈산제수요 ${hj.demand ?? 'N/A'} · 1차-2차 가격차 ${hj.spread ?? 'N/A'}(축소=2차 강세=원료비↑)\n`;
+      if (dr.spread?.prim_sec_spread != null) summaryContext += `1차-2차 가격차: ${dr.spread.prim_sec_spread} CNY/MT (${dr.spread.prim_sec_spread_pct ?? ''})\n`;
       summaryContext += `스크랩: ${dr.scrap?.weekly_summary ?? ''}\n`;
       summaryContext += `종합: ${dr.market_summary ?? ''}\n`;
     }

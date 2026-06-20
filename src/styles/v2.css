@@ -52,6 +52,7 @@
 }
 .futures-cell-name  { font-size: 10px; font-weight: 600; color: var(--text3); }
 .futures-cell-price { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.1; }
+.futures-cell-sub   { font-size: 8px; font-weight: 600; color: var(--text3); }
 .futures-strip-meta { font-size: 9px; color: var(--text3); display: flex; align-items: center; gap: 5px; }
 
 /* ── 국내 전문지 헤드라인 ── */
@@ -147,11 +148,15 @@
 }
 .subtab {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
-  padding: 7px 6px; border: none; border-radius: 7px; cursor: pointer;
+  padding: 7px 6px; border: 1px solid transparent; border-radius: 7px; cursor: pointer;
   background: transparent; color: var(--text3); font-weight: 700; font-size: 13px;
 }
-.subtab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+.subtab.active {
+  background: var(--green-light); color: var(--green-dark);
+  box-shadow: var(--shadow-sm); border: 1px solid #b9e4cb;
+}
 .subtab-sub { font-size: 9px; font-weight: 600; color: var(--text3); }
+.subtab.active .subtab-sub { color: var(--green-dark); opacity: 0.7; }
 
 /* ── 한 줄 판단 카드 ── */
 .dross-judge-card {
@@ -177,6 +182,7 @@
 .dross-spread-k { font-size: 10px; font-weight: 600; color: var(--text3); }
 .dross-spread-v { font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.1; }
 .dross-spread-v small { font-size: 9px; font-weight: 600; color: var(--text3); margin-left: 3px; }
+.dross-spread-cny { font-size: 9px; font-weight: 600; color: var(--text3); margin-top: 1px; }
 
 .dross-recovery { margin-top: 12px; }
 .dross-recovery-head { font-size: 12px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
@@ -190,6 +196,30 @@
 .dross-recovery-val small { font-size: 8px; font-weight: 600; color: var(--text3); }
 
 .dross-signal { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+
+/* ── 스크랩 품목×대륙 비교표 ── */
+.scrap-matrix {
+  display: grid; gap: 1px; margin-top: 6px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden; font-family: var(--mono);
+}
+.scrap-matrix-h {
+  background: var(--surface2); color: var(--text3);
+  font-size: 10px; font-weight: 700; text-align: center; padding: 6px 4px;
+}
+.scrap-matrix-grade {
+  background: var(--surface); color: var(--text2);
+  font-size: 11px; font-weight: 600; padding: 7px 8px;
+  display: flex; align-items: center;
+}
+.scrap-matrix-h.scrap-matrix-grade { background: var(--surface2); color: var(--text3); }
+.scrap-matrix-cell {
+  background: var(--surface); padding: 6px 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.scrap-matrix-usd { font-size: 12px; font-weight: 700; color: var(--text); }
+.scrap-matrix-sub { font-size: 8px; font-weight: 600; color: var(--text3); }
+.scrap-matrix-na  { font-size: 11px; color: var(--text3); }
 
 /* ── 뉴스 국면 태그 ── */
 .dross-news-tag {

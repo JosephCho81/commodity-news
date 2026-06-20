@@ -1,6 +1,6 @@
 // 2차 알루미늄(스크랩·드로스·탈산제) 서브탭 — /api/get-news?tab=dross 를 독립 fetch.
-import { useState, useEffect, useCallback } from 'react';
-import type { DrossData, DrossNewsItem } from '../types';
+import { Fragment, useState, useEffect, useCallback } from 'react';
+import type { DrossData, ScrapMatrixData } from '../types';
 import { formatInt } from '../utils/format';
 import { SectionCard, TextBlock, LoadingState, ErrorState } from '../components/ui';
 import { FuturesStrip, SourceChip, Sparkline } from '../components/data-viz';
@@ -16,37 +16,36 @@ function JudgmentBadge({ label, value, tone }: { label: string; value?: string |
   );
 }
 
-function ScrapLines({ items }: { items?: Array<{ grade: string; price: string }> | null }) {
-  const rows = (items ?? []).filter(it => it?.grade && it?.price);
-  if (rows.length === 0) return null;
+// 품목(폐기물)별 × 대륙 비교표 — 전부 USD, 중국/일본은 원통화 병기, 데이터 없으면 '—'
+function ScrapMatrixTable({ matrix }: { matrix: ScrapMatrixData }) {
+  const { regions, rows } = matrix;
   return (
-    <div className="region-price-table">
-      {rows.map((r, i) => (
-        <div key={i} className="region-price-line">
-          <span className="region-price-grade">{r.grade}</span>
-          <span className="region-price-value">{r.price}</span>
-        </div>
+    <div
+      className="scrap-matrix"
+      style={{ gridTemplateColumns: `minmax(74px, 1.2fr) repeat(${regions.length}, 1fr)` }}
+    >
+      <div className="scrap-matrix-h scrap-matrix-grade">품목</div>
+      {regions.map((r) => <div key={r} className="scrap-matrix-h">{r}</div>)}
+      {rows.map((row) => (
+        <Fragment key={row.grade}>
+          <div className="scrap-matrix-grade">{row.grade}</div>
+          {regions.map((r) => {
+            const c = row.cells[r];
+            if (!c) return <div key={r} className="scrap-matrix-cell"><span className="scrap-matrix-na">—</span></div>;
+            return (
+              <div key={r} className="scrap-matrix-cell">
+                <span className="scrap-matrix-usd">
+                  {c.usd != null ? `$${formatInt(c.usd)}` : `${c.cur} ${formatInt(c.raw)}`}
+                </span>
+                {c.cur !== 'USD' && c.usd != null && (
+                  <span className="scrap-matrix-sub">{c.cur} {formatInt(c.raw)}</span>
+                )}
+              </div>
+            );
+          })}
+        </Fragment>
       ))}
     </div>
-  );
-}
-
-function NewsList({ title, items }: { title: string; items?: DrossNewsItem[] | null }) {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  return (
-    <SectionCard title={title}>
-      <ul className="kr-news-list">
-        {items.map((n, i) => (
-          <li key={i} className="kr-news-item">
-            <a href={n.url} target="_blank" rel="noreferrer" className="kr-news-title">
-              {n.category && <span className={`dross-news-tag tag-${n.category}`}>{n.category}</span>}
-              {n.title}
-            </a>
-            <span className="kr-news-meta">{n.date} · {n.source}</span>
-          </li>
-        ))}
-      </ul>
-    </SectionCard>
   );
 }
 
@@ -62,37 +61,40 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
           <div className="dross-judge-row">
             <JudgmentBadge label="원료확보" value={hj?.feedstock} tone="feed" />
             <JudgmentBadge label="탈산제수요" value={hj?.demand} tone="demand" />
-            <JudgmentBadge label="순알 대비" value={hj?.spread} tone="spread" />
+            <JudgmentBadge label="1차 대비 2차" value={hj?.spread} tone="spread" />
           </div>
           {hj?.summary && <p className="dross-judge-summary">{hj.summary}</p>}
         </div>
       )}
 
       {sp && (sp.lme_usd || sp.primary_shfe || sp.recovery_values?.length > 0) && (
-        <SectionCard title="원가·스프레드" accent="SPREAD">
+        <SectionCard title="1차·2차 알루미늄 가격" accent="가격">
           <div className="dross-spread-grid">
             {sp.lme_usd != null && (
               <div className="dross-spread-cell">
-                <span className="dross-spread-k">LME 전해(USD)</span>
-                <span className="dross-spread-v">{formatInt(sp.lme_usd)}<small>/MT</small></span>
+                <span className="dross-spread-k">LME 1차 알루미늄</span>
+                <span className="dross-spread-v">${formatInt(sp.lme_usd)}<small>/MT</small></span>
               </div>
             )}
             {sp.primary_shfe != null && (
               <div className="dross-spread-cell">
-                <span className="dross-spread-k">SHFE 전해 1차(CNY)</span>
-                <span className="dross-spread-v">{formatInt(sp.primary_shfe)}<small>/MT</small></span>
+                <span className="dross-spread-k">SHFE 1차 알루미늄</span>
+                <span className="dross-spread-v">{sp.primary_usd != null ? `$${formatInt(sp.primary_usd)}` : `CNY ${formatInt(sp.primary_shfe)}`}<small>/MT</small></span>
+                {sp.primary_usd != null && <span className="dross-spread-cny">CNY {formatInt(sp.primary_shfe)}</span>}
               </div>
             )}
             {sp.secondary_shfe != null && (
               <div className="dross-spread-cell">
-                <span className="dross-spread-k">SHFE 주조 2차(CNY)</span>
-                <span className="dross-spread-v">{formatInt(sp.secondary_shfe)}<small>/MT</small></span>
+                <span className="dross-spread-k">SHFE 2차 알루미늄</span>
+                <span className="dross-spread-v">{sp.secondary_usd != null ? `$${formatInt(sp.secondary_usd)}` : `CNY ${formatInt(sp.secondary_shfe)}`}<small>/MT</small></span>
+                {sp.secondary_usd != null && <span className="dross-spread-cny">CNY {formatInt(sp.secondary_shfe)}</span>}
               </div>
             )}
             {sp.prim_sec_spread != null && (
               <div className="dross-spread-cell dross-spread-cell--hl">
-                <span className="dross-spread-k">전해-주조 격차</span>
-                <span className="dross-spread-v">{formatInt(sp.prim_sec_spread)}<small>CNY/MT {sp.prim_sec_spread_pct ? `(${sp.prim_sec_spread_pct})` : ''}</small></span>
+                <span className="dross-spread-k">1차-2차 가격차</span>
+                <span className="dross-spread-v">{sp.prim_sec_spread_usd != null ? `$${formatInt(sp.prim_sec_spread_usd)}` : `CNY ${formatInt(sp.prim_sec_spread)}`}<small>/MT {sp.prim_sec_spread_pct ? `(${sp.prim_sec_spread_pct})` : ''}</small></span>
+                <span className="dross-spread-cny">{sp.prim_sec_spread_usd != null ? `CNY ${formatInt(sp.prim_sec_spread)} · ` : ''}1차가 2차보다 비싼 폭 · 좁아질수록 2차 강세(원료비 ↑)</span>
               </div>
             )}
           </div>
@@ -117,7 +119,7 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
         </SectionCard>
       )}
 
-      <FuturesStrip futures={data.futures} title="전해(1차) vs 주조(2차) 선물" />
+      <FuturesStrip futures={data.futures} title="1차 vs 2차 알루미늄 (중국 선물)" usdRate={data.spread?.cny_usd_rate} />
 
       <KeyIssuesSection issues={data.key_issues ?? []} />
 
@@ -137,21 +139,15 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
         </SectionCard>
       )}
 
-      {data.scrap?.regions && data.scrap.regions.length > 0 && (
-        <SectionCard title="알루미늄 스크랩 주간 시황" accent="SCRAP">
+      {data.scrap?.matrix && data.scrap.matrix.rows.length > 0 && (
+        <SectionCard title="해외 스크랩 — 품목별 대륙 비교" accent="SCRAP">
           <TextBlock text={data.scrap.weekly_summary} />
-          <div className="region-basis-note">※ 각 대륙별 내수 거래가 기준 — 한국 수입 단가 아님</div>
-          <div className="region-list">
-            {data.scrap.regions.map((r) => (
-              <div key={r.region} className="region-item">
-                <div className="region-title-row"><span className="region-name">{r.region} 내수가</span></div>
-                <ScrapLines items={r.price_items} />
-                {r.key_grades && <div className="region-grades-line">{r.key_grades}</div>}
-                {r.price_driver && <p className="region-driver">{r.price_driver}</p>}
-                {r.flow && <p className="region-flow-text">📦 {r.flow}</p>}
-              </div>
-            ))}
-          </div>
+          <div className="region-basis-note">※ 각 대륙 내수 거래가 · 전부 USD 환산(중국·일본은 원통화 병기) · 한국 수입 단가 아님</div>
+          <ScrapMatrixTable matrix={data.scrap.matrix} />
+          {data.scrap.matrix.staleRegions && data.scrap.matrix.staleRegions.length > 0 && (
+            <div className="region-basis-note">⚠ {data.scrap.matrix.staleRegions.join('·')}: 소스(scrapmonster) 시세 갱신지연 — 현재 시세보다 낮을 수 있음</div>
+          )}
+          <div className="region-basis-note">※ 국내 스크랩은 공시 가격 소스가 없어 미표시</div>
         </SectionCard>
       )}
 
@@ -171,9 +167,6 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
           </div>
         </SectionCard>
       )}
-
-      <NewsList title="국내 드로스·탈산제 뉴스" items={data._dross_news_kr} />
-      <NewsList title="해외 (중·일·미EU) 뉴스" items={data._dross_news_global} />
 
       {data.market_summary && (
         <SectionCard title="오늘의 2차 알루미늄 판단" accent="NOW">

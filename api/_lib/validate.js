@@ -24,6 +24,7 @@ export const PRICE_BOUNDS = {
   mn_ore_cif:            [2, 12],        // USD/dmtu
   cny_usd:               [0.10, 0.18],
   usd_krw:               [1000, 1900],
+  jpy_usd:               [0.004, 0.012],
 };
 
 // ─── bound + 전일 대비 변동률 검증 ──────────────────────────────────────────

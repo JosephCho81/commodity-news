@@ -84,8 +84,39 @@ export async function fetchScrapPrices() {
     // 파싱 결과가 0개면 구조 변경으로 실패한 것 — 2순위로 fallback
     if (total === 0) throw new Error('파싱 결과 0개 — 사이트 구조 변경 의심');
 
-    console.log(`[ScrapMonster] ✅ 1순위 성공: 총 ${total}개 가격 수집`);
-    return { us: usResult, eu: euResult, cn: cnResult, source: 'scrapmonster' };
+    // 갱신지연(stale) 감지: 해당 지역 섹션에 변동 스팬(priceup/pricedown)이 전혀 없으면
+    // 시세가 멈춘 동결 데이터(예: scrapmonster 유럽 표). 숨기지 않고 실시간 검색값으로 교체.
+    const isStale = (title) => {
+      const i = html.indexOf(title);
+      if (i === -1) return false;
+      return !/price(up|down)/.test(html.slice(i, i + 4000));
+    };
+    const regions = { us: usResult, eu: euResult, cn: cnResult };
+    const stale = {
+      us: isStale('United States Aluminum Scrap'),
+      eu: isStale('Europe Aluminum Scrap'),
+      cn: isStale('China Aluminum Scrap'),
+    };
+    const region_source = { us: 'scrapmonster', eu: 'scrapmonster', cn: 'scrapmonster' };
+
+    const staleRegions = Object.keys(regions).filter(r => stale[r] && Object.keys(regions[r]).length > 0);
+    if (staleRegions.length > 0) {
+      console.warn(`[ScrapMonster] 갱신지연(stale) 지역: ${staleRegions.join(',')} — 실시간 검색으로 교체 시도`);
+      const fresh = await fetchScrapPricesViaSearch().catch(() => null);
+      for (const r of staleRegions) {
+        if (fresh?.[r] && Object.keys(fresh[r]).length > 0) {
+          regions[r] = fresh[r];
+          stale[r] = false;
+          region_source[r] = 'perplexity_search';
+          console.log(`[ScrapMonster] ${r} → 실시간 검색값으로 교체 완료`);
+        } else {
+          console.warn(`[ScrapMonster] ${r} 실시간 교체 실패 — 갱신지연 표시로 유지`);
+        }
+      }
+    }
+
+    console.log(`[ScrapMonster] ✅ 1순위 성공: 총 ${total}개 (stale=${JSON.stringify(stale)})`);
+    return { ...regions, source: 'scrapmonster', stale, region_source };
 
   } catch (e) {
     console.warn('[ScrapMonster] 1순위 실패:', e.message);
@@ -93,10 +124,24 @@ export async function fetchScrapPrices() {
     sendFailureAlert('ScrapMonster 가격 수집 실패', e.message, 'Perplexity 2순위 검색으로 fallback 처리됐습니다.');
   }
 
-  // ── 2순위: Perplexity 검색으로 scrapmonster 기준 가격 수집 ───────────────
+  // ── 2순위: 전체 실패 시 Perplexity 검색으로 대체 ─────────────────────────
   try {
-    console.log('[ScrapPrices] 2순위: Perplexity 검색 시도');
-    const prompt = `Search for the most recent aluminum scrap prices from scrapmonster.com or equivalent sources.
+    const parsed = await fetchScrapPricesViaSearch();
+    return { ...parsed, source: 'perplexity_search', stale: { us: false, eu: false, cn: false } };
+  } catch (e) {
+    console.warn('[ScrapPrices] 2순위 실패:', e.message);
+  }
+
+  // ── 3순위: 완전 실패 → null (NULL 원칙, 추정값 만들지 않음) ───────────────
+  console.warn('[ScrapPrices] 전체 실패 — null 반환');
+  return null;
+}
+
+// 실시간 검색으로 현재 스크랩 시세 수집 (stale 지역 교체 + 전체 fallback 겸용).
+// "가격이 오르고 있다"는 상승 국면을 반영하도록 항상 '가장 최근' 시세를 요구.
+async function fetchScrapPricesViaSearch() {
+  console.log('[ScrapPrices] 실시간 Perplexity 검색 시도');
+  const prompt = `Search for the MOST RECENT (today / this week) aluminum scrap prices from scrapmonster.com or equivalent live sources. Prices are currently rising — use the latest quotes, not stale figures.
 Return ONLY a JSON object with this exact structure, no other text:
 {
   "us": {
@@ -117,22 +162,15 @@ Return ONLY a JSON object with this exact structure, no other text:
     "Old Sheet": <number CNY/MT or null>
   }
 }
-All US/EU prices in USD/MT, CN prices in CNY/MT. Convert from USD/lb if needed (1 lb = 2204.62 MT).`;
+All US/EU prices in USD/MT, CN prices in CNY/MT. If a source quotes USD/lb, multiply by 2204.62 to get USD/MT.`;
 
-    const raw = await callPerplexity(prompt);
-    const parsed = parseJSON(raw);
-    if (parsed?.us || parsed?.eu || parsed?.cn) {
-      console.log('[ScrapPrices] ✅ 2순위 Perplexity 성공');
-      return { ...parsed, source: 'perplexity_search' };
-    }
-    throw new Error('Perplexity 응답 구조 불일치');
-  } catch (e) {
-    console.warn('[ScrapPrices] 2순위 실패:', e.message);
+  const raw = await callPerplexity(prompt);
+  const parsed = parseJSON(raw);
+  if (parsed?.us || parsed?.eu || parsed?.cn) {
+    console.log('[ScrapPrices] ✅ Perplexity 검색 성공');
+    return parsed;
   }
-
-  // ── 3순위: LME 기반 추정 (완전 fallback) ─────────────────────────────────
-  console.warn('[ScrapPrices] 3순위: LME 기반 추정값 사용');
-  return null; // null 반환 → 알루미늄 프롬프트에서 Perplexity가 자체 판단
+  throw new Error('Perplexity 응답 구조 불일치');
 }
 
 // ─── 일본 알루미늄 스크랩 가격 fetch (dokindokin.com - 오사카 스크랩 업체) ──────

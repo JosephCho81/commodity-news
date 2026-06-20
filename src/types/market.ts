@@ -21,8 +21,20 @@ export interface AluminumData extends ApiMeta {
   scrap?: AluminumScrap;
 }
 
+export interface ScrapCell {
+  usd: number | null;            // USD/MT 환산값 (환율 부재 시 null)
+  raw: number;                   // 원통화 원값
+  cur: 'USD' | 'CNY' | 'JPY';
+}
+export interface ScrapMatrixData {
+  regions: string[];             // 데이터 있는 대륙만 (미국·유럽·중국·일본)
+  rows: Array<{ grade: string; cells: Record<string, ScrapCell> }>;
+  staleRegions?: string[];       // 소스 갱신지연으로 실시간 교체 못 한 대륙(투명 표시용)
+}
+
 export interface AluminumScrap {
   weekly_summary: string;
+  matrix?: ScrapMatrixData | null;  // 품목별 × 대륙 비교 (결정적 수집값, USD 통일)
   us_premium?: string | null;
   eu_premium?: string | null;
   japan_premium?: string | null;
@@ -30,7 +42,7 @@ export interface AluminumScrap {
     region: string;
     key_grades: string;
     price_range?: string | null;
-    price_items?: Array<{ grade: string; price: string }> | null; // 서버 직접 수집값 — 한 줄에 한 품목
+    price_items?: Array<{ grade: string; price: string; sub?: string | null }> | null; // 서버 직접 수집값 — price=USD 표시, sub=원통화(CNY/JPY) 보조
     price_driver: string;
     flow: string;
     outlook?: string | null;
@@ -57,10 +69,14 @@ export interface DrossData extends ApiMeta {
   };
   spread?: {
     lme_usd: number | null;            // LME 전해 신지금 (USD/MT)
-    primary_shfe: number | null;       // SHFE 전해(1차) 정산 (CNY/MT)
-    secondary_shfe: number | null;     // SHFE 주조(2차) 정산 (CNY/MT)
-    prim_sec_spread: number | null;    // 전해-주조 (CNY/MT)
+    primary_shfe: number | null;       // SHFE 전해(1차) 정산 (CNY/MT, 원값)
+    primary_usd?: number | null;       // 환산 (USD/MT)
+    secondary_shfe: number | null;     // SHFE 주조(2차) 정산 (CNY/MT, 원값)
+    secondary_usd?: number | null;     // 환산 (USD/MT)
+    prim_sec_spread: number | null;    // 전해-주조 (CNY/MT, 원값)
+    prim_sec_spread_usd?: number | null; // 환산 (USD/MT)
     prim_sec_spread_pct: string | null;
+    cny_usd_rate?: number | null;      // 환산에 쓴 1 CNY = X USD
     recovery_values: Array<{ grade: number; value_usd: number }>; // LME×함량%(가정)
     note?: string;
   };

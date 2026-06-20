@@ -71,7 +71,7 @@ export function AluminumTab({ data }: { data: AluminumData }) {
           onClick={() => setSub('primary')}
         >
           1차 알루미늄
-          <span className="subtab-sub">LME 신지금</span>
+          <span className="subtab-sub">LME 국제시세</span>
         </button>
         <button
           role="tab"

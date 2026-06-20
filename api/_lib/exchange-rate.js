@@ -100,6 +100,17 @@ export async function fetchUSDKRWRate(token, helpers = {}) {
 }
 
 /**
+ * JPY/USD 환율 (1 JPY = X USD)
+ * @returns {Promise<{ rate: number, source: 'cache'|'api'|'cache_latest'|'constant', date: string|null }>}
+ */
+export async function fetchJPYUSDRate(token, helpers = {}) {
+  return fetchRate(token, helpers, {
+    pairKey: 'JPY_USD', from: 'JPY', to: 'USD',
+    bounds: PRICE_BOUNDS.jpy_usd, constantFallback: 0.0064,
+  });
+}
+
+/**
  * CNY 숫자값을 USD로 변환
  * @param {string|number} val - "5950" or 5950 or "5,950"
  * @param {number} rate - 1 CNY = X USD (예: 0.1379)
