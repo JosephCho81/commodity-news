@@ -71,9 +71,8 @@ export function Sparkline({ history, valueKey, width = 72, height = 22 }: {
 }
 
 // 중국 선물 스트립 — 철강 체인 정산가 한 줄 카드
-export function FuturesStrip({ futures, title, usdRate }: { futures?: FuturesQuote[] | null; title?: string; usdRate?: number | null }) {
+export function FuturesStrip({ futures, title }: { futures?: FuturesQuote[] | null; title?: string }) {
   if (!Array.isArray(futures) || futures.length === 0) return null;
-  const toUsd = usdRate ? (cny: number) => Math.round(cny * usdRate) : null;
   return (
     <div className="futures-strip">
       {title && <div className="futures-strip-title">{title}</div>}
@@ -81,16 +80,13 @@ export function FuturesStrip({ futures, title, usdRate }: { futures?: FuturesQuo
         {futures.map((f, i) => (
           <div key={i} className="futures-cell">
             <span className="futures-cell-name">{f.label ?? f.product}</span>
-            <span className="futures-cell-price">
-              {toUsd ? `$${toUsd(f.settle).toLocaleString('en-US')}` : f.settle.toLocaleString('en-US')}
-            </span>
-            {toUsd && <span className="futures-cell-sub">CNY {f.settle.toLocaleString('en-US')}</span>}
+            <span className="futures-cell-price">{f.settle.toLocaleString('en-US')}</span>
             <DeltaPill change={f.change} changePct={f.change_pct} />
           </div>
         ))}
       </div>
       <div className="futures-strip-meta">
-        {toUsd ? 'USD/MT(CNY 환산)' : 'CNY/MT'} · {futures[0]?.date ?? ''} 정산 <SourceChip label="거래소 공식" tone="muted" />
+        CNY/MT · {futures[0]?.date ?? ''} 정산 <SourceChip label="거래소 공식" tone="muted" />
       </div>
     </div>
   );

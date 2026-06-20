@@ -44,13 +44,7 @@ export function getDrossPrompt(date) {
     "outlook": "향후 1~2주 탈산제 수요 전망 1~2문장"
   },
   "scrap": {
-    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩·2차합금 시장 핵심 3~4문장. 전주 대비 변화 중심.",
-    "regions": [
-      { "region": "미국", "key_grades": "Zorba, 6063, UBC, Old Sheet", "price_driver": "이번 주 변동 핵심 2문장(관세·달러·계절)", "flow": "수출 방향·물동량", "outlook": "단기 전망 1문장" },
-      { "region": "유럽", "key_grades": "Cuttings, UBC, Old Cast", "price_driver": "에너지·아시아 수요·수출규제 2문장", "flow": "아시아·터키 수출", "outlook": "단기 전망 1문장" },
-      { "region": "중국", "key_grades": "6063, Old Cast, UBC, ADC12", "price_driver": "제련 가동률·위안화·내수 2문장", "flow": "수입 방향", "outlook": "단기 전망 1문장" },
-      { "region": "일본", "key_grades": "6063, Cast A/B, UBC", "price_driver": "엔화·해체물량·2차합금 시세 2문장", "flow": "한국·동남아 수출", "outlook": "단기 전망 1문장" }
-    ]
+    "weekly_summary": "이번 주 글로벌 알루미늄 스크랩·2차 알루미늄 시장 핵심 3~4문장. 전주 대비 변화 중심(미국·중국·일본 위주). 지역별 실시세는 코드가 별도 주입함."
   },
   "regulation_watch": [
     {

@@ -17,8 +17,6 @@ export interface AluminumData extends ApiMeta {
     holiday_note?: string | null;
     key_issues?: KeyIssue[];
   };
-  // 스크랩은 '2차 알루미늄'(DrossData) 탭으로 분리됨 — 구버전 캐시 호환용 optional
-  scrap?: AluminumScrap;
 }
 
 export interface ScrapLiveItem {
@@ -41,18 +39,6 @@ export interface ScrapLiveData {
 export interface AluminumScrap {
   weekly_summary: string;
   live?: ScrapLiveData | null;   // 지역별 라이브 시세 (미국·중국·일본, 전부 USD)
-  us_premium?: string | null;
-  eu_premium?: string | null;
-  japan_premium?: string | null;
-  regions: Array<{
-    region: string;
-    key_grades: string;
-    price_range?: string | null;
-    price_items?: Array<{ grade: string; price: string; sub?: string | null }> | null; // 서버 직접 수집값 — price=USD 표시, sub=원통화(CNY/JPY) 보조
-    price_driver: string;
-    flow: string;
-    outlook?: string | null;
-  }>;
 }
 
 // ─── 2차 알루미늄 (스크랩·드로스·탈산제) ────────────────────────────────────
@@ -82,7 +68,6 @@ export interface DrossData extends ApiMeta {
     prim_sec_spread: number | null;    // 전해-주조 (CNY/MT, 원값)
     prim_sec_spread_usd?: number | null; // 환산 (USD/MT)
     prim_sec_spread_pct: string | null;
-    cny_usd_rate?: number | null;      // 환산에 쓴 1 CNY = X USD
     note?: string;
   };
   futures?: FuturesQuote[];

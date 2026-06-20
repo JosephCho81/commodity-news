@@ -99,16 +99,16 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
       )}
 
       {sp && (sp.lme_usd || sp.primary_shfe || sp.prim_sec_spread != null) && (
-        <SectionCard title="1차·2차 알루미늄이란?" accent="설명">
+        <SectionCard title="1차·2차 알루미늄과 가격차" accent="설명">
           <div className="spread-explain">
-            <p><b>1차 알루미늄</b> = 전기분해로 만든 새 알루미늄(고급·비쌈). 탈산제로 쓰면 품질이 가장 안정적.</p>
-            <p><b>2차 알루미늄</b> = 스크랩·드로스를 녹여 만든 재생 알루미늄(저렴). 탈산제 원가를 낮춰 줌.</p>
-            <p><b>1차-2차 가격차</b> = 1차가 2차보다 비싼 폭. 재생 알루미늄(2차) 원료 시장의 강도를 보여주는 지표.</p>
-            <p className="spread-explain-h">시장 읽는 법</p>
+            <p><b>1차 알루미늄(신지금)</b> — 보크사이트→알루미나→전기분해(홀-에루법)로 새로 뽑아낸 원생 금속. 순도·합금 성분·물성이 균일해 가장 안정적이지만, 전력을 대량 소모해 원가·탄소발자국이 가장 높은 프리미엄 등급.</p>
+            <p><b>2차 알루미늄(재생)</b> — 스크랩·드로스를 재용해해 만든 재생 금속. 전기분해 대비 에너지가 약 5% 수준이라 원가·탄소가 크게 낮음. 다만 투입 스크랩의 성분이 섞여 합금 관리(불순물·실리콘·철)가 품질의 관건.</p>
+            <p><b>1차-2차 가격차</b> — 신지금이 재생보다 비싼 폭(프리미엄). 두 시장의 상대 수급을 한눈에 보여주는 지표로, 재생 원료(스크랩·드로스) 시장이 신지금 대비 얼마나 타이트한지를 가늠하게 함.</p>
+            <p className="spread-explain-h">가격차가 의미하는 것</p>
             <ul className="spread-explain-list">
-              <li><b>1차·2차 가격이 함께 오르면</b> → 알루미늄 시세 전반 상승 국면.</li>
-              <li><b>가격차가 좁아지면</b> → 재생 알루미늄(2차)이 신품에 근접 = 재생 원료 강세.</li>
-              <li><b>가격차가 벌어지면</b> → 재생이 신품 대비 상대적으로 저렴.</li>
+              <li><b>가격차 축소(좁아짐)</b> — 재생 원료 수요가 강하거나 공급이 빠듯해 재생 가격이 신지금에 근접. 스크랩·드로스 확보 경쟁이 치열해지는 <b>재생 원료 강세</b> 국면.</li>
+              <li><b>가격차 확대(벌어짐)</b> — 재생이 신지금 대비 저평가. 재생 원료에 여유가 있거나 신지금이 독자적으로 강세인 상황.</li>
+              <li><b>두 가격 동반 상승</b> — LME·전력비·전방 수요가 함께 밀어 올리는 <b>알루미늄 시세 전반 상승</b> 국면. 원료·제품 가격이 동시에 오름.</li>
             </ul>
           </div>
         </SectionCard>
@@ -133,10 +133,8 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
       )}
 
       {data.scrap?.live && data.scrap.live.regions.length > 0 && (
-        <SectionCard title="해외 시세 — 지역별 라이브" accent="SCRAP">
-          <TextBlock text={data.scrap.weekly_summary} />
+        <SectionCard title="해외 시세" accent="SCRAP">
           <ScrapLiveSnapshot live={data.scrap.live} />
-          <div className="region-basis-note">※ 전부 USD 환산(원통화 병기) · 무료 라이브 소스만(미국 거래가·중국 SHFE·일본 딜러가) · 유럽은 무료 라이브 도매 부재로 미표시 · 국내 공시가 없음</div>
         </SectionCard>
       )}
 

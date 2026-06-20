@@ -6,7 +6,7 @@ import { toNumber, dedupKeyIssues, attachSourceMeta } from './validate.js';
 import { saveToFirestore, getFromFirestore } from './firebase.js';
 import { fetchCNYUSDRate, fetchJPYUSDRate } from './exchange-rate.js';
 import { fetchLmePrice } from './lme-data.js';
-import { fetchUsAluminumPrice, fetchJapanScrapPrices } from './scrap-data.js';
+import { fetchUsAluminumPrice, fetchJapanScrapPrices, fetchScrapGradesViaSearch } from './scrap-data.js';
 import { fetchZceFutures } from './zce-futures.js';
 import { fetchDrossNews, buildDrossNewsSection } from './dross-news.js';
 import { fetchKoreanSteelNews } from './rss-news.js';
@@ -20,48 +20,54 @@ export const maxTokens = 3800;
 // 무료 라이브 도매 소스만 사용(전부 당일/수일 내): 미국=recycleinme 거래가,
 // 중국=SHFE 1차/2차 선물, 일본=dokindokin 딜러가. 유럽은 무료 라이브 도매 부재로 제외.
 // 원통화는 보조표시용으로 보존하고 표시는 USD로 통일.
-function buildScrapLive({ usAl, futures, japanScrap, cnyRate, jpyRate }) {
+function buildScrapLive({ usAl, futures, japanScrap, scrapGrades, cnyRate, jpyRate, lmeUsd }) {
   const regions = [];
+  // 검색 스크랩 등급은 LME 밴드(0.45~1.15×)로 비현실값 제거 후만 채택.
+  const lo = (lmeUsd > 0) ? lmeUsd * 0.45 : null;
+  const hi = (lmeUsd > 0) ? lmeUsd * 1.15 : null;
+  const okUsd = (u) => u > 0 && (!lo || (u >= lo && u <= hi));
 
-  if (usAl?.usd_per_mt > 0) {
-    regions.push({
-      region: '미국', source: 'recycleinme', date: usAl.date ?? null,
-      note: '거래가(LME+미국 프리미엄 기준)',
-      items: [{ label: '알루미늄 거래가', usd: usAl.usd_per_mt }],
-    });
+  // 미국 — recycleinme 거래가(앵커) + 검색 스크랩 등급(USD, 검증)
+  const usItems = [];
+  if (usAl?.usd_per_mt > 0) usItems.push({ label: '알루미늄 거래가', usd: usAl.usd_per_mt });
+  for (const [label, v] of Object.entries(scrapGrades?.us ?? {})) {
+    const u = Math.round(Number(v));
+    if (okUsd(u)) usItems.push({ label, usd: u });
+  }
+  if (usItems.length) {
+    regions.push({ region: '미국', source: usAl?.usd_per_mt ? 'recycleinme·검색' : '검색', date: usAl?.date ?? null, items: usItems });
   }
 
+  // 중국 — SHFE 1차/2차(앵커) + 검색 스크랩 등급(CNY→USD, 검증)
   const cnItems = [];
   if (futures?.al?.settle && cnyRate) cnItems.push({ label: '1차 알루미늄', usd: Math.round(futures.al.settle * cnyRate), cny: futures.al.settle });
   if (futures?.ad?.settle && cnyRate) cnItems.push({ label: '2차 알루미늄(재생합금)', usd: Math.round(futures.ad.settle * cnyRate), cny: futures.ad.settle });
+  if (cnyRate) for (const [label, v] of Object.entries(scrapGrades?.cn ?? {})) {
+    const cny = Number(v); const u = Math.round(cny * cnyRate);
+    if (cny > 0 && okUsd(u)) cnItems.push({ label, usd: u, cny });
+  }
   if (cnItems.length) {
-    regions.push({
-      region: '중국', source: 'SHFE', date: futures?.al?.date ?? futures?.ad?.date ?? null,
-      note: '상하이 선물 정산가', items: cnItems,
-    });
+    regions.push({ region: '중국', source: 'SHFE·검색', date: futures?.al?.date ?? futures?.ad?.date ?? null, items: cnItems });
   }
 
+  // 일본 — dokindokin 딜러 등급(결정적, 등급가 그대로)
   if (japanScrap?.prices && jpyRate) {
     const jpItems = Object.entries(japanScrap.prices)
       .map(([label, jpy]) => ({ label, usd: Math.round(Number(jpy) * jpyRate), jpy: Number(jpy) }))
       .filter(it => it.usd > 0);
-    if (jpItems.length) {
-      regions.push({
-        region: '일본', source: 'dokindokin', date: japanScrap.date ?? null,
-        note: '오사카 딜러 스크랩가', items: jpItems,
-      });
-    }
+    if (jpItems.length) regions.push({ region: '일본', source: 'dokindokin', date: japanScrap.date ?? null, items: jpItems });
   }
 
   return regions.length ? { regions } : null;
 }
 
 export async function prefetch(token) {
-  const [lmeData, usAl, japanScrap, futures, drossNews, prev, newsHistory, krNews, priceHistory, cnyUsd, jpyUsd] = await Promise.all([
+  const [lmeData, usAl, japanScrap, futures, scrapGrades, drossNews, prev, newsHistory, krNews, priceHistory, cnyUsd, jpyUsd] = await Promise.all([
     fetchLmePrice().catch(() => null),
     fetchUsAluminumPrice().catch(() => null),
     fetchJapanScrapPrices().catch(() => null),
     fetchZceFutures(['al', 'ad']).catch(() => ({})),
+    fetchScrapGradesViaSearch().catch(() => null),
     fetchDrossNews().catch(() => null),
     fetchPrevDayData(token, 'dross'),
     readNewsHistory(token, 'dross'),
@@ -70,7 +76,7 @@ export async function prefetch(token) {
     fetchCNYUSDRate(token, { saveToFirestore, getFromFirestore }).catch(() => null),
     fetchJPYUSDRate(token, { saveToFirestore, getFromFirestore }).catch(() => null),
   ]);
-  return { lmeData, usAl, japanScrap, futures, drossNews, prev, newsHistory, krNews, priceHistory, cnyUsd, jpyUsd };
+  return { lmeData, usAl, japanScrap, futures, scrapGrades, drossNews, prev, newsHistory, krNews, priceHistory, cnyUsd, jpyUsd };
 }
 
 export function buildPrompt(ctx) {
@@ -109,7 +115,7 @@ export function buildPrompt(ctx) {
 }
 
 export async function postProcess({ parsed, ctx, searchResults, token }) {
-  const { lmeData, usAl, japanScrap, futures, drossNews } = ctx;
+  const { lmeData, usAl, japanScrap, futures, scrapGrades, drossNews } = ctx;
 
   // 1. 스프레드 — 전부 결정적 계산. 드로스 자체가는 절대 만들지 않음(null 고정).
   // 표시는 USD 단일 통화(요청). SHFE는 CNY 정산가를 환율로 환산하고 원본 CNY는 보조표시용으로 보존.
@@ -128,7 +134,6 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
     prim_sec_spread_usd: cnyToUsdInt(spreadCny),
     prim_sec_spread_pct: (primary && secondary)
       ? `${(((primary - secondary) / secondary) * 100).toFixed(1)}%` : null,
-    cny_usd_rate: cnyRate,
     note: 'SHFE 가격은 당일 환율로 USD 환산(괄호 안은 위안 원값). 1차-2차 가격차 = 1차 알루미늄이 2차보다 비싼 폭.',
   };
 
@@ -153,8 +158,9 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
   //    유럽은 무료 라이브 도매 소스 부재로 제외.
   parsed.scrap = parsed.scrap ?? {};
   parsed.scrap.live = buildScrapLive({
-    usAl, futures, japanScrap,
+    usAl, futures, japanScrap, scrapGrades,
     cnyRate, jpyRate: ctx.jpyUsd?.rate ?? null,
+    lmeUsd: toNumber(lmeData?.price),
   });
   delete parsed.scrap.matrix; // 구 매트릭스 제거(구 캐시 호환)
 
