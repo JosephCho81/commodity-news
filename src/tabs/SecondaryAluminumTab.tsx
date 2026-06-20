@@ -3,7 +3,7 @@ import { Fragment, useState, useEffect, useCallback } from 'react';
 import type { DrossData, ScrapMatrixData } from '../types';
 import { formatInt } from '../utils/format';
 import { SectionCard, TextBlock, LoadingState, ErrorState } from '../components/ui';
-import { FuturesStrip, SourceChip, Sparkline } from '../components/data-viz';
+import { Sparkline } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
 
 // 한 줄 판단 배지 — 값 없으면 렌더 안 함 (NULL 원칙)
@@ -67,7 +67,7 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
         </div>
       )}
 
-      {sp && (sp.lme_usd || sp.primary_shfe || sp.recovery_values?.length > 0) && (
+      {sp && (sp.lme_usd || sp.primary_shfe) && (
         <SectionCard title="1차·2차 알루미늄 가격" accent="가격">
           <div className="dross-spread-grid">
             {sp.lme_usd != null && (
@@ -98,28 +98,24 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
               </div>
             )}
           </div>
-
-          {sp.recovery_values?.length > 0 && (
-            <div className="dross-recovery">
-              <div className="dross-recovery-head">
-                함량별 내재 금속가치 <SourceChip label="가정 (LME×함량%)" tone="muted" />
-              </div>
-              <div className="dross-recovery-grid">
-                {sp.recovery_values.map((rv) => (
-                  <div key={rv.grade} className="dross-recovery-cell">
-                    <span className="dross-recovery-grade">Al {rv.grade}%</span>
-                    <span className="dross-recovery-val">${formatInt(rv.value_usd)}<small>/MT</small></span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {sp.note && <div className="region-basis-note">※ {sp.note}</div>}
           <Sparkline history={data._price_history} valueKey="secondary" width={120} height={26} />
         </SectionCard>
       )}
 
-      <FuturesStrip futures={data.futures} title="1차 vs 2차 알루미늄 (중국 선물)" usdRate={data.spread?.cny_usd_rate} />
+      {sp && (sp.lme_usd || sp.primary_shfe || sp.prim_sec_spread != null) && (
+        <SectionCard title="1차-2차 가격차란?" accent="설명">
+          <div className="spread-explain">
+            <p><b>1차 알루미늄</b> = 전기분해로 만든 새 알루미늄(고급·비쌈). <b>2차 알루미늄</b> = 스크랩·드로스를 녹여 만든 재생 알루미늄(저렴). <b>1차-2차 가격차</b> = 1차가 2차보다 비싼 폭.</p>
+            <p className="spread-explain-h">탈산제 납품가 판단에 쓰는 법</p>
+            <ul className="spread-explain-list">
+              <li><b>1차·2차 절대가가 함께 오르면</b> → 알루미늄 시세 전반 상승 → 납품가 인상의 <b>1차 근거</b>.</li>
+              <li><b>가격차 축소(좁아짐)</b> = 2차(재생)가 1차에 근접 = 재생 원료 강세 = 우리 원가 상승 압력 → <b>인상 명분 보강</b>.</li>
+              <li><b>가격차 확대(벌어짐)</b> = 2차가 1차 대비 저평가 → 가격차로는 인상 주장 곤란, 이땐 <b>절대가 상승만으로</b> 판단.</li>
+            </ul>
+          </div>
+        </SectionCard>
+      )}
 
       <KeyIssuesSection issues={data.key_issues ?? []} />
 

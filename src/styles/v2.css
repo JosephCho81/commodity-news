@@ -184,16 +184,13 @@
 .dross-spread-v small { font-size: 9px; font-weight: 600; color: var(--text3); margin-left: 3px; }
 .dross-spread-cny { font-size: 9px; font-weight: 600; color: var(--text3); margin-top: 1px; }
 
-.dross-recovery { margin-top: 12px; }
-.dross-recovery-head { font-size: 12px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.dross-recovery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.dross-recovery-cell {
-  display: flex; flex-direction: column; gap: 1px; align-items: center;
-  background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 4px;
-}
-.dross-recovery-grade { font-size: 10px; font-weight: 700; color: var(--text3); }
-.dross-recovery-val { font-size: 14px; font-weight: 700; color: var(--text); }
-.dross-recovery-val small { font-size: 8px; font-weight: 600; color: var(--text3); }
+/* ── 1차-2차 가격차 설명 ── */
+.spread-explain { font-size: 13px; color: var(--text); line-height: 1.75; }
+.spread-explain p { margin: 0 0 8px; }
+.spread-explain b { font-weight: 700; }
+.spread-explain-h { font-size: 12px; font-weight: 700; color: var(--green-dark); margin: 10px 0 4px; }
+.spread-explain-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.spread-explain-list li { font-size: 12px; line-height: 1.65; color: var(--text2); }
 
 .dross-signal { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
 

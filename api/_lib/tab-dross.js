@@ -10,7 +10,6 @@ import { fetchScrapPrices, fetchJapanScrapPrices } from './scrap-data.js';
 import { fetchZceFutures } from './zce-futures.js';
 import { fetchDrossNews, buildDrossNewsSection } from './dross-news.js';
 import { fetchKoreanSteelNews } from './rss-news.js';
-import { drossRecoveryValues } from './market-config.js';
 import { getKSTDate, fetchPrevDayData, readNewsHistory, issuesToHistory, readPriceHistory, savePriceHistory } from './cache-store.js';
 import { getDrossPrompt } from '../_prompts/dross.js';
 
@@ -161,8 +160,7 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
     prim_sec_spread_pct: (primary && secondary)
       ? `${(((primary - secondary) / secondary) * 100).toFixed(1)}%` : null,
     cny_usd_rate: cnyRate,
-    recovery_values: drossRecoveryValues(lmeData?.price), // LME×함량%, '가정'
-    note: 'SHFE 가격은 CNY를 당일 환율로 USD 환산(괄호 안 CNY 원값). 1차-2차 가격차=1차 알루미늄이 2차보다 비싼 폭(좁아질수록 2차 강세=원료비 상승). 함량별 금속가치는 가정값. 드로스 거래가는 공시가 부재로 미표시.',
+    note: 'SHFE 가격은 CNY를 당일 환율로 USD 환산(괄호 안 CNY 원값). 1차-2차 가격차=1차 알루미늄이 2차보다 비싼 폭(좁아질수록 2차 강세=원료비 상승).',
   };
 
   // 2. 선물 스트립 — 전해/주조 (거래소 공식)

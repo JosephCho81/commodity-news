@@ -77,7 +77,6 @@ export interface DrossData extends ApiMeta {
     prim_sec_spread_usd?: number | null; // 환산 (USD/MT)
     prim_sec_spread_pct: string | null;
     cny_usd_rate?: number | null;      // 환산에 쓴 1 CNY = X USD
-    recovery_values: Array<{ grade: number; value_usd: number }>; // LME×함량%(가정)
     note?: string;
   };
   futures?: FuturesQuote[];

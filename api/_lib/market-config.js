@@ -18,21 +18,8 @@ export const BID_MONTHS = {
   simn: [],
 };
 
-// ─── 알루미늄 드로스 탈산제 — 함량(Al%) 등급 ───────────────────────────────
-// 한국에이원이 취급하는 드로스 탈산제 함량 등급. 스프레드 카드의 "함량별 금속가치"
-// = LME 알루미늄(USD/MT) × 함량% 로 결정적 계산되며, '가정'(회수율=함량 근사)으로 표기된다.
+// (구) 함량별 내재 금속가치(LME×함량%)는 실제 납품가와 3배 이상 괴리되어 오해를 유발해 제거됨.
 // 드로스 자체 거래가는 공시가 없음 → 절대 숫자로 만들지 않는다(NULL 원칙).
-export const DROSS_RECOVERY_GRADES = [25, 30, 35, 40, 60, 65];
-
-// LME(USD/MT) 기준 함량별 내재 금속가치(USD/MT) 산출 — 결정적. lme 없으면 빈 배열.
-export function drossRecoveryValues(lmeUsdPerMt) {
-  const lme = Number(lmeUsdPerMt);
-  if (!Number.isFinite(lme) || lme <= 0) return [];
-  return DROSS_RECOVERY_GRADES.map(grade => ({
-    grade,
-    value_usd: Math.round(lme * grade / 100),
-  }));
-}
 
 // 가격 시계열에서 직전 입찰 월의 첫 데이터를 기준점으로 찾는다.
 // @param {Array<{d: string}>} history - 날짜 오름차순, 품목 값 필드 포함
