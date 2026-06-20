@@ -155,28 +155,32 @@ export async function fetchScrapPrices() {
 // "가격이 오르고 있다"는 상승 국면을 반영하도록 항상 '가장 최근' 시세를 요구.
 async function fetchScrapPricesViaSearch() {
   console.log('[ScrapPrices] 실시간 Perplexity 검색 시도');
-  const prompt = `Search for the MOST RECENT (today / this week) aluminum scrap prices from scrapmonster.com or equivalent live sources. Prices are currently rising — use the latest quotes, not stale figures.
-Return ONLY a JSON object with this exact structure, no other text:
+  const prompt = `You are a metals price researcher. Find the CURRENT (this week) European aluminium scrap prices in USD per metric tonne. Search UK/EU sources (e.g. letsrecycle.com, scrapmonster Europe, EUROMETAL, Davis Index, Fastmarkets summaries, recycling trade press) and cross-check.
+
+Context for sanity: LME aluminium cash is roughly USD 2,500-2,800/MT. Clean European aluminium scrap grades trade at a large fraction of LME — UBC typically ~70-85% of LME (≈ USD 1,800-2,300/MT), clean cuttings/extrusions near or above UBC, old cast somewhat lower. A UBC figure near USD 1,200/MT is almost certainly STALE — do NOT report stale figures; find the latest.
+
+Return ONLY this JSON (no prose). Every value in USD/MT. Use null only if you truly cannot find a current figure:
 {
-  "us": {
-    "6063 Extrusions": <number USD/MT or null>,
-    "UBC": <number USD/MT or null>,
-    "Old Sheet": <number USD/MT or null>,
-    "Zorba 90% NF": <number USD/MT or null>,
-    "Old Cast": <number USD/MT or null>
-  },
   "eu": {
-    "Aluminum Cuttings": <number USD/MT or null>,
-    "UBC": <number USD/MT or null>,
-    "Old Cast": <number USD/MT or null>
+    "UBC": <USD/MT or null>,
+    "Aluminum Cuttings": <USD/MT or null>,
+    "Old Cast": <USD/MT or null>,
+    "6063 Extrusions": <USD/MT or null>
+  },
+  "us": {
+    "UBC": <USD/MT or null>,
+    "6063 Extrusions": <USD/MT or null>,
+    "Old Sheet": <USD/MT or null>,
+    "Zorba 90% NF": <USD/MT or null>,
+    "Old Cast": <USD/MT or null>
   },
   "cn": {
-    "6063 Extrusions": <number CNY/MT or null>,
-    "UBC": <number CNY/MT or null>,
-    "Old Sheet": <number CNY/MT or null>
+    "UBC": <CNY/MT or null>,
+    "6063 Extrusions": <CNY/MT or null>,
+    "Old Sheet": <CNY/MT or null>
   }
 }
-All US/EU prices in USD/MT, CN prices in CNY/MT. If a source quotes USD/lb, multiply by 2204.62 to get USD/MT.`;
+US/EU in USD/MT, CN in CNY/MT. If a source quotes USD/lb, multiply by 2204.62.`;
 
   const raw = await callPerplexity(prompt);
   const parsed = parseJSON(raw);

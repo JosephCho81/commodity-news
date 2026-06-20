@@ -46,20 +46,22 @@ function scrapRowId(label) {
   return null; // 분류 불가 — 노이즈 방지 위해 매트릭스에서 제외
 }
 
-function buildScrapMatrix({ scrapPrices, japanScrap, cnyRate, jpyRate }) {
-  const staleMap = scrapPrices?.stale ?? {};
+// 금속 함량이 높아 LME 대비 일정 비율 이상이어야 정상인 등급(동결/오류값 걸러내기용).
+// 이 등급이 LME×0.5 미만이면 갱신지연·오파싱으로 보고 표시하지 않는다(잘못된 저가 노출 금지).
+const SCRAP_METAL_RICH = new Set(['UBC', '6063', 'CAST', 'SHEET', 'ZORBA', '5052', 'CUTTINGS', 'INGOT']);
+
+function buildScrapMatrix({ scrapPrices, japanScrap, cnyRate, jpyRate, lmeUsd }) {
+  const floor = (Number.isFinite(lmeUsd) && lmeUsd > 0) ? lmeUsd * 0.5 : null;
   const sources = [
-    { region: '미국', data: scrapPrices?.us, cur: 'USD', rate: 1, stale: !!staleMap.us },
-    { region: '유럽', data: scrapPrices?.eu, cur: 'USD', rate: 1, stale: !!staleMap.eu },
-    { region: '중국', data: scrapPrices?.cn, cur: 'CNY', rate: cnyRate, stale: !!staleMap.cn },
-    { region: '일본', data: japanScrap?.prices, cur: 'JPY', rate: jpyRate, stale: false },
+    { region: '미국', data: scrapPrices?.us, cur: 'USD', rate: 1 },
+    { region: '유럽', data: scrapPrices?.eu, cur: 'USD', rate: 1 },
+    { region: '중국', data: scrapPrices?.cn, cur: 'CNY', rate: cnyRate },
+    { region: '일본', data: japanScrap?.prices, cur: 'JPY', rate: jpyRate },
   ];
   const rowMap = new Map();   // rowId -> { grade, cells }
-  const regionsWithData = [];
-  const staleRegions = [];
+  const regionsWithData = new Set();
   for (const src of sources) {
     if (!src.data || typeof src.data !== 'object') continue;
-    let any = false;
     for (const [rawLabel, rawVal] of Object.entries(src.data)) {
       const rowId = scrapRowId(rawLabel);
       if (!rowId) continue;
@@ -68,6 +70,8 @@ function buildScrapMatrix({ scrapPrices, japanScrap, cnyRate, jpyRate }) {
       const usd = src.cur === 'USD'
         ? Math.round(raw)
         : (src.rate ? Math.round(raw * src.rate) : null);
+      // LME 대비 비현실적으로 낮은 금속함량 등급은 동결/오류값 → 제외(잘못된 저가 노출 금지)
+      if (floor && usd != null && SCRAP_METAL_RICH.has(rowId) && usd < floor) continue;
       if (!rowMap.has(rowId)) {
         const def = SCRAP_ROW_DEFS.find(([id]) => id === rowId);
         rowMap.set(rowId, { grade: def ? def[1] : rowId, cells: {} });
@@ -75,17 +79,14 @@ function buildScrapMatrix({ scrapPrices, japanScrap, cnyRate, jpyRate }) {
       const row = rowMap.get(rowId);
       if (!row.cells[src.region]) {   // 같은 행에 여러 라벨이 매핑되면 먼저 본 값 유지
         row.cells[src.region] = { usd, raw: Math.round(raw), cur: src.cur };
-        any = true;
+        regionsWithData.add(src.region);
       }
-    }
-    if (any) {
-      regionsWithData.push(src.region);
-      if (src.stale) staleRegions.push(src.region);  // 실시간 교체 실패로 여전히 동결인 지역
     }
   }
   const rows = SCRAP_ROW_DEFS.map(([id]) => rowMap.get(id)).filter(Boolean);
   if (rows.length === 0) return null;
-  return { regions: regionsWithData, rows, staleRegions };
+  const regions = ['미국', '유럽', '중국', '일본'].filter(r => regionsWithData.has(r));
+  return { regions, rows };
 }
 
 export async function prefetch(token) {
@@ -116,25 +117,31 @@ export function buildPrompt(ctx) {
     prompt += `→ 달라진 것 없으면 "전일 수준 유지" 명시.\n`;
   }
 
-  // 결정적 수집값 주입 — 선물(1차 vs 2차)·LME·스크랩
+  // 결정적 수집값 주입 — 전부 USD로 환산해 주입(서술도 USD만 쓰게). CNY/JPY는 LLM에 노출하지 않음.
   const { lmeData, futures, scrapPrices, japanScrap } = ctx;
-  let context = '\n\n【결정적 수집 데이터 — 아래 수치만 사용, 다른 숫자 금지】\n';
-  if (lmeData?.price) context += `LME 1차 알루미늄 Cash: ${lmeData.price} USD/MT (${lmeData.date ?? ''})\n`;
-  if (futures?.al?.settle) context += `SHFE 1차 알루미늄 정산: ${futures.al.settle} CNY/MT (${futures.al.change_pct ?? ''})\n`;
-  if (futures?.ad?.settle) context += `SHFE 2차 알루미늄 정산: ${futures.ad.settle} CNY/MT (${futures.ad.change_pct ?? ''})\n`;
-  if (futures?.al?.settle && futures?.ad?.settle) {
-    context += `→ 1차-2차 가격차: ${futures.al.settle - futures.ad.settle} CNY/MT (축소=좁아짐 → 2차 알루미늄 강세=원료비 상승 압력 / 확대=2차 저평가)\n`;
+  const cnyRate = ctx.cnyUsd?.rate ?? null;
+  const jpyRate = ctx.jpyUsd?.rate ?? null;
+  const usd = (n) => `$${Math.round(Number(n)).toLocaleString('en-US')}`;
+  let context = '\n\n【결정적 수집 데이터 — 아래 USD 수치만 사용, 다른 숫자·통화 금지】\n';
+  if (lmeData?.price) context += `LME 1차 알루미늄 Cash: ${usd(lmeData.price)}/MT (${lmeData.date ?? ''})\n`;
+  const alUsd = (futures?.al?.settle && cnyRate) ? futures.al.settle * cnyRate : null;
+  const adUsd = (futures?.ad?.settle && cnyRate) ? futures.ad.settle * cnyRate : null;
+  if (alUsd) context += `SHFE 1차 알루미늄: ${usd(alUsd)}/MT (${futures.al.change_pct ?? ''})\n`;
+  if (adUsd) context += `SHFE 2차 알루미늄: ${usd(adUsd)}/MT (${futures.ad.change_pct ?? ''})\n`;
+  if (alUsd && adUsd) {
+    context += `→ 1차-2차 가격차: ${usd(alUsd - adUsd)}/MT (축소=2차가 1차에 근접=재생 원료 강세 / 확대=2차 저평가)\n`;
   }
-  const scrapSection = (title, obj, unit) => {
-    if (!obj || Object.keys(obj).length === 0) return '';
+  // 스크랩은 전부 USD로 환산해 주입(중국 CNY·일본 JPY → USD)
+  const scrapSection = (title, obj, rate) => {
+    if (!obj || Object.keys(obj).length === 0 || !rate) return '';
     let s = `\n[${title}]\n`;
-    for (const [k, v] of Object.entries(obj)) s += `${k}: ${Number(v).toLocaleString('en-US')} ${unit}\n`;
+    for (const [k, v] of Object.entries(obj)) s += `${k}: ${usd(Number(v) * rate)}/MT\n`;
     return s;
   };
-  context += scrapSection('미국 알루미늄 스크랩 (USD/MT)', scrapPrices?.us, 'USD/MT');
-  context += scrapSection('유럽 알루미늄 스크랩 (USD/MT)', scrapPrices?.eu, 'USD/MT');
-  context += scrapSection('중국 알루미늄 스크랩 (CNY/MT)', scrapPrices?.cn, 'CNY/MT');
-  if (japanScrap?.prices) context += scrapSection(`일본 알루미늄 스크랩 (JPY/MT, ${japanScrap.date})`, japanScrap.prices, 'JPY/MT');
+  context += scrapSection('미국 알루미늄 스크랩', scrapPrices?.us, 1);
+  context += scrapSection('유럽 알루미늄 스크랩', scrapPrices?.eu, 1);
+  context += scrapSection('중국 알루미늄 스크랩', scrapPrices?.cn, cnyRate);
+  if (japanScrap?.prices) context += scrapSection(`일본 알루미늄 스크랩 (${japanScrap.date})`, japanScrap.prices, jpyRate);
 
   return prompt + context + buildDrossNewsSection(ctx.drossNews);
 }
@@ -160,7 +167,7 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
     prim_sec_spread_pct: (primary && secondary)
       ? `${(((primary - secondary) / secondary) * 100).toFixed(1)}%` : null,
     cny_usd_rate: cnyRate,
-    note: 'SHFE 가격은 CNY를 당일 환율로 USD 환산(괄호 안 CNY 원값). 1차-2차 가격차=1차 알루미늄이 2차보다 비싼 폭(좁아질수록 2차 강세=원료비 상승).',
+    note: 'SHFE 가격은 당일 환율로 USD 환산(괄호 안은 위안 원값). 1차-2차 가격차 = 1차 알루미늄이 2차보다 비싼 폭.',
   };
 
   // 2. 선물 스트립 — 전해/주조 (거래소 공식)
@@ -172,6 +179,7 @@ export async function postProcess({ parsed, ctx, searchResults, token }) {
   parsed.scrap.matrix = buildScrapMatrix({
     scrapPrices, japanScrap,
     cnyRate, jpyRate: ctx.jpyUsd?.rate ?? null,
+    lmeUsd: toNumber(lmeData?.price),
   });
 
   // 4. 뉴스 — 국내/해외 직표시(LLM 미경유) + 규제 워치 출처

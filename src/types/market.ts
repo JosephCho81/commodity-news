@@ -29,7 +29,6 @@ export interface ScrapCell {
 export interface ScrapMatrixData {
   regions: string[];             // 데이터 있는 대륙만 (미국·유럽·중국·일본)
   rows: Array<{ grade: string; cells: Record<string, ScrapCell> }>;
-  staleRegions?: string[];       // 소스 갱신지연으로 실시간 교체 못 한 대륙(투명 표시용)
 }
 
 export interface AluminumScrap {

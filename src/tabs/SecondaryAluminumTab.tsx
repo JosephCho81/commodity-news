@@ -104,14 +104,16 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
       )}
 
       {sp && (sp.lme_usd || sp.primary_shfe || sp.prim_sec_spread != null) && (
-        <SectionCard title="1차-2차 가격차란?" accent="설명">
+        <SectionCard title="1차·2차 알루미늄이란?" accent="설명">
           <div className="spread-explain">
-            <p><b>1차 알루미늄</b> = 전기분해로 만든 새 알루미늄(고급·비쌈). <b>2차 알루미늄</b> = 스크랩·드로스를 녹여 만든 재생 알루미늄(저렴). <b>1차-2차 가격차</b> = 1차가 2차보다 비싼 폭.</p>
-            <p className="spread-explain-h">탈산제 납품가 판단에 쓰는 법</p>
+            <p><b>1차 알루미늄</b> = 전기분해로 만든 새 알루미늄(고급·비쌈). 탈산제로 쓰면 품질이 가장 안정적.</p>
+            <p><b>2차 알루미늄</b> = 스크랩·드로스를 녹여 만든 재생 알루미늄(저렴). 탈산제 원가를 낮춰 줌.</p>
+            <p><b>1차-2차 가격차</b> = 1차가 2차보다 비싼 폭. 재생 알루미늄(2차) 원료 시장의 강도를 보여주는 지표.</p>
+            <p className="spread-explain-h">시장 읽는 법</p>
             <ul className="spread-explain-list">
-              <li><b>1차·2차 절대가가 함께 오르면</b> → 알루미늄 시세 전반 상승 → 납품가 인상의 <b>1차 근거</b>.</li>
-              <li><b>가격차 축소(좁아짐)</b> = 2차(재생)가 1차에 근접 = 재생 원료 강세 = 우리 원가 상승 압력 → <b>인상 명분 보강</b>.</li>
-              <li><b>가격차 확대(벌어짐)</b> = 2차가 1차 대비 저평가 → 가격차로는 인상 주장 곤란, 이땐 <b>절대가 상승만으로</b> 판단.</li>
+              <li><b>1차·2차 가격이 함께 오르면</b> → 알루미늄 시세 전반 상승 국면.</li>
+              <li><b>가격차가 좁아지면</b> → 재생 알루미늄(2차)이 신품에 근접 = 재생 원료 강세.</li>
+              <li><b>가격차가 벌어지면</b> → 재생이 신품 대비 상대적으로 저렴.</li>
             </ul>
           </div>
         </SectionCard>
@@ -120,7 +122,7 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
       <KeyIssuesSection issues={data.key_issues ?? []} />
 
       {data.supply && (data.supply.signal || data.supply.drivers) && (
-        <SectionCard title="원료(공급) — 드로스·스크랩 발생" accent="공급">
+        <SectionCard title="원료(공급) — 드로스 확보" accent="공급">
           {data.supply.signal && <p className="dross-signal">{data.supply.signal}</p>}
           <TextBlock text={data.supply.drivers} />
           {data.supply.outlook && <TextBlock text={data.supply.outlook} />}
@@ -140,9 +142,6 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
           <TextBlock text={data.scrap.weekly_summary} />
           <div className="region-basis-note">※ 각 대륙 내수 거래가 · 전부 USD 환산(중국·일본은 원통화 병기) · 한국 수입 단가 아님</div>
           <ScrapMatrixTable matrix={data.scrap.matrix} />
-          {data.scrap.matrix.staleRegions && data.scrap.matrix.staleRegions.length > 0 && (
-            <div className="region-basis-note">⚠ {data.scrap.matrix.staleRegions.join('·')}: 소스(scrapmonster) 시세 갱신지연 — 현재 시세보다 낮을 수 있음</div>
-          )}
           <div className="region-basis-note">※ 국내 스크랩은 공시 가격 소스가 없어 미표시</div>
         </SectionCard>
       )}
