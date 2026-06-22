@@ -146,7 +146,7 @@
 ::-webkit-scrollbar-thumb { background: #d2d7db; border-radius: 2px; }
 
 /* ── 형태별 시황 카드 (소괴탄·분탄 — 화면 주력) ── */
-.recab-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.recab-form-grid { display: flex; flex-direction: column; gap: 10px; }
 .recab-form-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 13px; display: flex; flex-direction: column; gap: 7px; box-shadow: var(--shadow-sm); }
 .recab-form-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .recab-form-label { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--text); }
