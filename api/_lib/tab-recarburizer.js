@@ -136,9 +136,10 @@ export async function postProcess({ parsed, ctx, searchResults }) {
 
 // parsed.fx 조립 + 가격 객체 KRW 환산 부착. 환율(현재)이 없으면 parsed.fx = null.
 function buildFx(parsed, ctx, prevRec) {
-  const rateNow = ctx.usdKrw?.rate ?? null;
-  if (!rateNow) { parsed.fx = null; return; }
-  const ratePrev = ctx.usdKrwPrev?.rate ?? null;
+  if (!ctx.usdKrw?.rate) { parsed.fx = null; return; }
+  // 표시·계산을 모두 '정수 원' 단위로 통일 — 화면의 1532-1518=14와 delta가 어긋나지 않게.
+  const rateNow = Math.round(ctx.usdKrw.rate);
+  const ratePrev = ctx.usdKrwPrev?.rate ? Math.round(ctx.usdKrwPrev.rate) : null;
 
   // 각 가격에 KRW 환산 부착(중국·러시아)
   const cnBasis = pickUsdBasis(parsed.china_price, 'fob_qinhuangdao');
@@ -153,7 +154,7 @@ function buildFx(parsed, ctx, prevRec) {
             : ruBasis.range ? { basis: ruBasis, price: parsed.russia_price, label: '러시아 무연탄' }
             : null;
 
-  const delta = ratePrev ? Math.round(rateNow - ratePrev) : null;
+  const delta = ratePrev != null ? rateNow - ratePrev : null;
   const deltaPct = ratePrev ? `${(((rateNow - ratePrev) / ratePrev) * 100).toFixed(1)}%` : null;
 
   let breakdown = null, sensitivity_line = null;
@@ -172,10 +173,10 @@ function buildFx(parsed, ctx, prevRec) {
   }
 
   parsed.fx = {
-    rate_now: Math.round(rateNow),
+    rate_now: rateNow,
     date_now: ctx.usdKrw?.date ?? null,
     source: ctx.usdKrw?.source ?? null,
-    rate_prev: ratePrev ? Math.round(ratePrev) : null,
+    rate_prev: ratePrev,
     date_prev: ctx.usdKrwPrev?.date ?? null,
     delta,
     delta_pct: deltaPct,
