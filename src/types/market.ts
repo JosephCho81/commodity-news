@@ -87,7 +87,18 @@ export interface DrossData extends ApiMeta {
 
 // ─── 가탄제 ─────────────────────────────────────────────────────────────────
 
+export interface RecarburizerForm {
+  label?: string;
+  spec?: string;
+  direction?: string | null;   // 상방 | 보합 | 하방
+  commentary?: string | null;  // 다각도 3~5문장 시황 (RSS 근거)
+}
 export interface RecarburizerData extends ApiMeta {
+  forms?: {
+    lump?: RecarburizerForm;   // 소괴탄 (괴, F.C.80)
+    fines?: RecarburizerForm;  // 분탄/코크스분탄 (분, F.C.82)
+    decouple_note?: string | null;
+  };
   china_price: {
     fob_qinhuangdao?: number | string | null;
     as_of?: string | null;

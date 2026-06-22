@@ -4,12 +4,13 @@ import { toNumber, validatePrice, dedupKeyIssues, attachSourceMeta } from './val
 import { saveToFirestore, getFromFirestore } from './firebase.js';
 import { fetchUSDKRWRate, fetchUSDKRWRateOn, computeFxCostBreakdown } from './exchange-rate.js';
 import { fetchZceFutures } from './zce-futures.js';
-import { fetchKoreanSteelNews } from './rss-news.js';
+import { fetchKoreanSteelNews, buildKrNewsSection } from './rss-news.js';
+import { fetchAnthraciteNews, buildTopicNewsSection } from './macro-news.js';
 import { getKSTDate, fetchPrevDayData, readNewsHistory, issuesToHistory } from './cache-store.js';
 import { getRecarburizerPrompt } from '../_prompts/recarburizer.js';
 
 export const recency = 'month'; // 월 단위 시세 (FOB 공시 등)
-export const maxTokens = 3000;
+export const maxTokens = 4200; // forms(소괴탄·분탄 다각도 시황) 추가분 반영 — JSON 잘림 방지
 
 // 오늘(KST) 기준 N일 전 날짜 (YYYY-MM-DD)
 function daysAgoKST(n) {
@@ -18,15 +19,16 @@ function daysAgoKST(n) {
 
 export async function prefetch(token) {
   const helpers = { saveToFirestore, getFromFirestore };
-  const [prev, newsHistory, chainFutures, krNews, usdKrw, usdKrwPrev] = await Promise.all([
+  const [prev, newsHistory, chainFutures, krNews, anthraciteNews, usdKrw, usdKrwPrev] = await Promise.all([
     fetchPrevDayData(token, 'recarburizer'),
     readNewsHistory(token, 'recarburizer'),
     fetchZceFutures(['jm', 'j']).catch(() => ({})), // 원료탄·코크스 = 원가 신호
     fetchKoreanSteelNews('recarburizer', 6).catch(() => []),
+    fetchAnthraciteNews().catch(() => []),                    // 무연탄·석탄 글로벌 헤드라인 — 형태별 시황 근거
     fetchUSDKRWRate(token, helpers).catch(() => null),       // 현재 환율
     fetchUSDKRWRateOn(daysAgoKST(30), token, helpers).catch(() => null), // 전월(30일 전) 기준점
   ]);
-  return { prev, newsHistory, chainFutures, krNews, usdKrw, usdKrwPrev };
+  return { prev, newsHistory, chainFutures, krNews, anthraciteNews, usdKrw, usdKrwPrev };
 }
 
 export function buildPrompt(ctx) {
@@ -54,6 +56,14 @@ export function buildPrompt(ctx) {
     prompt += `→ 무연탄은 USD로 수입되므로 원화 원가는 'USD 시세 × 환율'. `;
     prompt += `market_summary와 global_market.outlook에서 USD 시세 변동과 환율 변동을 분리해 서술. `;
     prompt += `USD 시세가 보합이라도 환율 상승 시 원화 원가가 상승함을 명시.\n`;
+  }
+
+  // RSS 사실 근거 주입 — 형태별 다각도 시황(forms)의 1차 근거. 헤드라인 밖 사건 생성 금지.
+  if (Array.isArray(ctx.anthraciteNews) && ctx.anthraciteNews.length > 0) {
+    prompt += buildTopicNewsSection(ctx.anthraciteNews);
+  }
+  if (Array.isArray(ctx.krNews) && ctx.krNews.length > 0) {
+    prompt += buildKrNewsSection(ctx.krNews, '국내 가탄제·무연탄 1차 보도 — 수요·수입 동향 근거로 활용.\n');
   }
 
   return prompt;

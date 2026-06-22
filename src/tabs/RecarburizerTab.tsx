@@ -1,8 +1,51 @@
-import type { RecarburizerData } from '../types';
+import type { RecarburizerData, RecarburizerForm } from '../types';
 import { hasText } from '../utils/format';
 import { SectionCard, TextBlock } from '../components/ui';
 import { PriceMeta, FuturesStrip, DeltaPill } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
+
+// 방향 → 톤(색): 상방=상승빨강, 하방=하락파랑, 보합=중립 (CI 규칙)
+function directionTone(dir?: string | null): 'up' | 'down' | 'flat' {
+  const d = String(dir ?? '');
+  if (d.includes('상')) return 'up';
+  if (d.includes('하')) return 'down';
+  return 'flat';
+}
+
+// 형태별 시황 카드 — 방향 배지 + 다각도 3~5문장. commentary 없으면 렌더 안 함(NULL 원칙).
+function FormCard({ form }: { form?: RecarburizerForm }) {
+  if (!form || !hasText(form.commentary)) return null;
+  const tone = directionTone(form.direction);
+  return (
+    <div className="recab-form-card">
+      <div className="recab-form-head">
+        <span className="recab-form-label">{form.label}</span>
+        {hasText(form.spec) && <span className="recab-form-spec">{form.spec}</span>}
+        {hasText(form.direction) && (
+          <span className={`recab-form-dir recab-form-dir--${tone}`}>{form.direction}</span>
+        )}
+      </div>
+      <p className="recab-form-commentary">{form.commentary}</p>
+    </div>
+  );
+}
+
+function FormsSection({ forms }: { forms?: RecarburizerData['forms'] }) {
+  if (!forms) return null;
+  const hasAny = hasText(forms.lump?.commentary) || hasText(forms.fines?.commentary);
+  if (!hasAny) return null;
+  return (
+    <SectionCard title="형태별 시황 — 소괴탄 · 분탄" accent="FORM">
+      <div className="recab-form-grid">
+        <FormCard form={forms.lump} />
+        <FormCard form={forms.fines} />
+      </div>
+      {hasText(forms.decouple_note) && (
+        <div className="recab-form-decouple">⇄ {forms.decouple_note}</div>
+      )}
+    </SectionCard>
+  );
+}
 
 export function RecarburizerTab({ data }: { data: RecarburizerData }) {
   const d = data as any;
@@ -31,7 +74,10 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
 
   return (
     <div className="tab-content">
-      <div className="recab-price-grid">
+      <FormsSection forms={d.forms} />
+
+      <div className="recab-ref-head">해외 무연탄 시세 <span>참고 · USD</span></div>
+      <div className="recab-price-grid recab-price-grid--ref">
         <div className="recab-price-box">
           <div className="recab-price-box-country">🇨🇳 중국 무연탄</div>
           <div className="recab-price-box-main">

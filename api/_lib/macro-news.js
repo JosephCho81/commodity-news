@@ -169,6 +169,53 @@ export async function fetchGlobalMacroNews() {
   return { items, analysis };
 }
 
+// ─── 토픽 전용 수집 (무연탄·석탄) ────────────────────────────────────────────
+// 매크로 스코어링과 무관하게, 특정 품목 헤드라인을 사실 근거로 모은다.
+// when:7d = 최근 1주(시세·수급은 주 단위 흐름이라 24h보다 넓게 본다).
+export const ANTHRACITE_QUERIES = [
+  'anthracite coal price when:7d',
+  'Russia coal export sanctions when:7d',
+  'anthracite supply China Russia when:7d',
+  'coal freight bulk shipping rate when:7d',
+  'metallurgical coal carbon raiser steel when:7d',
+];
+
+// 토픽 쿼리들로 Google News RSS 수집 → 중복 제거 → 최신순. (스코어링 없음, 헤드라인만)
+export async function fetchTopicNews(queries, maxAgeDays = 10) {
+  const maxAge = maxAgeDays * 24 * 60 * 60 * 1000;
+  const settled = await Promise.allSettled(queries.map(async (q) => {
+    const url = `${GNEWS_BASE}?q=${encodeURIComponent(q)}&${GNEWS_PARAMS}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; A1KOR-dashboard/1.0)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error(`GNews HTTP ${res.status}`);
+    return parseGoogleNewsItems(await res.text());
+  }));
+  for (const s of settled) {
+    if (s.status === 'rejected') console.warn('[TopicNews] 쿼리 실패:', s.reason?.message);
+  }
+  const now = Date.now();
+  const items = dedupMacroItems(settled.flatMap(s => (s.status === 'fulfilled' ? s.value : [])))
+    .filter(it => it.ts === null || now - it.ts <= maxAge)
+    .sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0));
+  console.log(`[TopicNews] ${items.length}건 수집`);
+  return items;
+}
+
+export const fetchAnthraciteNews = () => fetchTopicNews(ANTHRACITE_QUERIES);
+
+// 토픽 헤드라인을 프롬프트 사실 근거 섹션으로 — 형태별 다각도 시황의 1차 근거.
+export function buildTopicNewsSection(items, limit = 14) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  let s = '\n\n【무연탄·석탄 글로벌 헤드라인 (최근 1주, Google News 수집) — 형태별 시황의 1차 근거】\n';
+  s += '아래 헤드라인을 근거로 소괴탄·분탄 시황을 작성할 것. 헤드라인에 없는 사건을 지어내지 말 것.\n';
+  for (const it of items.slice(0, limit)) {
+    s += `- (${it.date ?? '날짜미상'}${it.source ? `, ${it.source}` : ''}) ${it.title}\n`;
+  }
+  return s;
+}
+
 // ─── 프롬프트 주입 섹션 ──────────────────────────────────────────────────────
 // 이벤트 증거 헤드라인을 앞에, 나머지 최신순 — LLM이 이벤트를 놓칠 수 없게 한다.
 export function buildMacroSection(macro, limit = 14) {

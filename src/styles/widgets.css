@@ -145,6 +145,25 @@
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: #d2d7db; border-radius: 2px; }
 
+/* ── 형태별 시황 카드 (소괴탄·분탄 — 화면 주력) ── */
+.recab-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.recab-form-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 13px; display: flex; flex-direction: column; gap: 7px; box-shadow: var(--shadow-sm); }
+.recab-form-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.recab-form-label { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--text); }
+.recab-form-spec { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+.recab-form-dir { margin-left: auto; font-family: var(--sans); font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; }
+.recab-form-dir--up { color: var(--up); background: rgba(214, 40, 40, 0.08); }
+.recab-form-dir--down { color: var(--down); background: rgba(30, 80, 200, 0.08); }
+.recab-form-dir--flat { color: var(--text2); background: var(--surface2); }
+.recab-form-commentary { font-family: var(--sans); font-size: 12.5px; color: var(--text); line-height: 1.7; margin: 0; }
+.recab-form-decouple { margin-top: 10px; font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text2); padding: 7px 10px; background: var(--surface2); border-radius: 5px; }
+
+/* ── 해외 시세(참고) — 강등 ── */
+.recab-ref-head { font-family: var(--sans); font-size: 11px; font-weight: 600; color: var(--text3); margin: 14px 0 6px; display: flex; align-items: center; gap: 6px; }
+.recab-ref-head span { font-family: var(--mono); font-size: 9px; font-weight: 500; color: var(--text3); border: 1px solid var(--border); border-radius: 8px; padding: 0 6px; }
+.recab-price-grid--ref { opacity: 0.92; }
+.recab-price-grid--ref .recab-price-val { font-size: 14px; }
+
 /* ── 가탄제 가격 2박스 ── */
 .recab-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .recab-price-box { background: #fff; border: 1.5px solid var(--green-mid); border-radius: 8px; padding: 14px 12px 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow); }
