@@ -5,6 +5,7 @@ import { parseSinaLine } from './zce-futures.js';
 import { parseCzceText } from './czce-daily.js';
 import { parseRssItems, filterNewsByKeywords } from './rss-news.js';
 import { findBidBaseline } from './market-config.js';
+import { computeFxCostBreakdown } from './exchange-rate.js';
 
 // ─── stripUncertainty: 검색 내레이션·불확실 문구 제거 ───────────────────────
 // 연결절 제거 — 나머지 내용은 보존
@@ -103,5 +104,23 @@ assert.equal(base.baseline, 6000);     // 입찰 월(3월) 첫 데이터
 assert.equal(base.date, '2026-03-04');
 assert.equal(findBidBaseline(hist, [], 'sf'), null);     // 입찰 월 미설정 → 숨김
 assert.equal(findBidBaseline([], [3], 'sf'), null);
+
+// ─── computeFxCostBreakdown: 원가 변동 요인분해 (환율 vs 시세, 전부 결정적) ──
+// 시세·환율 동시 상승: fx=150×100=15,000 / px=(160-150)×1480=14,800 / total=29,800
+const bd1 = computeFxCostBreakdown({ cifUsdNow: 160, cifUsdPrev: 150, rateNow: 1480, ratePrev: 1380 });
+assert.equal(bd1.fx_contrib, 15000);
+assert.equal(bd1.px_contrib, 14800);
+assert.equal(bd1.total, 29800);
+// 미팅 시나리오 — USD 시세 보합인데 환율만 상승 → 원가는 환율 기여만큼만 상승
+const bd2 = computeFxCostBreakdown({ cifUsdNow: 150, cifUsdPrev: 150, rateNow: 1480, ratePrev: 1380 });
+assert.equal(bd2.fx_contrib, 15000);
+assert.equal(bd2.px_contrib, 0);
+assert.equal(bd2.total, 15000);
+// 전월 환율 없음(historical 실패) → 분해 불가 → null
+assert.equal(computeFxCostBreakdown({ cifUsdNow: 150, cifUsdPrev: 150, rateNow: 1480, ratePrev: null }), null);
+// 콜드스타트(전월 USD 단가 없음) → 환율·시세 기여 모두 산출 불가 → null
+assert.equal(computeFxCostBreakdown({ cifUsdNow: 150, cifUsdPrev: null, rateNow: 1480, ratePrev: 1380 }), null);
+// 0·음수·NaN 입력 방어 — 분해 시도 안 함
+assert.equal(computeFxCostBreakdown({ cifUsdNow: 0, cifUsdPrev: 0, rateNow: 1480, ratePrev: 1380 }), null);
 
 console.log('✅ validate.test.mjs 전체 통과');

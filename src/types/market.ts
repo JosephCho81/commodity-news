@@ -101,6 +101,9 @@ export interface RecarburizerData extends ApiMeta {
     price_range_note?: string | null;
     date?: string | null;
     change?: string | null;
+    krw_per_mt?: number | null;   // USD 단가 × 현재 환율 (서버 결정적 환산)
+    krw_range?: string | null;    // 범위만 확인될 때 KRW 범위 (예: "148,000~266,400원/MT")
+    krw_basis?: string | null;    // 환산 기준 ("CIF 한국" | "FOB" | "FOB 범위")
   };
   russia_price: {
     fob_murmansk?: number | string | null;
@@ -114,7 +117,28 @@ export interface RecarburizerData extends ApiMeta {
     date?: string | null;
     change?: string | null;
     vs_china?: string | null;
+    krw_per_mt?: number | null;
+    krw_range?: string | null;
+    krw_basis?: string | null;
   };
+  fx?: {
+    rate_now: number;
+    date_now?: string | null;
+    source?: string | null;
+    rate_prev?: number | null;
+    date_prev?: string | null;
+    delta?: number | null;       // 전월 대비 원/USD
+    delta_pct?: string | null;
+    breakdown?: {
+      basis: string | null;
+      fx_contrib: number | null; // 환율 기여 원/MT
+      px_contrib: number | null; // 시세 기여 원/MT
+      total: number | null;
+      line: string | null;
+    } | null;
+    sensitivity_line?: string | null;
+    note?: string;
+  } | null;
   global_market?: {
     headline?: string;
     current_level?: string;

@@ -1,7 +1,7 @@
 import type { RecarburizerData } from '../types';
 import { hasText } from '../utils/format';
 import { SectionCard, TextBlock } from '../components/ui';
-import { PriceMeta, FuturesStrip } from '../components/data-viz';
+import { PriceMeta, FuturesStrip, DeltaPill } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
 
 export function RecarburizerTab({ data }: { data: RecarburizerData }) {
@@ -12,6 +12,7 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
   const cprod = d.china_production ?? {};
   const rprod = d.russia_production ?? {};
   const af    = d.asia_flows;
+  const fx    = d.fx ?? null;
   const market_summary: string = d.market_summary ?? '';
 
   const flowAvailable: boolean = Array.isArray(af) ? af.length > 0 : (af?.available ?? false);
@@ -49,6 +50,12 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           {!cp.fob_qinhuangdao && !cp.domestic_shanxi && hasText(cp.price_range_note) && (
             <div className="recab-price-note">※ {cp.price_range_note}</div>
           )}
+          {(cp.krw_per_mt || hasText(cp.krw_range)) && (
+            <div className="recab-price-krw">
+              ≈ {cp.krw_per_mt ? `${cp.krw_per_mt.toLocaleString('ko-KR')}원/MT` : cp.krw_range}
+              {hasText(cp.krw_basis) && <span className="recab-price-krw-basis"> ({cp.krw_basis})</span>}
+            </div>
+          )}
           {cp.change && (
             <div className="recab-price-change" style={{ color: chinaDown ? 'var(--down)' : 'var(--up)' }}>
               {cp.change}
@@ -81,6 +88,12 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           {!rp.fob_murmansk && !hasText(rp.price_range_text) && russiaHint && (
             <div className="recab-price-ref recab-price-ref--russia">{russiaHint}</div>
           )}
+          {(rp.krw_per_mt || hasText(rp.krw_range)) && (
+            <div className="recab-price-krw">
+              ≈ {rp.krw_per_mt ? `${rp.krw_per_mt.toLocaleString('ko-KR')}원/MT` : rp.krw_range}
+              {hasText(rp.krw_basis) && <span className="recab-price-krw-basis"> ({rp.krw_basis})</span>}
+            </div>
+          )}
           {rp.change && (
             <div className="recab-price-change" style={{ color: russiaDown ? 'var(--down)' : 'var(--up)' }}>
               {rp.change}
@@ -94,6 +107,34 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           </div>
         </div>
       </div>
+
+      {fx && (
+        <SectionCard title="환율 · 원화 원가 영향" accent="FX">
+          <div className="recab-fx-head">
+            <div className="recab-fx-rate">
+              <span className="recab-fx-rate-label">USD/KRW</span>
+              <span className="recab-fx-rate-val">{fx.rate_now.toLocaleString('ko-KR')}원</span>
+              {fx.delta != null && <DeltaPill change={fx.delta} suffix="원" />}
+            </div>
+            {fx.delta != null && (
+              <span className="recab-fx-rate-sub">
+                전월 대비 {fx.delta >= 0 ? '+' : ''}{fx.delta.toLocaleString('ko-KR')}원
+                {fx.delta_pct ? ` (${fx.delta_pct})` : ''} · 30일 전 {fx.rate_prev?.toLocaleString('ko-KR')}원
+              </span>
+            )}
+          </div>
+          {fx.breakdown?.line && (
+            <div className="recab-fx-breakdown">
+              <span className="recab-sub-label">원가 변동 요인분해{fx.breakdown.basis ? ` (${fx.breakdown.basis})` : ''}</span>
+              <p className="recab-fx-breakdown-line">{fx.breakdown.line}</p>
+            </div>
+          )}
+          {hasText(fx.sensitivity_line) && (
+            <div className="recab-fx-sensitivity">📊 {fx.sensitivity_line}</div>
+          )}
+          {hasText(fx.note) && <div className="recab-fx-note">※ {fx.note}</div>}
+        </SectionCard>
+      )}
 
       <FuturesStrip futures={d._china_futures} title="원가 신호 — 중국 원료탄·코크스 선물" />
 
