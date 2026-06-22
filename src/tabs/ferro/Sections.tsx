@@ -3,13 +3,16 @@ import type { FerroItem, FerroProducer } from '../../types';
 import { TextBlock } from '../../components/ui';
 import { IssueRow } from '../../components/KeyIssues';
 import { formatInt } from '../../utils/format';
+import { cnyToUsd } from './shared';
 
 // ─── FeSi 전용 — HBIS 입찰가 + 중국 생산 동향 ───────────────────────────────
 
-export function FesiExtra({ item }: { item: FerroItem }) {
+export function FesiExtra({ item, rate }: { item: FerroItem; rate?: number | null }) {
   const hasBid  = item.hbis_bid_price != null;
   const hasNingxia = item.ningxia_spot != null;
   const hasProd = !!item.china_production_status;
+  const bidUsd     = cnyToUsd(item.hbis_bid_price, rate);
+  const ningxiaUsd = cnyToUsd(item.ningxia_spot, rate);
 
   if (!hasBid && !hasNingxia && !hasProd) return null;
   return (
@@ -21,7 +24,9 @@ export function FesiExtra({ item }: { item: FerroItem }) {
               <div className="cause-row">
                 <span className="cause-label cause-supply">HBIS 입찰</span>
                 <span className="key-issue-text">
-                  CNY {formatInt(item.hbis_bid_price)}/MT
+                  {bidUsd != null
+                    ? <>USD {bidUsd.toLocaleString('en-US')}/MT <span className="ferro-cny-ref">(CNY {formatInt(item.hbis_bid_price)})</span></>
+                    : <>CNY {formatInt(item.hbis_bid_price)}/MT</>}
                   {item.hbis_bid_month && <span className="ferro-cny-ref"> ({item.hbis_bid_month})</span>}
                   {item.hbis_bid_change && (
                     <span style={{ marginLeft: 6, color: String(item.hbis_bid_change).startsWith('-') ? 'var(--down)' : 'var(--up)', fontFamily: 'var(--mono)', fontSize: 10 }}>
@@ -34,7 +39,11 @@ export function FesiExtra({ item }: { item: FerroItem }) {
             {hasNingxia && (
               <div className="cause-row">
                 <span className="cause-label cause-demand">닝샤 현물</span>
-                <span className="key-issue-text">CNY {formatInt(item.ningxia_spot)}/MT</span>
+                <span className="key-issue-text">
+                  {ningxiaUsd != null
+                    ? <>USD {ningxiaUsd.toLocaleString('en-US')}/MT <span className="ferro-cny-ref">(CNY {formatInt(item.ningxia_spot)})</span></>
+                    : <>CNY {formatInt(item.ningxia_spot)}/MT</>}
+                </span>
               </div>
             )}
           </div>

@@ -22,18 +22,24 @@ export function TopCard({ abbr, name, item, history }: {
   const fut = item.futures ?? null;
 
   // ① 거래소 정산가가 있으면 그것이 주 가격 (hallucination 불가능한 숫자)
+  // 표시는 USD 우선 — 서버 환산값(settle_usd) 사용, 없을 때만 CNY 폴백
   if (fut) {
     return (
       <div className="ferro-top-card">
         <div className="ferro-top-name">{name} ({abbr})</div>
         <div className="ferro-top-price-row">
-          <span className="ferro-top-usd">CNY {fut.settle.toLocaleString('en-US')}</span>
+          <span className="ferro-top-usd">
+            {fut.settle_usd ? `USD ${fut.settle_usd}` : `CNY ${fut.settle.toLocaleString('en-US')}`}
+          </span>
         </div>
         <DeltaPill change={fut.change} changePct={fut.change_pct} />
         <div className="ferro-top-spark-row">
           <Sparkline history={history} valueKey={HISTORY_KEY[abbr] ?? ''} width={64} height={18} />
           <SourceChip label={`${fut.exchange ?? 'ZCE'} 정산`} />
         </div>
+        {fut.settle_usd && (
+          <div className="ferro-top-cny">CNY {fut.settle.toLocaleString('en-US')}/MT</div>
+        )}
         {item.krw_per_kg != null && (
           <div className="ferro-top-cny">≈ {item.krw_per_kg.toLocaleString('en-US')}원/kg 한국 착</div>
         )}

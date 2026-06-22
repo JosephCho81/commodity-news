@@ -11,20 +11,22 @@ export function FerroPrice({ item, abbr }: { item: FerroItem; abbr: string }) {
   const stale = isStalePrice(item);
   const fut = item.futures ?? null;
 
-  // 거래소 정산가 우선 — 내수 현물은 참고 줄로 강등
+  // 거래소 정산가 우선 — 표시는 USD 우선(서버 환산 settle_usd), CNY는 참고 줄로 강등
   if (fut) {
     return (
       <div className="ferro-item-header">
         <div className="ferro-price-row">
           <span className="ferro-price-main">
-            CNY {fut.settle.toLocaleString('en-US')}<small>/MT</small>
+            {fut.settle_usd
+              ? <>USD {fut.settle_usd}<small>/MT</small></>
+              : <>CNY {fut.settle.toLocaleString('en-US')}<small>/MT</small></>}
           </span>
           <DeltaPill change={fut.change} changePct={fut.change_pct} />
         </div>
         <div className="ferro-meta-row">
           <SourceChip label={`${fut.exchange ?? 'ZCE'} ${fut.contract ?? '주력'} 정산`} />
           {fut.date && <span className="ferro-cny-ref">{fut.date} 기준</span>}
-          {fut.settle_usd && <span className="ferro-cny-ref">≈ USD {fut.settle_usd}/MT</span>}
+          {fut.settle_usd && <span className="ferro-cny-ref">CNY {fut.settle.toLocaleString('en-US')}/MT</span>}
         </div>
         {!stale && item.price_cny && (
           <div className="ferro-meta-row">

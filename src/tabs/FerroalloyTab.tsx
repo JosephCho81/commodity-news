@@ -17,9 +17,9 @@ const PRODUCTS: { id: Sub; name: string; abbr: string }[] = [
 ];
 
 function FerroItemCard({
-  name, abbr, item,
+  name, abbr, item, rate,
 }: {
-  name: string; abbr: string; item: FerroItem | null;
+  name: string; abbr: string; item: FerroItem | null; rate?: number | null;
 }) {
   if (!item) return null;
   return (
@@ -28,7 +28,7 @@ function FerroItemCard({
       <FobNote item={item} />
 
       {/* 제품별 고유 정보 */}
-      {abbr === 'FeSi' && <FesiExtra item={item} />}
+      {abbr === 'FeSi' && <FesiExtra item={item} rate={rate} />}
       {abbr === 'FeMn' && <FemnExtra item={item} />}
       {abbr === 'SiMn' && <SimnExtra item={item} />}
 
@@ -110,7 +110,7 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
 
         <KeyIssuesSection issues={(item as any)?.key_issues ?? []} />
 
-        <FerroItemCard name={meta.name} abbr={meta.abbr} item={item} />
+        <FerroItemCard name={meta.name} abbr={meta.abbr} item={item} rate={exchange_rate_cny_usd} />
       </div>
     </div>
   );

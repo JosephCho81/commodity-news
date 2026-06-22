@@ -3,10 +3,18 @@ import type { FerroItem, SteelSignal, Direction } from '../../types';
 import { isOlderThanDays } from '../../utils/format';
 
 export const FERRO_FALLBACK_RANGE: Record<string, string> = {
-  FeSi: 'CNY 5,500~7,000',
-  FeMn: 'CNY 6,500~8,500',
-  SiMn: 'CNY 4,800~6,500',
+  FeSi: 'USD 750~960',
+  FeMn: 'USD 890~1,170',
+  SiMn: 'USD 660~890',
 };
+
+// CNY → USD 결정적 환산 (환율 없으면 null — 호출부가 CNY로 폴백)
+export function cnyToUsd(cny: number | string | null | undefined, rate?: number | null): number | null {
+  if (cny == null || rate == null) return null;
+  const n = Number(String(cny).replace(/,/g, ''));
+  if (isNaN(n)) return null;
+  return Math.round(n * rate);
+}
 
 // 품목 ↔ 시계열 필드 매핑 (서버 price_history_ferroalloy 스키마)
 export const HISTORY_KEY: Record<string, string> = { FeSi: 'sf', SiMn: 'sm', FeMn: 'femn' };
