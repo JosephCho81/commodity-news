@@ -1,12 +1,20 @@
-// 합금철 탭 메인 — 부품은 ferro/ 폴더 (shared·TopCard·PriceHeader·Sections)
+// 합금철 탭 메인 — 제품별 서브탭(FeSi·FeMn·SiMn)으로 분리. 부품은 ferro/ 폴더.
+// 국내 RSS 동향·거시 종합은 제품 귀속이 불가(데이터에 제품 태그 없음)해 표시 제외 — 각 제품 화면만.
+import { useState } from 'react';
 import type { FerroalloyData, FerroItem } from '../types';
 import { SectionCard } from '../components/ui';
-import { KrNewsList } from '../components/data-viz';
 import { KeyIssuesSection } from '../components/KeyIssues';
 import { SteelSignalBadge } from './ferro/shared';
 import { TopCard } from './ferro/TopCard';
 import { FerroPrice, FobNote } from './ferro/PriceHeader';
-import { FesiExtra, FemnExtra, SimnExtra, NonChinaProducers, MarketSummary } from './ferro/Sections';
+import { FesiExtra, FemnExtra, SimnExtra, NonChinaProducers } from './ferro/Sections';
+
+type Sub = 'fesi' | 'femn' | 'simn';
+const PRODUCTS: { id: Sub; name: string; abbr: string }[] = [
+  { id: 'fesi', name: '페로실리콘', abbr: 'FeSi' },
+  { id: 'femn', name: '페로망간',   abbr: 'FeMn' },
+  { id: 'simn', name: '실리망간',   abbr: 'SiMn' },
+];
 
 function FerroItemCard({
   name, abbr, item,
@@ -68,34 +76,42 @@ function FerroItemCard({
 }
 
 export function FerroalloyTab({ data }: { data: FerroalloyData }) {
-  const { fesi, femn, simn, market_summary, exchange_rate_cny_usd, exchange_rate_date } = data;
+  const [sub, setSub] = useState<Sub>('fesi');
+  const { exchange_rate_cny_usd, exchange_rate_date } = data;
 
   const rateLabel = exchange_rate_cny_usd
     ? `${exchange_rate_date ? exchange_rate_date + ' ' : ''}매매기준율: 1 CNY = ${exchange_rate_cny_usd.toFixed(4)} USD`
     : null;
 
+  const meta = PRODUCTS.find(p => p.id === sub)!;
+  const item = data[sub] as FerroItem | null;
+
   return (
-    <div className="tab-content">
-      <div className="price-hero">
-        <div className="ferro-top-grid">
-          <TopCard abbr="FeSi" name="페로실리콘" item={fesi} history={data._price_history} />
-          <TopCard abbr="FeMn" name="페로망간"   item={femn} history={data._price_history} />
-          <TopCard abbr="SiMn" name="실리망간" item={simn} history={data._price_history} />
-        </div>
-        {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
+    <div>
+      <div className="subtab-bar" role="tablist">
+        {PRODUCTS.map(p => (
+          <button
+            key={p.id}
+            role="tab"
+            className={`subtab ${sub === p.id ? 'active' : ''}`}
+            onClick={() => setSub(p.id)}
+          >
+            {p.name}
+            <span className="subtab-sub">{p.abbr}</span>
+          </button>
+        ))}
       </div>
 
-      <KrNewsList items={data._kr_news} title="국내 합금철 동향 (전문지 1차 보도)" />
+      <div className="tab-content">
+        <div className="price-hero">
+          <TopCard abbr={meta.abbr} name={meta.name} item={item} history={data._price_history} />
+          {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
+        </div>
 
-      <KeyIssuesSection issues={(data as any).key_issues ?? []} />
+        <KeyIssuesSection issues={(item as any)?.key_issues ?? []} />
 
-      <FerroItemCard name="페로실리콘" abbr="FeSi" item={fesi} />
-      <FerroItemCard name="페로망간"   abbr="FeMn" item={femn} />
-      <FerroItemCard name="실리망간"   abbr="SiMn" item={simn} />
-
-      <SectionCard title="합금철 시장 종합">
-        <MarketSummary summary={market_summary} />
-      </SectionCard>
+        <FerroItemCard name={meta.name} abbr={meta.abbr} item={item} />
+      </div>
     </div>
   );
 }
