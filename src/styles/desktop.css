@@ -119,6 +119,8 @@
     position: sticky; top: var(--rail-top);
     max-height: calc(100vh - var(--rail-top) - 24px); overflow-y: auto;
   }
+  /* flex 자식이 max-height에 맞춰 찌그러지면 넘침이 안 생겨 내부 스크롤이 죽는다 */
+  .tab-rail > * { flex-shrink: 0; }
   /* 레일과 중복되는 본문 가격 블록 숨김 (768–1023은 레일이 없어 본문에 표시) */
   .tab-layout .tab-main .rail-dup { display: none; }
 
@@ -129,11 +131,8 @@
   .tab-rail .recab-ref-head { margin-top: 0; }
   .tab-rail .recab-price-grid { grid-template-columns: 1fr; margin-bottom: 0; }
 
-  /* 2차 알루 스크랩 레일: 요약문 2줄 클램프 + 지역 리스트 압축 — 3개국(미·중·일)이 잘리지 않게 */
-  .tab-rail .text-block {
-    font-size: 12px; line-height: 1.55;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  }
+  /* 2차 알루 스크랩 레일: 요약문 축약은 컴포넌트(compact, 첫 문장)가 담당 — 여기선 타이포만 */
+  .tab-rail .text-block { font-size: 12px; line-height: 1.55; }
   .tab-rail .region-item { padding: 8px 0; gap: 4px; }
   .tab-rail .region-title-row { padding-bottom: 4px; }
   .tab-rail .region-price-table { font-size: 11px; line-height: 1.45; padding: 5px 8px; }

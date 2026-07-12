@@ -45,11 +45,14 @@ function ScrapLiveSnapshot({ live }: { live: ScrapLiveData }) {
 }
 
 // 각국 스크랩 라이브 시세 카드 — 본문(모바일·태블릿)과 우측 레일(데스크탑)에 이중 렌더
-function ScrapPricesCard({ data, className }: { data: DrossData; className?: string }) {
+// compact(레일용): 요약문을 첫 문장까지만 — CSS 줄수 자르기는 문장 중간이 끊겨 금지
+function ScrapPricesCard({ data, className, compact }: { data: DrossData; className?: string; compact?: boolean }) {
   if (!data.scrap?.live || data.scrap.live.regions.length === 0) return null;
+  const ws = data.scrap.weekly_summary ?? '';
+  const summary = compact ? (ws.match(/^.*?\./)?.[0] ?? ws) : ws;
   return (
     <SectionCard title="해외 시세" accent="SCRAP" className={className}>
-      <TextBlock text={data.scrap.weekly_summary} />
+      <TextBlock text={summary} />
       <ScrapLiveSnapshot live={data.scrap.live} />
     </SectionCard>
   );
@@ -171,7 +174,7 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
       </div>
 
       <aside className="tab-rail">
-        <ScrapPricesCard data={data} />
+        <ScrapPricesCard data={data} compact />
       </aside>
     </div>
   );
