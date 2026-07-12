@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TabId, AluminumData, FerroalloyData, RecarburizerData, SummaryData, SteelmakerData } from './types';
 import { TABS } from './types';
-import { Logo, LoadingState, ErrorState, TabErrorBoundary, FreshnessBadge } from './components/ui';
+import { Logo, LoadingState, ErrorState, TabErrorBoundary, FreshnessBadge, TabMasthead } from './components/ui';
 import type { ApiMeta } from './types';
 import { SteelmakerTab }  from './tabs/SteelmakerTab';
 import { AluminumTab }    from './tabs/AluminumTab';
@@ -112,26 +112,44 @@ export default function App() {
       case 'aluminum':     return <AluminumTab     data={tabData as AluminumData} />;
       case 'ferroalloy':   return <FerroalloyTab   data={tabData as FerroalloyData} />;
       case 'recarburizer': return <RecarburizerTab data={tabData as RecarburizerData} />;
-      case 'summary':      return <SummaryTab      data={tabData as SummaryData} allData={data} />;
+      case 'summary':      return <SummaryTab      data={tabData as SummaryData} allData={data} errors={error} />;
     }
   }
 
+  const activeMeta = data[activeTab] as ApiMeta | undefined;
+  const activeLabel = TABS.find(t => t.id === activeTab)?.label ?? '';
+
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="header-brand">
-          <Logo />
-          <div className="brand-text">
-            <div className="brand-name">오늘의 원자재 뉴스</div>
-            <div className="brand-sub">(주)한국에이원</div>
+      <div className="sticky-header">
+        <header className="app-header">
+          <div className="header-brand">
+            <Logo />
+            <div className="brand-text">
+              <div className="brand-name">오늘의 원자재 뉴스</div>
+              <div className="brand-sub">(주)한국에이원</div>
+            </div>
           </div>
-        </div>
-        <div className="header-actions">
-          <FreshnessBadge meta={data[activeTab] as ApiMeta | undefined} />
-        </div>
-      </header>
+          <div className="header-actions">
+            <FreshnessBadge meta={activeMeta} />
+          </div>
+        </header>
+        <nav className="top-nav" role="tablist">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              className={`top-nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       <main className="app-main" ref={mainRef}>
+        <TabMasthead label={activeLabel} meta={activeMeta} />
         <TabErrorBoundary key={activeTab} onReset={() => fetchTab(activeTab)}>
           {renderContent()}
         </TabErrorBoundary>

@@ -35,7 +35,7 @@ function FormsSection({ forms }: { forms?: RecarburizerData['forms'] }) {
   const hasAny = hasText(forms.lump?.commentary) || hasText(forms.fines?.commentary);
   if (!hasAny) return null;
   return (
-    <SectionCard title="형태별 시황 — 소괴탄 · 분탄" accent="FORM">
+    <SectionCard title="형태별 시황 — 소괴탄 · 분탄" accent="FORM" className="forms-card">
       <div className="recab-form-grid">
         <FormCard form={forms.lump} />
         <FormCard form={forms.fines} />
@@ -73,7 +73,7 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
     || rprod.annual_output || rprod.export_volume || hasText(rprod.main_importers);
 
   return (
-    <div className="tab-content">
+    <div className="tab-content tc-recab">
       <FormsSection forms={d.forms} />
 
       <div className="recab-ref-head">해외 무연탄 시세 <span>참고 · USD</span></div>

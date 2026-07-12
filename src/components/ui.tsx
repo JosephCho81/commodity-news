@@ -20,11 +20,11 @@ export function Logo() {
 }
 
 // V2: 영문 액센트 칩은 장식 노이즈라 렌더링하지 않음 (accent prop은 호출부 호환용으로 수용만)
-export function SectionCard({ title, children }: {
-  title: string; accent?: string; children: React.ReactNode;
+export function SectionCard({ title, className, children }: {
+  title: string; accent?: string; className?: string; children: React.ReactNode;
 }) {
   return (
-    <div className="section-card">
+    <div className={'section-card' + (className ? ' ' + className : '')}>
       <div className="section-header">
         <span className="section-title">{title}</span>
       </div>
@@ -41,22 +41,34 @@ export function TextBlock({ text }: { text: string | null | undefined }) {
   return <p className="text-block">{cleaned}</p>;
 }
 
-// 헤더용 데이터 신선도 배지. _fallback이면 경고 톤으로 이전 데이터임을 명시.
-export function FreshnessBadge({ meta }: { meta: ApiMeta | null | undefined }) {
+// 신선도 라벨 산출 — 헤더 배지·탭 마스트헤드가 공유(단일 소스)
+export function freshnessLabel(meta: ApiMeta | null | undefined): string {
   const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  if (!meta) return <span className="cache-badge">{todayKST}</span>;
-
+  if (!meta) return todayKST;
   const dataDate = meta._data_date ?? todayKST;
-  if (meta._fallback) {
-    return <span className="cache-badge cache-badge--stale">⚠ {dataDate} 데이터 표시 중</span>;
-  }
+  if (meta._fallback) return `⚠ ${dataDate} 데이터 표시 중`;
   const timeLabel = meta._cached_at
     ? new Date(meta._cached_at + 9 * 60 * 60 * 1000).toISOString().slice(11, 16)
     : null;
+  return `${dataDate}${timeLabel ? ` ${timeLabel}` : ''} 기준`;
+}
+
+// 헤더용 데이터 신선도 배지. _fallback이면 경고 톤으로 이전 데이터임을 명시.
+export function FreshnessBadge({ meta }: { meta: ApiMeta | null | undefined }) {
   return (
-    <span className="cache-badge">
-      {dataDate}{timeLabel ? ` ${timeLabel}` : ''} 기준
+    <span className={'cache-badge' + (meta?._fallback ? ' cache-badge--stale' : '')}>
+      {freshnessLabel(meta)}
     </span>
+  );
+}
+
+// 데스크탑 전용 탭 마스트헤드 — 리포트 톤(제목 + 기준일). 모바일은 CSS로 display:none.
+export function TabMasthead({ label, meta }: { label: string; meta?: ApiMeta | null }) {
+  return (
+    <div className="tab-masthead">
+      <h1>{label}</h1>
+      <span className="tab-masthead-date">{freshnessLabel(meta)}</span>
+    </div>
   );
 }
 

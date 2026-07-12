@@ -83,11 +83,8 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
     ? `${exchange_rate_date ? exchange_rate_date + ' ' : ''}매매기준율: 1 CNY = ${exchange_rate_cny_usd.toFixed(4)} USD`
     : null;
 
-  const meta = PRODUCTS.find(p => p.id === sub)!;
-  const item = data[sub] as FerroItem | null;
-
   return (
-    <div>
+    <div className="ferro-root">
       <div className="subtab-bar" role="tablist">
         {PRODUCTS.map(p => (
           <button
@@ -102,15 +99,23 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
         ))}
       </div>
 
-      <div className="tab-content">
-        <div className="price-hero">
-          <TopCard abbr={meta.abbr} name={meta.name} item={item} history={data._price_history} />
-          {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
-        </div>
-
-        <KeyIssuesSection issues={(item as any)?.key_issues ?? []} />
-
-        <FerroItemCard name={meta.name} abbr={meta.abbr} item={item} rate={exchange_rate_cny_usd} />
+      {/* 3품목 상시 렌더 — ≥1024 3열 비교, 그 이하는 CSS로 활성 1품목만 노출 */}
+      <div className="ferro-compare">
+        {PRODUCTS.map(p => {
+          const item = data[p.id] as FerroItem | null;
+          return (
+            <section key={p.id} className={`ferro-product ${sub === p.id ? 'is-active' : ''}`}>
+              <div className="price-hero">
+                <TopCard abbr={p.abbr} name={p.name} item={item} history={data._price_history} />
+                {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
+              </div>
+              <div className="ferro-ki">
+                <KeyIssuesSection issues={(item as any)?.key_issues ?? []} />
+              </div>
+              <FerroItemCard name={p.name} abbr={p.abbr} item={item} rate={exchange_rate_cny_usd} />
+            </section>
+          );
+        })}
       </div>
     </div>
   );

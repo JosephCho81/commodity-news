@@ -4,10 +4,12 @@ import { directionColor, urgencyBadge } from '../utils/format';
 import { SectionCard } from '../components/ui';
 import { IssueRow } from '../components/KeyIssues';
 import { PriceStrip, NewIssues } from '../components/BriefingWidgets';
+import { PriceBoard } from '../components/PriceBoard';
 
-export function SummaryTab({ data, allData }: {
+export function SummaryTab({ data, allData, errors }: {
   data: SummaryData;
   allData?: Record<string, unknown>;
+  errors?: Record<string, boolean>;
 }) {
   const { one_liner, key_signals, risk_signals, week_ahead, macro_event, _macro_headlines } = data;
   const cleanOneLiner = (one_liner ?? '').replace(/^["'"']+|["'"']+$/g, '').trim();
@@ -18,7 +20,8 @@ export function SummaryTab({ data, allData }: {
   const rec = allData?.recarburizer as RecarburizerData | undefined;
 
   return (
-    <div className="tab-content">
+    <div className="tab-content summary-layout tc-summary">
+      <div className="summary-main">
       <div className="today-card">
         <div className="today-header">
           <span className="today-label">오늘 브리핑</span>
@@ -116,6 +119,11 @@ export function SummaryTab({ data, allData }: {
           </div>
         </SectionCard>
       )}
+      </div>
+
+      <aside className="summary-rail">
+        <PriceBoard fa={fa} al={al} rec={rec} errors={errors} />
+      </aside>
     </div>
   );
 }

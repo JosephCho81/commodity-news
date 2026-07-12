@@ -1,0 +1,173 @@
+/* desktop.css — 모바일/데스크탑 분리 리디자인 (배럴 맨 끝 @import → 최종 캐스케이드)
+   구획: A 무스코프 기본값 / B ≤1023.98px / C ≥768 / D ≥1024
+   모바일(<768) 렌더는 A·B만 적용 — 현행 보존이 원칙. */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   A. 무스코프 기본값 — 모바일 안전(대부분 display:none 기본값)
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root { --rail-top: 120px; }  /* sticky-header 실측 높이 + 여백 (app-header~60 + top-nav~44 + 16) */
+
+.top-nav { display: none; }
+.tab-masthead { display: none; }
+.summary-rail { display: none; }
+.subview-hidden { display: none; }
+
+.summary-main { display: flex; flex-direction: column; gap: 10px; }
+
+/* 상단 탭 (glove-news base.css:97-100 이식) — 모바일에선 .top-nav display:none */
+.top-nav-tab {
+  padding: 12px 22px; background: none; border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--sans); font-size: 15px; font-weight: 600;
+  color: var(--text3); cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px; white-space: nowrap;
+}
+.top-nav-tab.active { color: var(--green-primary); border-bottom-color: var(--green-primary); }
+.top-nav-tab:hover:not(.active) { color: var(--text2); }
+
+/* 레일 시세 보드 (≥1024에서만 노출) */
+.price-board {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow-sm);
+  padding: 14px; display: flex; flex-direction: column; gap: 12px;
+}
+.price-board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.price-board-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.price-board-date { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.price-board-rows { display: flex; flex-direction: column; }
+.price-board-row {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 0; border-bottom: 1px solid var(--border2);
+}
+.price-board-row:first-child { padding-top: 0; }
+.price-board-row:last-child { border-bottom: none; padding-bottom: 0; }
+.price-board-row-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.price-board-name { font-size: 11px; font-weight: 700; color: var(--text2); }
+.price-board-row-mid { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.price-board-value { font-size: 19px; font-weight: 700; color: var(--text); line-height: 1.1; }
+.price-board-value small { font-size: 10px; font-weight: 500; color: var(--text3); }
+.price-board-note { font-size: 10px; color: var(--medium); line-height: 1.5; }
+.price-board-foot { font-size: 10px; color: var(--text3); line-height: 1.5; padding-top: 2px; border-top: 1px solid var(--border2); }
+.price-board-empty { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   B. ≤1023.98px — 합금철 3품목은 서브탭 단일 노출 유지(모바일·태블릿)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1023.98px) {
+  .ferro-product:not(.is-active) { display: none; }
+  .ferro-product { display: flex; flex-direction: column; gap: 10px; }
+  .ferro-ki:empty { display: none; }  /* KeyIssuesSection null 시 빈 래퍼의 이중 gap 방지 */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   C. ≥768 — 데스크탑 셸(상단 탭·마스트헤드·룰라인·타이포/밀도), 단일 광폭 컬럼
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  .app { max-width: 1200px; }
+  .top-nav { display: flex; justify-content: center; padding: 0 20px; border-bottom: 1px solid var(--border); }
+  .bottom-nav { display: none; }
+  .app-main { overflow: visible; padding: 24px 28px 48px; counter-reset: dsec; }
+  .tab-content { gap: 16px; }
+  .brand-name { font-size: 16px; }
+
+  /* 탭 마스트헤드 */
+  .tab-masthead {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    border-bottom: 2px solid var(--text); padding-bottom: 8px; margin-bottom: 4px;
+  }
+  .tab-masthead h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+  .tab-masthead-date { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+
+  /* 헤더 배지 단일화 — 마스트헤드와 이중 표시(특히 _fallback 경고 2회) 방지 */
+  .header-actions .cache-badge { display: none; }
+
+  /* 섹션 번호 + 룰라인 (가탄제 recab-ref-head도 편입) */
+  .section-card .section-title::before,
+  .recab-ref-head::before {
+    counter-increment: dsec;
+    content: counter(dsec, decimal-leading-zero) '  ';
+    font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--green-primary);
+  }
+  .section-header::after { content: ''; flex: 1; height: 1px; background: var(--border2); }
+  /* 합금철 3품목 카드는 번호 제외(제품 병렬 비교라 순번 무의미) */
+  .ferro-compare .section-title::before { content: none; counter-increment: none; }
+
+  /* 타이포·밀도 */
+  .price-hero-value { font-size: 34px; }
+  .section-title { font-size: 14px; }
+  .text-block { font-size: 14px; line-height: 1.85; }
+  .today-summary { font-size: 15px; }
+  .section-card { border-radius: 10px; }
+  .section-card:hover { box-shadow: var(--shadow); }
+  .summary-main { gap: 16px; }
+  .subtab-bar { max-width: 440px; }
+
+  /* 스켈레톤 2열 */
+  .skeleton-wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .skeleton-wrap > :first-child { grid-column: 1 / -1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   D. ≥1024 — 멀티컬럼(홈 레일 / 합금철 3열 / 탭별 2~3열 dense)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  /* ── 홈: 본문 + 300px sticky 레일 ── */
+  .summary-layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px;
+    align-items: start;  /* stretch가 sticky를 죽이는 것 방지 */
+  }
+  .summary-rail { display: block; position: sticky; top: var(--rail-top); }
+  .summary-main {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px; grid-auto-flow: row dense; align-items: start;
+  }
+  .summary-main > .today-card, .summary-main > .macro-card { grid-column: 1 / -1; margin-bottom: 0; }
+  .summary-main > :last-child { grid-column: 1 / -1; }
+  /* 홈 히어로: 레일 보드와 시세 중복이라 브리핑 스트립 숨김 */
+  .today-card .brief-strip { display: none; }
+  .today-card .today-summary { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+
+  /* ── 합금철 3열 비교 (서브탭 대체) ── */
+  .ferro-root .subtab-bar { display: none; }
+  .ferro-compare {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 14px; row-gap: 10px;
+  }
+  .ferro-product { display: grid; grid-row: span 3; grid-template-rows: subgrid; }
+  @supports not (grid-template-rows: subgrid) {
+    .ferro-product { grid-template-rows: auto auto 1fr; }
+  }
+  .ferro-product:not(:first-child) .ferro-exrate-note { display: none; }  /* 환율 노트 3중 반복 방지 */
+  /* 히어로 타이포 축약 (3열 폭) */
+  .ferro-compare .ferro-top-usd { font-size: 23px; font-weight: 700; letter-spacing: -0.5px; }
+  .ferro-compare .ferro-top-usd small { font-size: 11px; }
+  .ferro-compare .ferro-top-name { font-size: 15px; }
+  .ferro-compare .ferro-top-cny { font-size: 11px; }
+  .ferro-compare .ferro-top-card { padding: 14px 16px; gap: 5px; }
+  .ferro-compare .sparkline { width: 96px; height: auto; }
+
+  /* ── 1차 알루미늄 3열 ── */
+  .tc-alu-primary {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px; align-items: start;
+  }
+  .tc-alu-primary > .price-hero, .tc-alu-primary > .key-issues-card { grid-column: 1 / -1; }
+  .tc-alu-primary .price-hero .sparkline { width: 200px; height: auto; }
+
+  /* ── 가탄제·2차 알루·철강: 2열 dense + 전폭 앵커 ── */
+  .tc-recab, .tc-dross, .tc-steel {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px; grid-auto-flow: row dense; align-items: start;
+  }
+  .tc-recab > .recab-ref-head, .tc-recab > .recab-price-grid,
+  .tc-recab > .futures-strip, .tc-recab > .forms-card { grid-column: 1 / -1; }
+  .tc-dross > .dross-judge-card, .tc-dross > .dt-span-all { grid-column: 1 / -1; }
+  .tc-recab > :last-child, .tc-dross > :last-child, .tc-steel > :last-child { grid-column: 1 / -1; }
+  /* 그리드 편입 요소의 기존 margin이 gap에 가산되는 것 정리 */
+  .tc-recab > .recab-ref-head { margin: 0; }
+  .tc-recab > .recab-price-grid { margin-bottom: 0; }
+  .tc-dross > .dross-judge-card { margin-bottom: 0; }
+  /* 가탄제 형태별 시황 내부: 소괴탄 | 분탄 나란히 */
+  .recab-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+}

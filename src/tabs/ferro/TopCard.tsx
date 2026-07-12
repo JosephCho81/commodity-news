@@ -44,7 +44,7 @@ export function TopCard({ abbr, name, item, history }: {
           <div className="ferro-top-cny">≈ {item.krw_per_kg.toLocaleString('en-US')}원/kg 한국 착</div>
         )}
         {item.bid_baseline && (
-          <div className="ferro-top-cny">지난 입찰({item.bid_baseline.date.slice(0, 7)}) 대비 {item.bid_baseline.change_pct}</div>
+          <div className="ferro-top-cny ferro-top-bid">지난 입찰({item.bid_baseline.date.slice(0, 7)}) 대비 {item.bid_baseline.change_pct}</div>
         )}
       </div>
     );

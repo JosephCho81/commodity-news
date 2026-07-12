@@ -13,7 +13,7 @@ function PrimaryAluminumView({ data }: { data: AluminumData }) {
   const priceValid = isValidLmePrice(lme.price);
 
   return (
-    <div className="tab-content">
+    <div className="tab-content tc-alu-primary">
       <div className="price-hero">
         <div className="price-hero-main">
           <span className="price-hero-label">LME 알루미늄 공식가</span>
@@ -83,7 +83,13 @@ export function AluminumTab({ data }: { data: AluminumData }) {
         </button>
       </div>
 
-      {sub === 'primary' ? <PrimaryAluminumView data={data} /> : <SecondaryAluminumTab />}
+      {/* 두 서브뷰 상시 마운트 + CSS 숨김 — 토글 시 dross 재fetch 방지(진입당 1회 고정) */}
+      <div className={sub === 'primary' ? '' : 'subview-hidden'}>
+        <PrimaryAluminumView data={data} />
+      </div>
+      <div className={sub === 'secondary' ? '' : 'subview-hidden'}>
+        <SecondaryAluminumTab />
+      </div>
     </div>
   );
 }

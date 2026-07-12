@@ -96,7 +96,7 @@ export function SteelmakerTab({ data }: { data: SteelmakerData }) {
   const { domestic_makers = [], overseas_makers = [], demand_industries } = data;
 
   return (
-    <div className="tab-content">
+    <div className="tab-content tc-steel">
 
       <SectionCard title="국내 제강사 동향" accent="KR">
         {['동국제강', '포스코', '현대제철'].map((name) => {

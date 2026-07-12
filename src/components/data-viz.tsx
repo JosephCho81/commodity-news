@@ -61,6 +61,7 @@ export function Sparkline({ history, valueKey, width = 72, height = 22 }: {
         points={coords.join(' ')}
         fill="none"
         stroke={lastUp ? 'var(--up)' : 'var(--down)'}
+        vectorEffect="non-scaling-stroke"
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"

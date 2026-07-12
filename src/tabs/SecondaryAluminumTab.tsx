@@ -50,7 +50,7 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
   const hasJudge = hj && (hj.feedstock || hj.demand || hj.spread);
 
   return (
-    <div className="tab-content">
+    <div className="tab-content tc-dross">
       {hasJudge && (
         <div className="dross-judge-card">
           <div className="dross-judge-row">
@@ -114,7 +114,7 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
         </SectionCard>
       )}
 
-      <KeyIssuesSection issues={data.key_issues ?? []} />
+      <KeyIssuesSection issues={data.key_issues ?? []} className="dt-span-all" />
 
       {data.supply && (data.supply.signal || data.supply.drivers) && (
         <SectionCard title="원료(공급) — 드로스 확보" accent="공급">

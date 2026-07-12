@@ -36,14 +36,15 @@ function KeyIssueCard({ issue }: { issue: any }) {
   );
 }
 
-export function KeyIssuesSection({ issues }: { issues: any[] }) {
+export function KeyIssuesSection({ issues, className }: { issues: any[]; className?: string }) {
   if (!Array.isArray(issues) || issues.length === 0) return null;
   const valid = issues.filter(i => i && i.title &&
     !String(i.title).includes('10자 이내') &&
     !String(i.title).includes('예:'));
   if (valid.length === 0) return null;
   return (
-    <SectionCard title="오늘의 핵심 이슈" accent="KEY">
+    <SectionCard title="오늘의 핵심 이슈" accent="KEY"
+      className={'key-issues-card' + (className ? ' ' + className : '')}>
       <div className="key-issues-list">
         {valid.map((issue, idx) => (
           <KeyIssueCard key={idx} issue={issue} />

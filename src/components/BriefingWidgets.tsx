@@ -1,8 +1,62 @@
 // 브리핑 홈 위젯 — 가격 스트립(전 품목 결정적 수치) + 신규 이슈 집계
-import type { FerroalloyData, AluminumData, RecarburizerData, KeyIssue, MacroEvent } from '../types';
+import type { FerroalloyData, AluminumData, RecarburizerData, KeyIssue, MacroEvent, PriceHistoryEntry } from '../types';
 import { isValidLmePrice, formatNum } from '../utils/format';
 import { SectionCard } from './ui';
 import { SourceChip, DeltaPill, Sparkline } from './data-viz';
+
+// 가격 스트립·레일 보드가 공유하는 한 행의 결정적 데이터
+export interface PriceRow {
+  key: string; name: string; value: string; unit: string;
+  change?: number | string | null; changePct?: string | null;
+  chip?: string; sparkKey?: string; history?: PriceHistoryEntry[] | null;
+}
+
+// 전 품목 가격 셀 구성 로직 — 순수 함수(표시 컴포넌트는 결과만 소비).
+// 실소스: ZCE 합금철×2 + LME×1 + DCE 원료탄·코크스×2. 화이트리스트 금지(DCE 탈락 방지).
+export function collectPrices(fa?: FerroalloyData, al?: AluminumData, rec?: RecarburizerData):
+  { rows: PriceRow[]; fxLine: string | null } {
+  const rows: PriceRow[] = [];
+
+  // 브리핑은 USD 단일 통화 — CNY 정산가는 당일 환율로 결정적 환산 (환율 없으면 CNY 그대로)
+  const cnyRate = fa?.exchange_rate_cny_usd ?? null;
+  const toUsd = (v?: number | null) =>
+    typeof v === 'number' && cnyRate ? Math.round(v * cnyRate) : null;
+  const cnyCell = (settle: number, change?: number | null) => {
+    const u = toUsd(settle);
+    return u !== null
+      ? { value: u.toLocaleString('en-US'), unit: 'USD', change: toUsd(change) }
+      : { value: settle.toLocaleString('en-US'), unit: 'CNY', change };
+  };
+
+  if (fa?.fesi?.futures) {
+    const f = fa.fesi.futures;
+    const c = cnyCell(f.settle, f.change);
+    rows.push({ key: 'sf', name: 'FeSi', value: c.value, unit: c.unit,
+      change: c.change, changePct: f.change_pct, chip: 'ZCE', sparkKey: 'sf', history: fa._price_history });
+  }
+  if (fa?.simn?.futures) {
+    const f = fa.simn.futures;
+    const c = cnyCell(f.settle, f.change);
+    rows.push({ key: 'sm', name: 'SiMn', value: c.value, unit: c.unit,
+      change: c.change, changePct: f.change_pct, chip: 'ZCE', sparkKey: 'sm', history: fa._price_history });
+  }
+  if (al?.lme?.price && isValidLmePrice(al.lme.price)) {
+    rows.push({ key: 'lme', name: 'LME Al', value: formatNum(al.lme.price) ?? '', unit: 'USD',
+      change: al.lme.change, changePct: al.lme.change_pct, chip: 'LME', sparkKey: 'lme', history: al._price_history });
+  }
+  for (const f of rec?._china_futures ?? []) {
+    const c = cnyCell(f.settle, f.change);
+    rows.push({ key: f.product ?? (f.label ?? 'f'), name: f.label ?? f.product ?? '', value: c.value,
+      unit: c.unit, change: c.change, changePct: f.change_pct, chip: f.exchange });
+  }
+
+  const fxLine = fa?.exchange_rate_usd_krw
+    ? `USD/KRW ${Math.round(fa.exchange_rate_usd_krw).toLocaleString('ko-KR')}원`
+      + (fa.exchange_rate_cny_usd ? ` · CNY/USD ${fa.exchange_rate_cny_usd.toFixed(4)}` : '')
+    : null;
+
+  return { rows, fxLine };
+}
 
 function PriceStripCell({ name, value, unit, change, changePct, chip, spark }: {
   name: string; value: string; unit: string;
@@ -25,62 +79,20 @@ function PriceStripCell({ name, value, unit, change, changePct, chip, spark }: {
 export function PriceStrip({ fa, al, rec }: {
   fa?: FerroalloyData; al?: AluminumData; rec?: RecarburizerData;
 }) {
-  const cells: React.ReactNode[] = [];
-
-  // 브리핑은 USD 단일 통화 — CNY 정산가는 당일 환율로 결정적 환산 (환율 없으면 CNY 그대로)
-  const cnyRate = fa?.exchange_rate_cny_usd ?? null;
-  const toUsd = (v?: number | null) =>
-    typeof v === 'number' && cnyRate ? Math.round(v * cnyRate) : null;
-  const cnyCell = (settle: number, change?: number | null) => {
-    const u = toUsd(settle);
-    return u !== null
-      ? { value: u.toLocaleString('en-US'), unit: 'USD', change: toUsd(change) }
-      : { value: settle.toLocaleString('en-US'), unit: 'CNY', change };
-  };
-
-  if (fa?.fesi?.futures) {
-    const f = fa.fesi.futures;
-    const c = cnyCell(f.settle, f.change);
-    cells.push(
-      <PriceStripCell key="sf" name="FeSi" value={c.value} unit={c.unit}
-        change={c.change} changePct={f.change_pct} chip="ZCE"
-        spark={<Sparkline history={fa._price_history} valueKey="sf" width={56} height={16} />} />
-    );
-  }
-  if (fa?.simn?.futures) {
-    const f = fa.simn.futures;
-    const c = cnyCell(f.settle, f.change);
-    cells.push(
-      <PriceStripCell key="sm" name="SiMn" value={c.value} unit={c.unit}
-        change={c.change} changePct={f.change_pct} chip="ZCE"
-        spark={<Sparkline history={fa._price_history} valueKey="sm" width={56} height={16} />} />
-    );
-  }
-  if (al?.lme?.price && isValidLmePrice(al.lme.price)) {
-    cells.push(
-      <PriceStripCell key="lme" name="LME Al" value={formatNum(al.lme.price) ?? ''} unit="USD"
-        change={al.lme.change} changePct={al.lme.change_pct} chip="LME"
-        spark={<Sparkline history={al._price_history} valueKey="lme" width={56} height={16} />} />
-    );
-  }
-  for (const f of rec?._china_futures ?? []) {
-    const c = cnyCell(f.settle, f.change);
-    cells.push(
-      <PriceStripCell key={f.product} name={f.label ?? f.product ?? ''} value={c.value}
-        unit={c.unit} change={c.change} changePct={f.change_pct} chip={f.exchange} />
-    );
-  }
-
-  if (cells.length === 0) return null;
+  const { rows, fxLine } = collectPrices(fa, al, rec);
+  if (rows.length === 0) return null;
   return (
     <div className="brief-strip">
-      <div className="brief-strip-row">{cells}</div>
-      {fa?.exchange_rate_usd_krw && (
-        <div className="brief-strip-meta">
-          USD/KRW {Math.round(fa.exchange_rate_usd_krw).toLocaleString('ko-KR')}원
-          {fa.exchange_rate_cny_usd ? ` · CNY/USD ${fa.exchange_rate_cny_usd.toFixed(4)}` : ''}
-        </div>
-      )}
+      <div className="brief-strip-row">
+        {rows.map(r => (
+          <PriceStripCell key={r.key} name={r.name} value={r.value} unit={r.unit}
+            change={r.change} changePct={r.changePct} chip={r.chip}
+            spark={r.sparkKey
+              ? <Sparkline history={r.history} valueKey={r.sparkKey} width={56} height={16} />
+              : undefined} />
+        ))}
+      </div>
+      {fxLine && <div className="brief-strip-meta">{fxLine}</div>}
     </div>
   );
 }
