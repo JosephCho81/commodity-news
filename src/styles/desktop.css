@@ -1,6 +1,8 @@
 /* desktop.css — 모바일/데스크탑 분리 리디자인 (배럴 맨 끝 @import → 최종 캐스케이드)
-   구획: A 무스코프 기본값 / B ≤1023.98px / C ≥768 / D ≥1024
-   모바일(<768) 렌더는 A·B만 적용 — 현행 보존이 원칙. */
+   구획: A 무스코프 기본값 / C ≥768 / D ≥1024. 모바일(<768) 렌더는 A만 적용 — 현행 보존이 원칙.
+   레이아웃 공통 문법: .tab-layout = 본문(.tab-main) + 우측 300px 시세 레일(.tab-rail).
+   가격 블록은 본문(.rail-dup 표시)과 레일에 이중 렌더 — ≥1024에서 본문 쪽만 숨김
+   (top-nav/bottom-nav와 동일한 CSS 토글 패턴, 추가 fetch 없음). */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    A. 무스코프 기본값 — 모바일 안전(대부분 display:none 기본값)
@@ -9,10 +11,16 @@
 
 .top-nav { display: none; }
 .tab-masthead { display: none; }
-.summary-rail { display: none; }
+.tab-rail { display: none; }
 .subview-hidden { display: none; }
 
-.summary-main { display: flex; flex-direction: column; gap: 10px; }
+.tab-main { display: flex; flex-direction: column; gap: 10px; }
+.ferro-root > .tab-main { gap: 0; }  /* subtab-bar 자체 margin-bottom(12px)이 간격 담당 — 현행 보존 */
+
+/* 합금철: 전 폭에서 활성 품목만 노출 (서브탭 UX — 알루미늄 1차/2차와 동일 문법) */
+.ferro-product:not(.is-active) { display: none; }
+.ferro-product { display: flex; flex-direction: column; gap: 10px; }
+.ferro-ki:empty { display: none; }  /* KeyIssuesSection null 시 빈 래퍼의 이중 gap 방지 */
 
 /* 상단 탭 (glove-news base.css:97-100 이식) — 모바일에선 .top-nav display:none */
 .top-nav-tab {
@@ -52,15 +60,6 @@
 .price-board-empty { font-size: 12px; color: var(--text2); line-height: 1.6; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   B. ≤1023.98px — 합금철 3품목은 서브탭 단일 노출 유지(모바일·태블릿)
-   ═══════════════════════════════════════════════════════════════════════════ */
-@media (max-width: 1023.98px) {
-  .ferro-product:not(.is-active) { display: none; }
-  .ferro-product { display: flex; flex-direction: column; gap: 10px; }
-  .ferro-ki:empty { display: none; }  /* KeyIssuesSection null 시 빈 래퍼의 이중 gap 방지 */
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    C. ≥768 — 데스크탑 셸(상단 탭·마스트헤드·룰라인·타이포/밀도), 단일 광폭 컬럼
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (min-width: 768px) {
@@ -90,11 +89,6 @@
     font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--green-primary);
   }
   .section-header::after { content: ''; flex: 1; height: 1px; background: var(--border2); }
-  /* 합금철 3품목 카드는 번호 제외(제품 병렬 비교라 순번 무의미) */
-  .ferro-compare .section-title::before { content: none; counter-increment: none; }
-
-  /* 레일·다열 비교가 없는 탭은 문서형 단일 컬럼 — 폭 제한으로 리포트 지면화 */
-  .am-steelmaker, .am-recarburizer, .am-aluminum { max-width: 940px; margin: 0 auto; width: 100%; }
 
   /* 타이포·밀도 */
   .price-hero-value { font-size: 34px; }
@@ -103,7 +97,8 @@
   .today-summary { font-size: 15px; }
   .section-card { border-radius: 10px; }
   .section-card:hover { box-shadow: var(--shadow); }
-  .summary-main { gap: 16px; }
+  .tab-main { gap: 16px; }
+  .ferro-root > .tab-main { gap: 0; }
   .subtab-bar { max-width: 440px; }
 
   /* 스켈레톤 2열 */
@@ -112,44 +107,36 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   D. ≥1024 — 멀티컬럼(홈 레일 / 합금철 3열 / 탭별 2~3열 dense)
+   D. ≥1024 — 본문 + 우측 시세 레일 (전 탭 공통)
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (min-width: 1024px) {
-  /* ── 홈: 본문 + 300px sticky 레일 ── */
-  .summary-layout {
+  .tab-layout {
     display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px;
     align-items: start;  /* stretch가 sticky를 죽이는 것 방지 */
   }
-  .summary-rail { display: block; position: sticky; top: var(--rail-top); }
-  /* 본문은 단일 컬럼 리포트 흐름 — 높이가 다른 산문 카드의 다열 배치(빈 공간 유발)는 하지 않는다 */
-  .summary-main > .today-card, .summary-main > .macro-card { margin-bottom: 0; }
-  /* 홈 히어로: 레일 보드와 시세 중복이라 브리핑 스트립 숨김 */
+  .tab-rail {
+    display: flex; flex-direction: column; gap: 14px;
+    position: sticky; top: var(--rail-top);
+    max-height: calc(100vh - var(--rail-top) - 24px); overflow-y: auto;
+  }
+  /* 레일과 중복되는 본문 가격 블록 숨김 (768–1023은 레일이 없어 본문에 표시) */
+  .tab-layout .tab-main .rail-dup { display: none; }
+
+  /* 레일 내부 보정: 300px 폭 타이포·섹션 번호 제외·시세 박스 세로 스택 */
+  .tab-rail .price-hero-value { font-size: 24px; }
+  .tab-rail .section-title::before,
+  .tab-rail .recab-ref-head::before { content: none; counter-increment: none; }
+  .tab-rail .recab-ref-head { margin-top: 0; }
+  .tab-rail .recab-price-grid { grid-template-columns: 1fr; margin-bottom: 0; }
+
+  /* 홈: 레일 보드가 시세 담당 — 히어로의 가로 스트립·매달린 구분선 정리 */
+  .tab-main > .today-card, .tab-main > .macro-card { margin-bottom: 0; }
   .today-card .brief-strip { display: none; }
   .today-card .today-summary { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 
-  /* ── 합금철 3열 비교 (서브탭 대체) ── */
-  .ferro-root .subtab-bar { display: none; }
-  .ferro-compare {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: 14px; row-gap: 10px;
-  }
-  .ferro-product { display: grid; grid-row: span 3; grid-template-rows: subgrid; }
-  @supports not (grid-template-rows: subgrid) {
-    .ferro-product { grid-template-rows: auto auto 1fr; }
-  }
-  .ferro-product:not(:first-child) .ferro-exrate-note { display: none; }  /* 환율 노트 3중 반복 방지 */
-  /* 히어로 타이포 축약 (3열 폭) */
-  .ferro-compare .ferro-top-usd { font-size: 23px; font-weight: 700; letter-spacing: -0.5px; }
-  .ferro-compare .ferro-top-usd small { font-size: 11px; }
-  .ferro-compare .ferro-top-name { font-size: 15px; }
-  .ferro-compare .ferro-top-cny { font-size: 11px; }
-  .ferro-compare .ferro-top-card { padding: 14px 16px; gap: 5px; }
-  .ferro-compare .sparkline { width: 96px; height: auto; }
+  /* 철강: 레일 없음 — 본문 컬럼 폭을 타 탭 본문(1144-300-22)과 통일, 좌측 정렬 */
+  .tc-steel { max-width: 822px; }
 
-  /* ── 1차 알루·가탄제·2차 알루·철강: 단일 컬럼 리포트 흐름 (폭 제한은 C절 .am-*) ──
-     산문 카드는 높이가 매일 달라 다열 배치 시 빈 공간(테트리스)이 생긴다 — 다열은
-     구조가 동일한 비교쌍(합금철 3열 subgrid, 소괴탄|분탄)에만 허용. */
-  .tc-alu-primary .price-hero .sparkline { width: 200px; height: auto; }
   /* 가탄제 형태별 시황 내부: 소괴탄 | 분탄 비교쌍 (동일 구조라 나란히 배치 허용) */
   .recab-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 }

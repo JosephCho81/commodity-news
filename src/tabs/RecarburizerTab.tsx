@@ -47,35 +47,17 @@ function FormsSection({ forms }: { forms?: RecarburizerData['forms'] }) {
   );
 }
 
-export function RecarburizerTab({ data }: { data: RecarburizerData }) {
+// 해외 무연탄 시세(중국·러시아) — 본문(모바일·태블릿)과 우측 레일(데스크탑)에 이중 렌더
+function AnthracitePrices({ data }: { data: RecarburizerData }) {
   const d = data as any;
-  const cp    = d.china_price      ?? {};
-  const rp    = d.russia_price     ?? {};
-  const gm    = d.global_market    ?? {};
-  const cprod = d.china_production ?? {};
-  const rprod = d.russia_production ?? {};
-  const af    = d.asia_flows;
-  const fx    = d.fx ?? null;
-  const market_summary: string = d.market_summary ?? '';
-
-  const flowAvailable: boolean = Array.isArray(af) ? af.length > 0 : (af?.available ?? false);
-  const flowList: any[] = Array.isArray(af) ? af : (af?.flows ?? []);
-
+  const cp = d.china_price  ?? {};
+  const rp = d.russia_price ?? {};
   const chinaDown  = cp.change && String(cp.change).startsWith('-');
   const russiaDown = rp.change && String(rp.change).startsWith('-');
   const russiaHint = hasText(rp.vs_china) ? rp.vs_china : null;
 
-  const hasChinaProd = hasText(cprod.production_status) || hasText(cprod.cbam_carbon)
-    || hasText(cprod.policy) || hasText(cprod.outlook)
-    || cprod.annual_output || cprod.annual_consumption || cprod.export_volume;
-  const hasRussiaProd = hasText(rprod.production_status) || hasText(rprod.sanctions_impact)
-    || hasText(rprod.war_impact) || hasText(rprod.outlook)
-    || rprod.annual_output || rprod.export_volume || hasText(rprod.main_importers);
-
   return (
-    <div className="tab-content tc-recab">
-      <FormsSection forms={d.forms} />
-
+    <>
       <div className="recab-ref-head">해외 무연탄 시세 <span>참고 · USD</span></div>
       <div className="recab-price-grid recab-price-grid--ref">
         <div className="recab-price-box">
@@ -153,6 +135,35 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+export function RecarburizerTab({ data }: { data: RecarburizerData }) {
+  const d = data as any;
+  const gm    = d.global_market    ?? {};
+  const cprod = d.china_production ?? {};
+  const rprod = d.russia_production ?? {};
+  const af    = d.asia_flows;
+  const fx    = d.fx ?? null;
+  const market_summary: string = d.market_summary ?? '';
+
+  const flowAvailable: boolean = Array.isArray(af) ? af.length > 0 : (af?.available ?? false);
+  const flowList: any[] = Array.isArray(af) ? af : (af?.flows ?? []);
+
+  const hasChinaProd = hasText(cprod.production_status) || hasText(cprod.cbam_carbon)
+    || hasText(cprod.policy) || hasText(cprod.outlook)
+    || cprod.annual_output || cprod.annual_consumption || cprod.export_volume;
+  const hasRussiaProd = hasText(rprod.production_status) || hasText(rprod.sanctions_impact)
+    || hasText(rprod.war_impact) || hasText(rprod.outlook)
+    || rprod.annual_output || rprod.export_volume || hasText(rprod.main_importers);
+
+  return (
+    <div className="tab-content tab-layout tc-recab">
+      <div className="tab-main">
+      <FormsSection forms={d.forms} />
+
+      <div className="rail-dup"><AnthracitePrices data={data} /></div>
 
       {fx && (
         <SectionCard title="환율 · 원화 원가 영향" accent="FX">
@@ -237,6 +248,11 @@ export function RecarburizerTab({ data }: { data: RecarburizerData }) {
           <TextBlock text={market_summary} />
         </SectionCard>
       )}
+      </div>
+
+      <aside className="tab-rail">
+        <AnthracitePrices data={data} />
+      </aside>
     </div>
   );
 }

@@ -84,39 +84,49 @@ export function FerroalloyTab({ data }: { data: FerroalloyData }) {
     : null;
 
   return (
-    <div className="ferro-root">
-      <div className="subtab-bar" role="tablist">
-        {PRODUCTS.map(p => (
-          <button
-            key={p.id}
-            role="tab"
-            className={`subtab ${sub === p.id ? 'active' : ''}`}
-            onClick={() => setSub(p.id)}
-          >
-            {p.name}
-            <span className="subtab-sub">{p.abbr}</span>
-          </button>
-        ))}
+    <div className="ferro-root tab-layout">
+      <div className="tab-main">
+        <div className="subtab-bar" role="tablist">
+          {PRODUCTS.map(p => (
+            <button
+              key={p.id}
+              role="tab"
+              className={`subtab ${sub === p.id ? 'active' : ''}`}
+              onClick={() => setSub(p.id)}
+            >
+              {p.name}
+              <span className="subtab-sub">{p.abbr}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* 3품목 상시 렌더 — CSS로 활성 1품목만 노출. 히어로는 레일과 이중 렌더(rail-dup) */}
+        <div className="ferro-compare">
+          {PRODUCTS.map(p => {
+            const item = data[p.id] as FerroItem | null;
+            return (
+              <section key={p.id} className={`ferro-product ${sub === p.id ? 'is-active' : ''}`}>
+                <div className="price-hero rail-dup">
+                  <TopCard abbr={p.abbr} name={p.name} item={item} history={data._price_history} />
+                  {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
+                </div>
+                <div className="ferro-ki">
+                  <KeyIssuesSection issues={(item as any)?.key_issues ?? []} />
+                </div>
+                <FerroItemCard name={p.name} abbr={p.abbr} item={item} rate={exchange_rate_cny_usd} />
+              </section>
+            );
+          })}
+        </div>
       </div>
 
-      {/* 3품목 상시 렌더 — ≥1024 3열 비교, 그 이하는 CSS로 활성 1품목만 노출 */}
-      <div className="ferro-compare">
-        {PRODUCTS.map(p => {
-          const item = data[p.id] as FerroItem | null;
-          return (
-            <section key={p.id} className={`ferro-product ${sub === p.id ? 'is-active' : ''}`}>
-              <div className="price-hero">
-                <TopCard abbr={p.abbr} name={p.name} item={item} history={data._price_history} />
-                {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
-              </div>
-              <div className="ferro-ki">
-                <KeyIssuesSection issues={(item as any)?.key_issues ?? []} />
-              </div>
-              <FerroItemCard name={p.name} abbr={p.abbr} item={item} rate={exchange_rate_cny_usd} />
-            </section>
-          );
-        })}
-      </div>
+      <aside className="tab-rail">
+        {PRODUCTS.map(p => (
+          <TopCard key={p.id} abbr={p.abbr} name={p.name}
+            item={data[p.id] as FerroItem | null} history={data._price_history} />
+        ))}
+        {rateLabel && <div className="ferro-exrate-note">{rateLabel}</div>}
+      </aside>
     </div>
   );
 }

@@ -148,7 +148,7 @@ export default function App() {
         </nav>
       </div>
 
-      <main className={`app-main am-${activeTab}`} ref={mainRef}>
+      <main className="app-main" ref={mainRef}>
         <TabMasthead label={activeLabel} meta={activeMeta} />
         <TabErrorBoundary key={activeTab} onReset={() => fetchTab(activeTab)}>
           {renderContent()}

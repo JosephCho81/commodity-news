@@ -20,8 +20,8 @@ export function SummaryTab({ data, allData, errors }: {
   const rec = allData?.recarburizer as RecarburizerData | undefined;
 
   return (
-    <div className="tab-content summary-layout tc-summary">
-      <div className="summary-main">
+    <div className="tab-content tab-layout tc-summary">
+      <div className="tab-main">
       <div className="today-card">
         <div className="today-header">
           <span className="today-label">오늘 브리핑</span>
@@ -121,7 +121,7 @@ export function SummaryTab({ data, allData, errors }: {
       )}
       </div>
 
-      <aside className="summary-rail">
+      <aside className="tab-rail">
         <PriceBoard fa={fa} al={al} rec={rec} errors={errors} />
       </aside>
     </div>

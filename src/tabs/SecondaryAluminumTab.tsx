@@ -44,13 +44,25 @@ function ScrapLiveSnapshot({ live }: { live: ScrapLiveData }) {
   );
 }
 
+// 각국 스크랩 라이브 시세 카드 — 본문(모바일·태블릿)과 우측 레일(데스크탑)에 이중 렌더
+function ScrapPricesCard({ data, className }: { data: DrossData; className?: string }) {
+  if (!data.scrap?.live || data.scrap.live.regions.length === 0) return null;
+  return (
+    <SectionCard title="해외 시세" accent="SCRAP" className={className}>
+      <TextBlock text={data.scrap.weekly_summary} />
+      <ScrapLiveSnapshot live={data.scrap.live} />
+    </SectionCard>
+  );
+}
+
 function SecondaryAluminumView({ data }: { data: DrossData }) {
   const hj = data.headline_judgment;
   const sp = data.spread;
   const hasJudge = hj && (hj.feedstock || hj.demand || hj.spread);
 
   return (
-    <div className="tab-content tc-dross">
+    <div className="tab-content tab-layout tc-dross">
+      <div className="tab-main">
       {hasJudge && (
         <div className="dross-judge-card">
           <div className="dross-judge-row">
@@ -114,7 +126,7 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
         </SectionCard>
       )}
 
-      <KeyIssuesSection issues={data.key_issues ?? []} className="dt-span-all" />
+      <KeyIssuesSection issues={data.key_issues ?? []} />
 
       {data.supply && (data.supply.signal || data.supply.drivers) && (
         <SectionCard title="원료(공급) — 드로스 확보" accent="공급">
@@ -132,12 +144,7 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
         </SectionCard>
       )}
 
-      {data.scrap?.live && data.scrap.live.regions.length > 0 && (
-        <SectionCard title="해외 시세" accent="SCRAP">
-          <TextBlock text={data.scrap.weekly_summary} />
-          <ScrapLiveSnapshot live={data.scrap.live} />
-        </SectionCard>
-      )}
+      <ScrapPricesCard data={data} className="rail-dup" />
 
       {Array.isArray(data.regulation_watch) && data.regulation_watch.length > 0 && (
         <SectionCard title="규제·정책 워치" accent="규제">
@@ -161,6 +168,11 @@ function SecondaryAluminumView({ data }: { data: DrossData }) {
           <TextBlock text={data.market_summary} />
         </SectionCard>
       )}
+      </div>
+
+      <aside className="tab-rail">
+        <ScrapPricesCard data={data} />
+      </aside>
     </div>
   );
 }
