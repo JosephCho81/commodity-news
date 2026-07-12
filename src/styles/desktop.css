@@ -129,6 +129,16 @@
   .tab-rail .recab-ref-head { margin-top: 0; }
   .tab-rail .recab-price-grid { grid-template-columns: 1fr; margin-bottom: 0; }
 
+  /* 2차 알루 스크랩 레일: 요약문 2줄 클램프 + 지역 리스트 압축 — 3개국(미·중·일)이 잘리지 않게 */
+  .tab-rail .text-block {
+    font-size: 12px; line-height: 1.55;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .tab-rail .region-item { padding: 8px 0; gap: 4px; }
+  .tab-rail .region-title-row { padding-bottom: 4px; }
+  .tab-rail .region-price-table { font-size: 11px; line-height: 1.45; padding: 5px 8px; }
+  .tab-rail .region-grades-line { font-size: 9px; }
+
   /* 홈: 레일 보드가 시세 담당 — 히어로의 가로 스트립·매달린 구분선 정리 */
   .tab-main > .today-card, .tab-main > .macro-card { margin-bottom: 0; }
   .today-card .brief-strip { display: none; }
