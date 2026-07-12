@@ -93,6 +93,9 @@
   /* 합금철 3품목 카드는 번호 제외(제품 병렬 비교라 순번 무의미) */
   .ferro-compare .section-title::before { content: none; counter-increment: none; }
 
+  /* 레일·다열 비교가 없는 탭은 문서형 단일 컬럼 — 폭 제한으로 리포트 지면화 */
+  .am-steelmaker, .am-recarburizer, .am-aluminum { max-width: 940px; margin: 0 auto; width: 100%; }
+
   /* 타이포·밀도 */
   .price-hero-value { font-size: 34px; }
   .section-title { font-size: 14px; }
@@ -118,12 +121,8 @@
     align-items: start;  /* stretch가 sticky를 죽이는 것 방지 */
   }
   .summary-rail { display: block; position: sticky; top: var(--rail-top); }
-  .summary-main {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px; grid-auto-flow: row dense; align-items: start;
-  }
-  .summary-main > .today-card, .summary-main > .macro-card { grid-column: 1 / -1; margin-bottom: 0; }
-  .summary-main > :last-child { grid-column: 1 / -1; }
+  /* 본문은 단일 컬럼 리포트 흐름 — 높이가 다른 산문 카드의 다열 배치(빈 공간 유발)는 하지 않는다 */
+  .summary-main > .today-card, .summary-main > .macro-card { margin-bottom: 0; }
   /* 홈 히어로: 레일 보드와 시세 중복이라 브리핑 스트립 숨김 */
   .today-card .brief-strip { display: none; }
   .today-card .today-summary { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
@@ -147,27 +146,10 @@
   .ferro-compare .ferro-top-card { padding: 14px 16px; gap: 5px; }
   .ferro-compare .sparkline { width: 96px; height: auto; }
 
-  /* ── 1차 알루미늄 3열 ── */
-  .tc-alu-primary {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px; align-items: start;
-  }
-  .tc-alu-primary > .price-hero, .tc-alu-primary > .key-issues-card { grid-column: 1 / -1; }
+  /* ── 1차 알루·가탄제·2차 알루·철강: 단일 컬럼 리포트 흐름 (폭 제한은 C절 .am-*) ──
+     산문 카드는 높이가 매일 달라 다열 배치 시 빈 공간(테트리스)이 생긴다 — 다열은
+     구조가 동일한 비교쌍(합금철 3열 subgrid, 소괴탄|분탄)에만 허용. */
   .tc-alu-primary .price-hero .sparkline { width: 200px; height: auto; }
-
-  /* ── 가탄제·2차 알루·철강: 2열 dense + 전폭 앵커 ── */
-  .tc-recab, .tc-dross, .tc-steel {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px; grid-auto-flow: row dense; align-items: start;
-  }
-  .tc-recab > .recab-ref-head, .tc-recab > .recab-price-grid,
-  .tc-recab > .futures-strip, .tc-recab > .forms-card { grid-column: 1 / -1; }
-  .tc-dross > .dross-judge-card, .tc-dross > .dt-span-all { grid-column: 1 / -1; }
-  .tc-recab > :last-child, .tc-dross > :last-child, .tc-steel > :last-child { grid-column: 1 / -1; }
-  /* 그리드 편입 요소의 기존 margin이 gap에 가산되는 것 정리 */
-  .tc-recab > .recab-ref-head { margin: 0; }
-  .tc-recab > .recab-price-grid { margin-bottom: 0; }
-  .tc-dross > .dross-judge-card { margin-bottom: 0; }
-  /* 가탄제 형태별 시황 내부: 소괴탄 | 분탄 나란히 */
+  /* 가탄제 형태별 시황 내부: 소괴탄 | 분탄 비교쌍 (동일 구조라 나란히 배치 허용) */
   .recab-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 }
