@@ -71,5 +71,4 @@ export interface ApiMeta {
   _kr_news?: KrNewsItem[];      // 국내 전문지 헤드라인
   _china_futures?: FuturesQuote[]; // 중국 철강 체인 선물
   _price_history?: PriceHistoryEntry[]; // 가격 시계열 (스파크라인)
-  updated_at?: string;
 }

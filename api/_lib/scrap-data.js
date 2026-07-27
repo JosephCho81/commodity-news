@@ -48,7 +48,7 @@ Return ONLY this JSON, no prose (null if a current figure is unavailable):
   "cn": { "UBC": <CNY/MT|null>, "6063 Extrusion": <CNY/MT|null>, "Old Cast": <CNY/MT|null> }
 }
 If a source quotes USD/lb, multiply by 2204.62.`;
-    const parsed = parseJSON(await callPerplexity(prompt));
+    const parsed = parseJSON(await callPerplexity(prompt, { fixtureKey: 'scrap-grades' }));
     if (parsed?.us || parsed?.cn) {
       console.log('[ScrapGrades] ✅ 검색 성공');
       return parsed;

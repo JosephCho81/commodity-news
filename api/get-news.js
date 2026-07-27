@@ -6,6 +6,7 @@ export const config = { maxDuration: 60 };
 
 import { FIREBASE_ENABLED, getFirestoreToken, getFromFirestore } from './_lib/firebase.js';
 import { callPerplexity, parseJSON } from './_lib/perplexity.js';
+import { setBudgetToken } from './_lib/budget.js';
 import { stripUncertaintyDeep } from './_lib/validate.js';
 import { buildKrNewsSection } from './_lib/rss-news.js';
 import { handleFerroalloyTab } from './_lib/ferroalloy-tab.js';
@@ -67,6 +68,7 @@ export default async function handler(req, res) {
     if (FIREBASE_ENABLED) {
       try {
         token = await getFirestoreToken();
+        setBudgetToken(token); // 일일 호출 상한 카운터가 같은 Firestore를 쓰도록
       } catch (e) {
         console.warn('[Firebase] 토큰 발급 실패 (캐시 비활성화):', e.message);
       }
@@ -124,6 +126,7 @@ export default async function handler(req, res) {
       maxTokens: mod.maxTokens,
       recency: mod.recency ?? null,
       withMeta: true,
+      fixtureKey: tab,
     });
 
     let parsed;

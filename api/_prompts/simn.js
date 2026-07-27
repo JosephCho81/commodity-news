@@ -80,7 +80,6 @@ ${prevSection}
   "price_cny": "출처 확인된 숫자만 (예: 5400). 못 찾으면 null",
   "price_as_of": "가격 발표 기준일 YYYY-MM-DD. price_cny가 null이면 null",
   "price_source": "출처명 (예: SMM, HBIS 공시). price_cny가 null이면 null",
-  "reference": "가격 근거 — 출처·날짜·범위 텍스트. 예: HBIS 입찰가 또는 중국 내수 현물 ${ym}",
   "hbis_bid_price": "HBIS 실리망간 입찰가 숫자만 CNY/MT. 못 찾으면 null",
   "hbis_bid_month": "${ym} 또는 실제 입찰 연월. 못 찾으면 null",
   "hbis_bid_change": "전월 대비 변동 CNY. 못 찾으면 null",
@@ -123,7 +122,6 @@ ${prevSection}
       "published_date": "이 이슈가 보도된 날짜 YYYY-MM-DD. 모르면 null",
       "source_name": "보도 매체·기관명. 모르면 null"
     }
-  ],
-  "updated_at": "응답 생성 시각 ISO 8601"
+  ]
 }`;
 }

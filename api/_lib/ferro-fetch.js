@@ -61,9 +61,9 @@ export async function callFerroProducts(todayKST, ctx) {
   const pplxOpts = { recency: 'month', withMeta: true };
   const { prevData, newsHistory } = ctx;
   return Promise.allSettled([
-    callPerplexity(getFesiPrompt(todayKST, prevData?.fesi) + buildExclusionSection(newsHistory, 'fesi') + krNewsSection, { maxTokens: 2500, ...pplxOpts }),
-    callPerplexity(getFemnPrompt(todayKST, prevData?.femn) + buildExclusionSection(newsHistory, 'femn') + krNewsSection, { maxTokens: 2000, ...pplxOpts }),
-    callPerplexity(getSimnPrompt(todayKST, prevData?.simn) + buildExclusionSection(newsHistory, 'simn') + krNewsSection, { maxTokens: 2000, ...pplxOpts }),
+    callPerplexity(getFesiPrompt(todayKST, prevData?.fesi) + buildExclusionSection(newsHistory, 'fesi') + krNewsSection, { maxTokens: 2500, ...pplxOpts, fixtureKey: 'fesi' }),
+    callPerplexity(getFemnPrompt(todayKST, prevData?.femn) + buildExclusionSection(newsHistory, 'femn') + krNewsSection, { maxTokens: 2000, ...pplxOpts, fixtureKey: 'femn' }),
+    callPerplexity(getSimnPrompt(todayKST, prevData?.simn) + buildExclusionSection(newsHistory, 'simn') + krNewsSection, { maxTokens: 2000, ...pplxOpts, fixtureKey: 'simn' }),
   ]);
 }
 

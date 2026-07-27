@@ -23,7 +23,6 @@ export interface FerroItem {
   cif_est_usd?: number | null;       // FOB + 운임 가정
   krw_per_kg?: number | null;        // 원/kg 환산 (CIF × USD/KRW ÷ 1000)
   freight_assumption_usd?: number | null;
-  reference: string;               // "HBIS Group 2026년 3월 입찰가"
   direction: Direction;
   change_cny: string | null;       // "+190" or "-80" or null
   supply_cause: string;

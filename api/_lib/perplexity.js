@@ -1,5 +1,9 @@
 // api/lib/perplexity.js — Perplexity API 호출 및 JSON 파싱 헬퍼
 
+import {
+  reserveCall, FIXTURE_MODE, RECORD_MODE, readFixture, writeFixture,
+} from './budget.js';
+
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 
 /**
@@ -10,6 +14,7 @@ const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
  * @param {string}   [opts.searchAfterDate] - search_after_date_filter: 'M/D/YYYY' (recency와 동시 사용 불가)
  * @param {string[]} [opts.domainFilter]    - search_domain_filter (최대 10개)
  * @param {boolean}  [opts.withMeta=false]  - true면 { content, searchResults } 반환
+ * @param {string}   [opts.fixtureKey]      - PPLX_FIXTURE/RECORD 모드에서 쓸 파일명
  * @returns {Promise<string | { content: string, searchResults: Array<{title?: string, url: string, date?: string}> }>}
  */
 export async function callPerplexity(prompt, {
@@ -18,7 +23,17 @@ export async function callPerplexity(prompt, {
   searchAfterDate = null,
   domainFilter = null,
   withMeta = false,
+  fixtureKey = null,
 } = {}) {
+  // fixture 모드: 네트워크·과금 없이 저장된 응답을 돌려준다 (프롬프트 외 작업용)
+  if (FIXTURE_MODE) {
+    const saved = await readFixture(fixtureKey);
+    return withMeta ? saved : saved.content;
+  }
+
+  // 일일 상한 — 초과 시 BudgetExceededError가 올라가고 호출부가 캐시로 fallback
+  await reserveCall(fixtureKey ?? 'perplexity');
+
   const body = {
     model: 'sonar',
     messages: [
@@ -60,11 +75,13 @@ export async function callPerplexity(prompt, {
   const u = data.usage;
   if (u) console.log(`[Perplexity] usage — prompt:${u.prompt_tokens} completion:${u.completion_tokens} total:${u.total_tokens} max_tokens:${maxTokens}${recency ? ` recency:${recency}` : ''}`);
   const content = data.choices?.[0]?.message?.content ?? '';
-  if (!withMeta) return content;
   const searchResults = Array.isArray(data.search_results)
     ? data.search_results
     : Array.isArray(data.citations) ? data.citations.map(u => ({ url: u })) : [];
-  return { content, searchResults };
+
+  if (RECORD_MODE) await writeFixture(fixtureKey, { content, searchResults });
+
+  return withMeta ? { content, searchResults } : content;
 }
 
 export function parseJSON(raw) {

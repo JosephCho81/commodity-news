@@ -70,7 +70,7 @@ export async function handleFerroalloyTab(token, res) {
     console.log('[Perplexity] 합금철 종합 호출 시작');
     const summaryRaw = await callPerplexity(
       getFerroalloySummaryPrompt(todayKST, fesi, femn, simn),
-      { maxTokens: 1000, recency: 'week' }
+      { maxTokens: 1000, recency: 'week', fixtureKey: 'ferro-summary' }
     );
     const sr = parseJSON(summaryRaw);
     market_summary = {

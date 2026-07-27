@@ -10,8 +10,6 @@ export interface AluminumData extends ApiMeta {
     move_reason: string;
     market_status: string;
     outlook: string;
-    lme_verified?: boolean | string;
-    lme_verify_source?: string;
     source?: string | null;        // 'westmetall' | 'perplexity' | 'carried' 등
     carried_over?: boolean;        // 전일값 이월 여부
     holiday_note?: string | null;
@@ -106,7 +104,6 @@ export interface RecarburizerData extends ApiMeta {
     carried_over?: boolean;
     cif_korea?: number | string | null;
     domestic_shanxi?: number | string | null;
-    calcined_cac_fob?: number | string | null;
     price_range_text?: string | null;
     price_range_source?: string | null;
     price_range_note?: string | null;

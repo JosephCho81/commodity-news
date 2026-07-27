@@ -23,7 +23,7 @@ export function getDrossPrompt(date) {
 2. "미확인/정보 없음/확인 불가" 등 불확실 표현 금지. 못 찾으면 업계 구조적 현황으로 서술.
 3. 아래 주입된 【헤드라인】·【선물/스크랩 데이터】·【전일 데이터】를 1차 근거로 사용. 헤드라인에 없는 사실 날조 금지.
 4. [1][2] 각주 금지. 한국어. 막연한 서술 금지 — 수치·인과 포함.
-5. key_issues·regulation_watch: 헤드라인 근거 있는 것만. 없으면 빈 배열 [].
+5. key_issues·regulation_watch: 헤드라인 근거 있는 것만. 없으면 빈 배열 []. 같은 사건을 두 배열에 중복 기재 금지 — regulation_watch는 순수 규제·정책 이슈만, key_issues는 그 외(가격·수급·기업 동향) 이슈만 담을 것. 오늘 이슈가 규제·정책 성격이면 regulation_watch에만 넣고 key_issues에는 다른 이슈가 없으면 빈 배열로 둘 것.
 6. 가격 상승 강조: 원료(스크랩·2차 알루미늄) 절대가의 전주·전월 대비 상승을 종합 판단의 1차 근거로 삼고, '1차-2차 가격차 축소'를 2차 강세(원료비 상승 압력)의 보조 근거로 엮을 것. 단, 실제 데이터가 하락/보합이면 상승으로 왜곡 금지.
 
 {
@@ -63,7 +63,6 @@ export function getDrossPrompt(date) {
       "what": "구체 수치 포함 1문장", "why": "원인 1~2문장", "impact": "사업 영향 1문장", "outlook": "단기 전망 1문장",
       "published_date": "YYYY-MM-DD 또는 null", "source_name": "매체명 또는 null"
     }
-  ],
-  "updated_at": "응답 생성 시각 (ISO 8601)"
+  ]
 }`;
 }
