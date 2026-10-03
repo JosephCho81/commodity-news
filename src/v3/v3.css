@@ -52,7 +52,7 @@
 
 /* 신호판 */
 .v3 .sig { display: grid; gap: 1px; background: var(--border2); }
-.v3 .sig-row { display: grid; grid-template-columns: 112px 74px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); cursor: pointer; text-align: left; border: 0; font: inherit; color: inherit; width: 100%; }
+.v3 .sig-row { display: grid; grid-template-columns: 200px 74px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); cursor: pointer; text-align: left; border: 0; font: inherit; color: inherit; width: 100%; }
 .v3 .sig-row:hover { background: var(--surface2); }
 .v3 .sig-name { font-weight: 700; font-size: 15px; }
 .v3 .sig-num { font-size: 12.5px; color: var(--text3); }
@@ -99,7 +99,8 @@
 .v3 .range-t { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); }
 .v3 .n-src { font-size: 11px; color: var(--text3); }
 
-.v3 .four { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+/* 4칸은 길이가 제각각인 글이라 여러 열로 놓으면 빈 공간이 생긴다 — 항상 한 열 흐름 */
+.v3 .four { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; }
 .v3 .cell { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .v3 .cell h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; }
 .v3 .cell h3 i { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--orange); letter-spacing: .3px; }
@@ -171,7 +172,6 @@
   .v3 .sig-row .sig-text { grid-area: t; }
   .v3 .sig-row .sig-end { grid-area: e; }
   .v3 .sig-row .sig-dir-w { display: none; }
-  .v3 .four { grid-template-columns: minmax(0,1fr); }
   .v3 .lead h1 { font-size: 19px; }
   .v3 .brand span { display: none; }
   .v3 .imp { grid-template-columns: minmax(0,1fr); gap: 2px; }
