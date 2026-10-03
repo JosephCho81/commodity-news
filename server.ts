@@ -2,7 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import getNewsHandler from "./api/get-news.js";
+import getReportHandler from "./api/get-report.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +13,7 @@ async function startServer() {
 
   app.use(express.json());
 
-  app.get("/api/get-news", (req, res) => getNewsHandler(req, res));
+  app.get("/api/get-report", (req, res) => getReportHandler(req, res));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

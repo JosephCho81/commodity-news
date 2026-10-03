@@ -1,13 +1,7 @@
 {
   "functions": {
-    "api/get-news.js": {
-      "maxDuration": 120
-    },
-    "api/cron-refresh.js": {
-      "maxDuration": 300
-    },
     "api/macro-sentinel.js": {
-      "maxDuration": 120
+      "maxDuration": 60
     },
     "api/collect-daily.js": {
       "maxDuration": 300
@@ -20,10 +14,6 @@
     {
       "path": "/api/collect-daily",
       "schedule": "30 18 * * *"
-    },
-    {
-      "path": "/api/cron-refresh",
-      "schedule": "0 19 * * *"
     }
   ],
   "headers": [

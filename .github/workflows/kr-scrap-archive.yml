@@ -9,6 +9,20 @@ on:
   workflow_dispatch:
 
 jobs:
+  # 공개 저장소의 예약 워크플로는 60일간 활동이 없으면 GitHub가 끈다(2026-09 센티널이 이렇게 꺼졌다).
+  # enable API 호출이 비활성 타이머를 초기화하므로 예약 워크플로들을 주기적으로 다시 켠다.
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for wf in kr-scrap-archive.yml macro-sentinel.yml; do
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/$wf/enable"
+          done
+
   archive:
     runs-on: ubuntu-latest
     timeout-minutes: 10

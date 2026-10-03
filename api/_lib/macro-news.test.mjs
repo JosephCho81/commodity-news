@@ -91,7 +91,7 @@ assert.equal(stale.score, 0);
 // ─── 프롬프트 섹션: 증거 우선 포함 + 트리거 시 지시문 ───────────────────────
 const sec = buildMacroSection({ items: dealBreaks, analysis: a2 });
 assert.ok(sec.includes('글로벌 와이어 헤드라인'));
-assert.ok(sec.includes('macro_event로 반드시 작성'));
+assert.ok(sec.includes('공통 요인 첫 항목으로'));
 assert.ok(/deal|peace/i.test(sec));
 assert.equal(buildMacroSection(null), '');
 assert.equal(buildMacroSection({ items: [], analysis: quiet }), '');

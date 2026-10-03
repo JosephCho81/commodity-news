@@ -1,4 +1,4 @@
-// api/_lib/budget.js — Perplexity 일일 호출 상한(서킷 브레이커) + 개발용 fixture
+// api/_lib/budget.js — Perplexity 일일 호출 상한(서킷 브레이커)
 //
 // 2026-07-25~26 glove-news 프롬프트 작업 중 3일간 $21.49(평시의 16배)가 소진됐다.
 // 원인은 단가가 아니라 "상한이 없다"는 것 — 어떤 최적화를 해도 상한이 없으면 재발한다.
@@ -83,40 +83,4 @@ export async function reserveCall(label = '') {
   bumpLocal(date, 1);
   console.log(`[Budget] ${label} — ${next}/${CAP}`);
   return { used: next, cap: CAP };
-}
-
-// ─── 개발용 fixture ────────────────────────────────────────────────────────
-// 프롬프트를 고칠 때 필요한 실호출은 1회뿐이다. 후처리·검증·렌더링 확인은
-// 저장된 응답으로 충분한데, 지금까지는 매번 실 API를 쳤다.
-//   PPLX_FIXTURE=1  → api/_fixtures/{key}.json 반환 (네트워크 0)
-//   PPLX_RECORD=1   → 실호출 후 fixture 갱신 (로컬 전용)
-export const FIXTURE_MODE = process.env.PPLX_FIXTURE === '1';
-export const RECORD_MODE  = process.env.PPLX_RECORD  === '1';
-
-async function fixturePath(key) {
-  const { join } = await import('node:path');
-  return join(process.cwd(), 'api', '_fixtures', `${key}.json`);
-}
-
-export async function readFixture(key) {
-  if (!key) throw new Error('PPLX_FIXTURE=1 이지만 fixtureKey가 없습니다');
-  const { readFile } = await import('node:fs/promises');
-  const path = await fixturePath(key);
-  const raw = await readFile(path, 'utf8');
-  console.log(`[Fixture] ▶ ${key} (네트워크 호출 없음)`);
-  return JSON.parse(raw);
-}
-
-export async function writeFixture(key, payload) {
-  if (!key) return;
-  try {
-    const { writeFile, mkdir } = await import('node:fs/promises');
-    const { dirname } = await import('node:path');
-    const path = await fixturePath(key);
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(payload, null, 2), 'utf8');
-    console.log(`[Fixture] ⏺ ${key} 기록 완료`);
-  } catch (e) {
-    console.warn(`[Fixture] 기록 실패(${key}):`, e.message);
-  }
 }

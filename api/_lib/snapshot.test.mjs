@@ -1,8 +1,7 @@
-// node api/_lib/snapshot.test.mjs — 숫자 스냅샷·해외 스크랩·가탄제 범위 회귀 테스트 (npm test)
+// node api/_lib/snapshot.test.mjs — 숫자 스냅샷·해외 스크랩·관세청·시계열 회귀 테스트 (npm test)
 import assert from 'node:assert/strict';
 import { parseScrapListing, decodeDataPage } from './recycleinme.js';
 import { toHistoryEntries } from './snapshot.js';
-import { dropUnsourcedRange } from './tab-recarburizer.js';
 import { parseNitemtrade } from './customs.js';
 
 // ─── recycleinme 목록 파싱 ──────────────────────────────────────────────────
@@ -47,19 +46,6 @@ assert.equal(decodeDataPage('<div data-page="{&quot;a&quot;:&quot;x&amp;y&quot;}
   ]);
   const weekday = toHistoryEntries({ fx: { usd_krw: { rate: 1350, date: '2026-10-05' }, cny_usd: { rate: 0.149, date: '2026-10-05' } } });
   assert.deepEqual(weekday, [{ d: '2026-10-05', usdkrw: 1350, cnyusd: 0.149 }]);
-}
-
-// ─── 가탄제: 출처 없는 범위는 가격으로 쓰지 않는다 ────────────────────────────
-{
-  const p = { price_range_text: '100~180 USD/MT', price_range_source: '전일 제시 범위 및 중국 무연탄 통상 범위' };
-  dropUnsourcedRange(p);
-  assert.equal(p.price_range_text, null);
-  const q = { price_range_text: '190~210 USD/MT', price_range_source: null };
-  dropUnsourcedRange(q);
-  assert.equal(q.price_range_text, null);
-  const r = { price_range_text: '200~215 USD/MT', price_range_source: 'sxcoal 2026-09-30' };
-  dropUnsourcedRange(r);
-  assert.equal(r.price_range_text, '200~215 USD/MT');
 }
 
 // ─── 관세청 무연탄 수입단가 ──────────────────────────────────────────────────

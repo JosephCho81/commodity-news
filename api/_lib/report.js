@@ -11,7 +11,7 @@ const BRIEF_INSTRUCTIONS = `당신은 국내 제강사 구매팀이 매일 아�
 아래 시장별 요약만 보고 오늘 전체 시장을 정리합니다. 새 사실이나 숫자를 만들지 않습니다.
 - one_liner: 오늘 원자재 시장 전체를 한 줄로(40자 이내). 가장 중요한 변화가 먼저.
 - lead: 2~3문장. 어떤 시장이 구매에 유리하고 어떤 시장이 불리한지, 왜 그런지.
-- common: 여러 시장에 동시에 작용하는 요인(환율, 중국 정책·연휴, 철강 감산 등) 1~3개. 각 요인이 어느 시장에 어떤 방향으로 작용하는지.
+- common: 여러 시장에 동시에 작용하는 요인(환율, 중국 정책·연휴, 철강 감산, 거시 이벤트 등) 1~3개. 각 요인이 어느 시장에 어떤 방향으로 작용하는지. 거시 이벤트는 아래 헤드라인에 있는 것만 쓴다.
 문체는 짧은 서술체 평서문. 숫자는 입력에 있는 값과 단위를 그대로 쓴다.`;
 
 const BRIEF_SCHEMA = {
@@ -41,7 +41,7 @@ export function buildBriefInput(results, history) {
   return lines.join('\n');
 }
 
-export async function generateReport({ history, snap, evidence, callAgent, model = DEFAULT_MODEL, date }) {
+export async function generateReport({ history, snap, evidence, callAgent, model = DEFAULT_MODEL, date, macroSection = '' }) {
   // 동시 2개 — 5개를 한꺼번에 보내면 요청 한도(429)에 걸린다
   const settled = new Array(MARKETS.length);
   let next = 0;
@@ -61,7 +61,8 @@ export async function generateReport({ history, snap, evidence, callAgent, model
   let brief = null;
   const ok = Object.values(markets).filter(r => !r.error);
   if (ok.length) {
-    const input = buildBriefInput(ok, history);
+    // 거시 헤드라인(Google News 와이어)은 브리핑 공통 요인의 근거로만 쓴다
+    const input = buildBriefInput(ok, history) + macroSection;
     try {
       const res = await callAgent({ instructions: BRIEF_INSTRUCTIONS, input, schema: BRIEF_SCHEMA, model, maxOutputTokens: 2000, label: 'brief' });
       if (res.json) {

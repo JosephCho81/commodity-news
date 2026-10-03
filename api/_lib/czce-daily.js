@@ -53,26 +53,3 @@ export async function fetchCzceDaily(dateStr) {
   if (!res.ok) throw new Error(`czce HTTP ${res.status}`);
   return decodeGbk(res);
 }
-
-/**
- * 합금철 가격 시계열 콜드스타트 백필 — 최근 N일 SF/SM 정산가.
- * 휴장일은 자동 스킵. 병렬 fetch (정적파일이라 빠름).
- * @returns {Promise<Array<{d: string, sf: number|null, sm: number|null}>>} 날짜 오름차순
- */
-export async function backfillZceHistory(days = 14) {
-  const dates = Array.from({ length: days }, (_, i) =>
-    new Date(Date.now() + 9 * 3600000 - (i + 1) * 86400000).toISOString().slice(0, 10)
-  );
-  const settled = await Promise.allSettled(dates.map(async (d) => {
-    const text = await fetchCzceDaily(d);
-    const sf = parseCzceText(text, 'SF');
-    const sm = parseCzceText(text, 'SM');
-    return { d, sf: sf?.settle ?? null, sm: sm?.settle ?? null };
-  }));
-  const rows = settled
-    .filter(s => s.status === 'fulfilled' && (s.value.sf || s.value.sm))
-    .map(s => s.value)
-    .sort((a, b) => a.d.localeCompare(b.d));
-  console.log(`[ZCE] 백필: ${rows.length}/${days}일 수집`);
-  return rows;
-}

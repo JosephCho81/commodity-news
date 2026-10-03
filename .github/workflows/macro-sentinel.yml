@@ -1,5 +1,5 @@
-# 매시간 매크로 이벤트 센티널 호출 — Vercel Hobby cron(일 1회) 한계 보완
-# 필요 시크릿: CRON_SECRET (Vercel 환경변수의 CRON_SECRET와 동일 값으로 등록)
+# 매시간 매크로 이벤트 센티널 — 새 거시 이벤트가 감지되면 리포트를 다시 만든다(하루 1회 상한, 서버가 판정)
+# 필요 시크릿: CRON_SECRET (Vercel 환경변수의 CRON_SECRET와 동일 값)
 name: macro-sentinel
 
 on:
@@ -10,10 +10,19 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Call sentinel endpoint
+        id: sentinel
         run: |
-          curl -sS --fail-with-body --max-time 180 \
+          body=$(curl -sS --fail-with-body --max-time 90 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://news.a1kor.com/api/macro-sentinel"
+            "https://news.a1kor.com/api/macro-sentinel")
+          echo "$body"
+          echo "regenerate=$(echo "$body" | jq -r '.regenerate')" >> "$GITHUB_OUTPUT"
+      - name: Regenerate report
+        if: steps.sentinel.outputs.regenerate == 'true'
+        run: |
+          curl -sS --fail-with-body --max-time 320 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://news.a1kor.com/api/collect-daily"

@@ -4,7 +4,6 @@
 // 검증: 2026-06-10 SF 정산 5,874 / SM 6,012 — 양 소스 완전 일치 확인됨.
 
 import { parseCzceText, fetchCzceDaily } from './czce-daily.js';
-export { backfillZceHistory } from './czce-daily.js';
 
 // 심볼 정의 — sina nf_ 코드 / 거래소 / 표시명 / hard bound
 export const ZCE_SYMBOLS = {

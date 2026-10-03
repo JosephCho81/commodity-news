@@ -1,8 +1,0 @@
-/* app.css — 스타일 배럴. 실제 규칙은 분할 파일에. @import 순서 = 캐스케이드 순서 (변경 금지) */
-@import './base.css';
-@import './cards.css';
-@import './widgets.css';
-@import './ferro.css';
-@import './steel.css';
-@import './v2.css';
-@import './desktop.css';

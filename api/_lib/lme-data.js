@@ -1,4 +1,4 @@
-// api/_lib/lme-data.js — LME 알루미늄 직접 수집 (westmetall + TradingEconomics 전망)
+// api/_lib/lme-data.js — LME 알루미늄 Cash-Settlement (westmetall)
 
 import { getLmeHolidayNote } from './uk-holidays.js';
 
@@ -71,40 +71,7 @@ export async function fetchLmePrice() {
       source:       'westmetall',
     };
   } catch (e) {
-    console.warn('[LME] westmetall fetch 실패 — Perplexity fallback:', e.message);
-    return null;
-  }
-}
-
-// ─── Trading Economics 전망 텍스트 fetch ──────────────────────────────────────
-export async function fetchAluminumOutlook() {
-  try {
-    const res = await fetch('https://tradingeconomics.com/commodity/aluminum', {
-      signal: AbortSignal.timeout(8000),
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
-    if (!res.ok) throw new Error(`TE HTTP ${res.status}`);
-    const html = await res.text();
-
-    // <h2> 태그의 첫 번째 시황 텍스트 추출
-    const h2Match = html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/g);
-    if (!h2Match) throw new Error('TE: h2 없음');
-
-    // 텍스트 정리 (HTML 태그 제거)
-    const texts = h2Match
-      .map(h => h.replace(/<[^>]+>/g, '').trim())
-      .filter(t => t.length > 50);
-
-    if (texts.length === 0) throw new Error('TE: 텍스트 없음');
-
-    console.log(`[TE] 전망 텍스트 fetch 성공 (${texts[0].slice(0, 50)}...)`);
-    return texts.slice(0, 2).join(' ');
-  } catch (e) {
-    console.warn('[TE] 전망 fetch 실패:', e.message);
+    console.warn('[LME] westmetall 수집 실패(스냅샷 누락으로 기록):', e.message);
     return null;
   }
 }

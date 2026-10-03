@@ -1,6 +1,6 @@
 // api/collect-daily.js — 매일 KST 03:30 수집 (Vercel Cron "30 18 * * *")
 // 1) 시장 숫자 스냅샷  2) 시장별 근거 묶음(신뢰 소스 기사 본문)  3) 시장별 해석 + 브리핑(LLM 6~11회).
-// 04:00 cron-refresh(생성)보다 먼저 돌아 생성 단계가 같은 숫자·같은 근거를 쓰게 한다.
+// 매크로 이벤트 감지 시 센티널 워크플로도 이 엔드포인트를 호출해 리포트를 다시 만든다(하루 1회 상한).
 
 export const config = { maxDuration: 300 };
 
@@ -11,6 +11,7 @@ import { collectEvidence } from './_lib/evidence.js';
 import { generateReport } from './_lib/report.js';
 import { callAgent } from './_lib/agent.js';
 import { setBudgetToken } from './_lib/budget.js';
+import { fetchGlobalMacroNews, buildMacroSection } from './_lib/macro-news.js';
 
 const SEEN_DAYS = 5;
 
@@ -59,14 +60,15 @@ export default async function handler(req, res) {
   if (result.snapshot.ok && result.evidence?.ok && process.env.PERPLEXITY_API_KEY) {
     try {
       setBudgetToken(token);
-      const [hist, snapDoc, evDoc] = await Promise.all([
+      const [hist, snapDoc, evDoc, macro] = await Promise.all([
         getFromFirestore(token, 'commodity_cache', 'price_history_market'),
         getFromFirestore(token, 'commodity_cache', 'market_snapshot_latest'),
         getFromFirestore(token, 'commodity_cache', 'evidence_latest'),
+        fetchGlobalMacroNews().catch(() => null),
       ]);
       const report = await generateReport({
         history: JSON.parse(hist.items), snap: JSON.parse(snapDoc.data), evidence: JSON.parse(evDoc.data),
-        callAgent, date,
+        callAgent, date, macroSection: buildMacroSection(macro, 10),
       });
       const payload = { data: JSON.stringify(report), date, generated_at: report.generated_at };
       await Promise.all([
