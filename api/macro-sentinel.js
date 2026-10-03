@@ -8,7 +8,7 @@ import { FIREBASE_ENABLED, getFirestoreToken, getFromFirestore, saveToFirestore 
 import { fetchGlobalMacroNews, isMacroTrigger } from './_lib/macro-news.js';
 import { getKSTDate } from './_lib/cache-store.js';
 
-const MAX_TRIGGERS_PER_DAY = 3;          // Perplexity 비용 상한 (이벤트일에만 소진)
+const MAX_TRIGGERS_PER_DAY = 1;          // Perplexity 비용 상한 (이벤트일에만 소진)
 const ACTIVE_KST_HOURS = [6, 23];        // 새벽 04:00 정기 cron이 있으므로 야간 트리거는 낭비
 
 // 배포 URL(VERCEL_URL)은 Vercel Authentication으로 보호되어 self-fetch가 차단됨 — 공개 도메인 사용
