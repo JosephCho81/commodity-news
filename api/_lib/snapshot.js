@@ -15,23 +15,32 @@ export const FUTURES_KEYS = ['sf', 'sm', 'jm', 'j', 'al', 'ad', 'rb', 'hc'];
 const HISTORY_DAYS = 400; // 1년 범위(최저·최고) 계산용
 const BACKFILL_BELOW = 200; // 시계열이 이보다 짧으면 과거분을 소스에서 채운다
 
-// 스냅샷 → 시계열 1행 (순수 함수 — 테스트 대상)
-export function toHistoryEntry(snap) {
-  const e = { d: snap.date };
-  const lme = Number(snap.lme_al?.price);
-  if (lme > 0) e.lme = lme;
-  for (const k of FUTURES_KEYS) {
-    const v = Number(snap.futures?.[k]?.settle);
-    if (v > 0) e[k] = v;
+// 스냅샷 → 시계열 행들 (순수 함수 — 테스트 대상)
+// 값마다 실제 거래일 날짜로 넣는다. 수집일로 넣으면 휴장일에 직전 값이 한 번 더 쌓여 변동률이 0으로 왜곡된다.
+export function toHistoryEntries(snap) {
+  const rows = new Map();
+  const put = (d, k, v) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d ?? '') || !(v > 0)) return;
+    rows.set(d, { ...(rows.get(d) ?? { d }), [k]: v });
+  };
+  put(snap.lme_al?.date, 'lme', Number(snap.lme_al?.price));
+  for (const k of FUTURES_KEYS) put(snap.futures?.[k]?.date, k, Number(snap.futures?.[k]?.settle));
+  // 환율 수집일 = 조회일. 주말에는 직전 영업일 값이라 넣지 않는다
+  const fxDate = snap.fx?.usd_krw?.date;
+  const dow = fxDate ? new Date(`${fxDate}T00:00:00Z`).getUTCDay() : 0;
+  if (dow !== 0 && dow !== 6) {
+    put(fxDate, 'usdkrw', snap.fx?.usd_krw?.rate);
+    put(fxDate, 'cnyusd', snap.fx?.cny_usd?.rate);
   }
-  if (snap.fx?.usd_krw?.rate > 0) e.usdkrw = snap.fx.usd_krw.rate;
-  if (snap.fx?.cny_usd?.rate > 0) e.cnyusd = snap.fx.cny_usd.rate;
-  const scrap = {};
   for (const [code, g] of Object.entries(snap.scrap_overseas ?? {})) {
-    for (const it of g.items ?? []) if (it.usd_t > 0) scrap[`${code}:${it.grade}`] = it.usd_t;
+    for (const it of g.items ?? []) {
+      if (!(it.usd_t > 0) || !it.date) continue;
+      const r = rows.get(it.date) ?? { d: it.date };
+      r.scrap = { ...(r.scrap ?? {}), [`${code}:${it.grade}`]: it.usd_t };
+      rows.set(it.date, r);
+    }
   }
-  if (Object.keys(scrap).length) e.scrap = scrap;
-  return e;
+  return [...rows.values()].sort((x, y) => x.d.localeCompare(y.d));
 }
 
 export async function collectSnapshot(token) {
@@ -89,9 +98,8 @@ export async function refreshSnapshot(token) {
     ]);
     const history = await readPriceHistory(token, 'market');
     const incoming = history.length < BACKFILL_BELOW ? await buildBackfill(snap, FUTURES_KEYS, HISTORY_DAYS).catch(() => []) : [];
-    // 오늘 행은 방금 수집한 실측값으로 교체하고, 백필은 빈 날짜만 채운다
-    const today = toHistoryEntry(snap);
-    const merged = mergeHistory([...history.filter(h => h.d !== today.d), today], incoming, HISTORY_DAYS);
+    // 방금 수집한 실측값이 우선, 그다음 기존 기록, 백필은 빈 칸만 채운다
+    const merged = mergeHistory(toHistoryEntries(snap), mergeHistory(history, incoming, HISTORY_DAYS), HISTORY_DAYS);
     await saveToFirestore(token, 'commodity_cache', 'price_history_market', { items: JSON.stringify(merged), updated_at: String(Date.now()) });
   }
   console.log(`[Snapshot] ${snap.date} 수집 완료 — 누락 ${snap.errors.length}건${snap.errors.length ? ': ' + snap.errors.join(' / ') : ''}`);

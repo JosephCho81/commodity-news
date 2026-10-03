@@ -10,7 +10,7 @@
       "maxDuration": 120
     },
     "api/collect-daily.js": {
-      "maxDuration": 120
+      "maxDuration": 300
     }
   },
   "crons": [

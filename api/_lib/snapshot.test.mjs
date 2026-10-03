@@ -1,7 +1,7 @@
 // node api/_lib/snapshot.test.mjs — 숫자 스냅샷·해외 스크랩·가탄제 범위 회귀 테스트 (npm test)
 import assert from 'node:assert/strict';
 import { parseScrapListing, decodeDataPage } from './recycleinme.js';
-import { toHistoryEntry } from './snapshot.js';
+import { toHistoryEntries } from './snapshot.js';
 import { dropUnsourcedRange } from './tab-recarburizer.js';
 import { parseNitemtrade } from './customs.js';
 
@@ -32,17 +32,21 @@ assert.equal(parsed.uk.items[0].change_pct, -1.82);
 assert.deepEqual(parseScrapListing(null), {});
 assert.equal(decodeDataPage('<div data-page="{&quot;a&quot;:&quot;x&amp;y&quot;}"></div>').a, 'x&y');
 
-// ─── 스냅샷 → 시계열 행: 실패 항목은 키 자체가 없어야 한다(0이나 추정값 금지) ───────
+// ─── 스냅샷 → 시계열 행: 값마다 실제 거래일 날짜, 실패 항목은 키 없음, 주말 환율 제외 ───────
 {
-  const e = toHistoryEntry({
+  const rows = toHistoryEntries({
     date: '2026-10-03',
-    lme_al: { price: '3109.5' },
-    futures: { sf: { settle: 5982 }, sm: null, jm: { settle: 0 } },
-    fx: { usd_krw: { rate: 1348.28 } },
-    scrap_overseas: { us: { items: [{ grade: 'AL Extrusion', usd_t: 2315 }] } },
+    lme_al: { price: '3109.5', date: '2026-10-02' },
+    futures: { sf: { settle: 5982, date: '2026-09-30' }, sm: null, jm: { settle: 0, date: '2026-09-30' } },
+    fx: { usd_krw: { rate: 1348.28, date: '2026-10-03' }, cny_usd: { rate: 0.149, date: '2026-10-03' } }, // 토요일
+    scrap_overseas: { us: { items: [{ grade: 'AL Extrusion', usd_t: 2315, date: '2026-09-30' }] } },
   });
-  assert.deepEqual(e, { d: '2026-10-03', lme: 3109.5, sf: 5982, usdkrw: 1348.28, scrap: { 'us:AL Extrusion': 2315 } });
-  assert.deepEqual(toHistoryEntry({ date: '2026-10-04', futures: {}, fx: {}, scrap_overseas: {} }), { d: '2026-10-04' });
+  assert.deepEqual(rows, [
+    { d: '2026-09-30', sf: 5982, scrap: { 'us:AL Extrusion': 2315 } },
+    { d: '2026-10-02', lme: 3109.5 },
+  ]);
+  const weekday = toHistoryEntries({ fx: { usd_krw: { rate: 1350, date: '2026-10-05' }, cny_usd: { rate: 0.149, date: '2026-10-05' } } });
+  assert.deepEqual(weekday, [{ d: '2026-10-05', usdkrw: 1350, cnyusd: 0.149 }]);
 }
 
 // ─── 가탄제: 출처 없는 범위는 가격으로 쓰지 않는다 ────────────────────────────

@@ -1,13 +1,16 @@
 // api/collect-daily.js — 매일 KST 03:30 수집 (Vercel Cron "30 18 * * *")
-// 1) 시장 숫자 스냅샷  2) 시장별 근거 묶음(신뢰 소스 기사 본문). LLM 호출 없음.
+// 1) 시장 숫자 스냅샷  2) 시장별 근거 묶음(신뢰 소스 기사 본문)  3) 시장별 해석 + 브리핑(LLM 6~11회).
 // 04:00 cron-refresh(생성)보다 먼저 돌아 생성 단계가 같은 숫자·같은 근거를 쓰게 한다.
 
-export const config = { maxDuration: 120 };
+export const config = { maxDuration: 300 };
 
 import { FIREBASE_ENABLED, getFirestoreToken, getFromFirestore, saveToFirestore } from './_lib/firebase.js';
 import { getKSTDate } from './_lib/cache-store.js';
 import { refreshSnapshot } from './_lib/snapshot.js';
 import { collectEvidence } from './_lib/evidence.js';
+import { generateReport } from './_lib/report.js';
+import { callAgent } from './_lib/agent.js';
+import { setBudgetToken } from './_lib/budget.js';
 
 const SEEN_DAYS = 5;
 
@@ -50,6 +53,31 @@ export default async function handler(req, res) {
     result.evidence = { ok: true, stats };
   } catch (e) {
     result.evidence = { ok: false, error: e.message };
+  }
+
+  // 3) 시장별 해석 + 브리핑 (LLM, 검색 없음). 숫자·근거가 오늘 것으로 저장된 뒤에만.
+  if (result.snapshot.ok && result.evidence?.ok && process.env.PERPLEXITY_API_KEY) {
+    try {
+      setBudgetToken(token);
+      const [hist, snapDoc, evDoc] = await Promise.all([
+        getFromFirestore(token, 'commodity_cache', 'price_history_market'),
+        getFromFirestore(token, 'commodity_cache', 'market_snapshot_latest'),
+        getFromFirestore(token, 'commodity_cache', 'evidence_latest'),
+      ]);
+      const report = await generateReport({
+        history: JSON.parse(hist.items), snap: JSON.parse(snapDoc.data), evidence: JSON.parse(evDoc.data),
+        callAgent, date,
+      });
+      const payload = { data: JSON.stringify(report), date, generated_at: report.generated_at };
+      await Promise.all([
+        saveToFirestore(token, 'commodity_cache', `market_report_${date}`, payload),
+        saveToFirestore(token, 'commodity_cache', 'market_report_latest', payload),
+      ]);
+      const failed = Object.values(report.markets).filter(m => m.error).map(m => `${m.market}: ${m.error}`);
+      result.report = { ok: !failed.length && !report.brief?.error, failed, cost_usd: report.cost_usd, model: report.model };
+    } catch (e) {
+      result.report = { ok: false, error: e.message };
+    }
   }
 
   result.sec = Math.round((Date.now() - t0) / 1000);
