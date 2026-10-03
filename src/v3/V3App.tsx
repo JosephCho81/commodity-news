@@ -102,7 +102,7 @@ function CustomsCell({ name, rows }: { name: string; rows: { ym: string; usd_per
       <div className="n-l">{name}산 무연탄 평균 수입단가 (관세청)</div>
       <div className="n-v">
         <strong className="num">{fmt(last.usd_per_t!)}</strong><span className="u">USD/t</span>
-        <span className={`chg ${cls}`}>{pctText(chg)}</span><span className="u">전월 대비</span>
+        {prev && <><span className={`chg ${cls}`}>{pctText(chg)}</span><span className="u">{Number(prev.ym.slice(5))}월 대비</span></>}
       </div>
       <Spark values={valid.map(r => r.usd_per_t!)} cls={cls} />
       <div className="n-src">{last.ym} 통관 기준 · CIF · 전 용도 평균 · 소량 월 제외</div>

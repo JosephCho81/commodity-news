@@ -175,6 +175,7 @@
   .v3 .lead h1 { font-size: 19px; }
   .v3 .brand span { display: none; }
   .v3 .imp { grid-template-columns: minmax(0,1fr); gap: 2px; }
+  .v3 nav button { padding: 11px 9px; font-size: 14px; }
 }
 @media (min-width: 721px) { .v3 .sig-name-w .dir { display: none; } }
 @media (prefers-reduced-motion: no-preference) { .v3 nav button { transition: color .15s, border-color .15s; } }
