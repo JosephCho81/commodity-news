@@ -2,7 +2,7 @@
    모바일 1열, 데스크탑 960px. 색은 등락(상승 빨강·하락 파랑)과 브랜드(남색·주황)를 분리한다. */
 .v3 {
   --navy: #1b3668; --navy-dark: #12294b; --navy-light: #eaeff7;
-  --orange: #f47b20; --orange-light: #fef1e6;
+  --accent: #0b7a7c; --accent-light: #e3f2f2;
   --bg: #f6f7f8; --surface: #ffffff; --surface2: #f2f4f5;
   --border: #e4e7e9; --border2: #eef0f2;
   --text: #16181d; --text2: #454b55; --text3: #6b7280; --text4: #9aa3ad;
@@ -33,8 +33,8 @@
 .v3 nav button { flex: 0 0 auto; padding: 11px 14px; border: 0; border-bottom: 2px solid transparent; background: none; font: 600 14.5px var(--sans); color: var(--text3); cursor: pointer; margin-bottom: -1px; white-space: nowrap; }
 .v3 nav button:first-child { margin-left: auto; }
 .v3 nav button:last-child { margin-right: auto; }
-.v3 nav button[aria-selected="true"] { color: var(--navy); border-bottom-color: var(--orange); }
-.v3 button:focus-visible, .v3 a:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.v3 nav button[aria-selected="true"] { color: var(--navy); border-bottom-color: var(--accent); }
+.v3 button:focus-visible, .v3 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .v3 main { padding-block: 16px 48px; }
 .v3 .panel { display: flex; flex-direction: column; gap: 14px; }
@@ -45,8 +45,8 @@
 .v3 .lbl { font-size: 11.5px; font-weight: 700; color: var(--text3); letter-spacing: .3px; }
 
 /* 오늘의 한 줄 */
-.v3 .lead { padding: 18px 18px 16px; border-left: 4px solid var(--orange); }
-.v3 .lead .lbl { color: var(--orange); }
+.v3 .lead { padding: 18px 18px 16px; border-left: 4px solid var(--accent); }
+.v3 .lead .lbl { color: var(--accent); }
 .v3 .lead h1 { margin: 4px 0 6px; font-size: 21px; line-height: 1.4; letter-spacing: -.6px; text-wrap: balance; }
 .v3 .lead p { margin: 0; color: var(--text2); font-size: 14.5px; }
 
@@ -58,17 +58,14 @@
 .v3 .sig-num { font-size: 12.5px; color: var(--text3); }
 .v3 .sig-text { font-size: 14px; color: var(--text2); min-width: 0; }
 .v3 .sig-end { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-.v3 .was { font-size: 11px; color: var(--text3); white-space: nowrap; }
-.v3 .was b { color: var(--orange); }
 
 .v3 .dir { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
 .v3 .dir.up { color: var(--up); background: var(--up-bg); }
 .v3 .dir.down { color: var(--down); background: var(--down-bg); }
 .v3 .dir.flat, .v3 .dir.mixed { color: var(--flat); background: var(--flat-bg); }
-.v3 .buy { padding: 3px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 700; white-space: nowrap; border: 1.5px solid; }
-.v3 .buy.good { color: var(--down); border-color: var(--down); }
-.v3 .buy.wait { color: var(--flat); border-color: var(--border); }
-.v3 .buy.bad { color: var(--up); border-color: var(--up); }
+.v3 .qtr { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.3; white-space: nowrap; }
+.v3 .qtr small { font-size: 11px; color: var(--text3); }
+.v3 .qtr b { font-size: 14px; font-variant-numeric: tabular-nums; }
 
 /* 공통 요인 */
 .v3 .factors { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1px; background: var(--border2); }
@@ -95,7 +92,7 @@
 .v3 .spark { width: 100%; height: 34px; display: block; }
 .v3 .range { display: grid; gap: 3px; }
 .v3 .range-bar { position: relative; height: 5px; border-radius: 3px; background: var(--border); }
-.v3 .range-dot { position: absolute; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: var(--orange); border: 2px solid var(--surface); }
+.v3 .range-dot { position: absolute; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
 .v3 .range-t { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); }
 .v3 .n-src { font-size: 11px; color: var(--text3); }
 
@@ -103,13 +100,12 @@
 .v3 .four { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; }
 .v3 .cell { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .v3 .cell h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; }
-.v3 .cell h3 i { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--orange); letter-spacing: .3px; }
+.v3 .cell h3 i { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--accent); letter-spacing: .3px; }
 .v3 .cell ul { margin: 0; padding-left: 16px; display: grid; gap: 4px; font-size: 14px; color: var(--text2); }
 .v3 .cell ul li::marker { color: var(--text4); }
-.v3 .chain { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 2px; font-size: 13px; }
-.v3 .chain span { padding: 3px 8px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); font-weight: 600; }
-.v3 .chain span.end { background: var(--navy-light); border-color: transparent; color: var(--navy); }
-.v3 .chain em { font-style: normal; color: var(--text4); padding-inline: 2px; }
+.v3 .causes { display: grid; gap: 12px; }
+.v3 .cause b { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 2px; }
+.v3 .cause p { margin: 0; font-size: 14px; color: var(--text2); }
 .v3 .impact { display: grid; gap: 8px; }
 .v3 .imp { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 10px; font-size: 14px; }
 .v3 .imp b { font-size: 13px; }
@@ -164,10 +160,23 @@
   .v3 .sig-row .sig-text { grid-area: t; }
   .v3 .sig-row .sig-end { grid-area: e; }
   .v3 .sig-row .sig-dir-w { display: none; }
-  .v3 .lead h1 { font-size: 19px; }
+  .v3 { font-size: 13.5px; line-height: 1.6; }
+  .v3 .lead { padding: 14px 14px 12px; }
+  .v3 .lead h1 { font-size: 17px; }
+  .v3 .lead p, .v3 .mkt-head p { font-size: 13.5px; }
+  .v3 .mkt-head h1 { font-size: 18px; }
+  .v3 .cell { padding: 12px 14px; gap: 6px; }
+  .v3 .cell h3 { font-size: 14px; }
+  .v3 .cell ul, .v3 .cause p, .v3 .cause b, .v3 .imp, .v3 .w, .v3 .view, .v3 .sig-text, .v3 .factor p { font-size: 13px; }
+  .v3 .imp b, .v3 .scen div { font-size: 12.5px; }
+  .v3 .n { padding: 10px 14px; }
+  .v3 .n-v strong { font-size: 18px; }
+  .v3 .sig-row { padding: 10px 14px; }
+  .v3 .sig-name { font-size: 14px; }
+  .v3 table { font-size: 13px; }
   .v3 .brand span { display: none; }
   .v3 .imp { grid-template-columns: minmax(0,1fr); gap: 2px; }
-  .v3 nav button { padding: 11px 9px; font-size: 14px; }
+  .v3 nav button { padding: 10px 8px; font-size: 13px; }
 }
 @media (min-width: 721px) { .v3 .sig-name-w .dir { display: none; } }
 @media (prefers-reduced-motion: no-preference) { .v3 nav button { transition: color .15s, border-color .15s; } }

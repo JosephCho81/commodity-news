@@ -8,16 +8,6 @@ import { FIREBASE_ENABLED, getFirestoreToken, getFromFirestore } from './_lib/fi
 
 const parse = (doc, field = 'data') => { try { return doc?.[field] ? JSON.parse(doc[field]) : null; } catch { return null; } };
 
-// 직전 리포트(어제 대비 신호 변화용) — 최대 4일 전까지
-async function previousReport(token, date) {
-  for (let i = 1; i <= 4; i++) {
-    const d = new Date(Date.parse(`${date}T00:00:00Z`) - i * 86400000).toISOString().slice(0, 10);
-    const rep = parse(await getFromFirestore(token, 'commodity_cache', `market_report_${d}`).catch(() => null));
-    if (rep) return rep;
-  }
-  return null;
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
   if (!FIREBASE_ENABLED) return res.status(500).json({ error: 'Firestore 비활성' });
@@ -31,12 +21,11 @@ export default async function handler(req, res) {
   const snap = parse(snapDoc);
   if (!report) return res.status(503).json({ error: '리포트 준비 중' });
 
-  const prev = await previousReport(token, report.date);
   const markets = {};
   for (const [k, m] of Object.entries(report.markets ?? {})) {
     // 내부 진단 필드와 근거 기사 목록은 화면에 보내지 않는다(근거는 생성 단계에서만 쓴다)
     const { usage, dropped, model, sources, ...rest } = m;
-    markets[k] = { ...rest, prev_signal: prev?.markets?.[k]?.signal ?? null };
+    markets[k] = rest;
   }
   const brief = report.brief ? { one_liner: report.brief.one_liner, lead: report.brief.lead, common: report.brief.common ?? [] } : null;
 

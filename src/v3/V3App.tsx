@@ -5,9 +5,13 @@ import './v3.css';
 
 type Series = { key: string; label: string; unit: string; value: number; date: string; d1_pct: number | null; w1_pct: number | null; m1_pct: number | null; y_low: number; y_high: number; y_pos: number; spark: number[] };
 type Market = {
-  market: string; name: string; direction: 'up' | 'down' | 'flat' | 'mixed'; signal: string; prev_signal: string | null;
-  metrics: { series: Series[]; krw: { price_pct: number; fx_pct: number; krw_pct: number } | null };
-  headline: string | null; now: string[]; why: { chain: string[] }[]; impact: { area: string; text: string }[];
+  market: string; name: string; direction: 'up' | 'down' | 'flat' | 'mixed';
+  metrics: {
+    series: Series[];
+    krw: { price_pct: number; fx_pct: number; krw_pct: number } | null;
+    quarter: { quarter: string; base_date: string; usd_pct: number | null; krw_pct: number | null } | null;
+  };
+  headline: string | null; now: string[]; why: { region: string; title: string; text: string }[]; impact: { area: string; text: string }[];
   outlook: { view: string | null; watch: string[]; up: string | null; down: string | null };
   error?: string;
 };
@@ -36,8 +40,6 @@ const won = (n: number) => n.toLocaleString('ko-KR');
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 const signClass = (v: number | null | undefined) => (v == null || v === 0 ? 'flat' : v > 0 ? 'up' : 'down');
 const pctText = (v: number | null | undefined) => (v == null ? '─' : `${v > 0 ? '▲' : v < 0 ? '▼' : '─'} ${Math.abs(v).toFixed(2)}%`);
-const buyClass = (s: string) => (/유리|개선/.test(s) ? 'good' : /불리|약함/.test(s) ? 'bad' : 'wait');
-const shortSignal = (s: string | null) => (s ?? '').replace('구매 ', '');
 function dateLabel(d: string) {
   const t = new Date(`${d}T00:00:00Z`);
   return `${d.replaceAll('-', '.')} (${WEEKDAY[t.getUTCDay()]})`;
@@ -109,16 +111,16 @@ function CustomsCell({ name, rows }: { name: string; rows: { ym: string; usd_per
   );
 }
 
-function Chain({ chain }: { chain: string[] }) {
+// 분기 시작 전 마지막 거래일 대비 변동 — 입찰이 분기 단위라 직전 입찰 시점의 기준선. 철강 업황은 수요 지표라 달러 기준
+function QuarterChg({ m }: { m: Market }) {
+  const q = m.metrics.quarter;
+  const v = m.market === 'steel' ? q?.usd_pct : q?.krw_pct;
+  if (!q || v == null) return null;
   return (
-    <div className="chain">
-      {chain.map((s, i) => (
-        <span key={i} style={{ display: 'contents' }}>
-          {i > 0 && <em>→</em>}
-          <span className={i === chain.length - 1 ? 'end' : ''}>{s}</span>
-        </span>
-      ))}
-    </div>
+    <span className="qtr">
+      <small>{q.quarter.slice(5)} 대비{m.market === 'steel' ? '' : ' (원화)'}</small>
+      <b className={`chg ${signClass(v)}`}>{pctText(v)}</b>
+    </span>
   );
 }
 
@@ -130,7 +132,7 @@ function MarketView({ m, extra }: { m: Market; extra?: any }) {
     <>
       <div className="box">
         <div className="mkt-head">
-          <h1>{m.name}</h1><DirPill dir={m.direction} /><span className="sp" /><span className={`buy ${buyClass(m.signal)}`}>{m.signal}</span>
+          <h1>{m.name}</h1><DirPill dir={m.direction} /><span className="sp" /><QuarterChg m={m} />
           {m.headline && <p>{m.headline}</p>}
         </div>
         <div className="nums">
@@ -140,13 +142,18 @@ function MarketView({ m, extra }: { m: Market; extra?: any }) {
       </div>
       <div className="four">
         <div className="cell"><h3><i>지금</i>어떻게 돌아가나</h3><ul>{m.now.map((s, i) => <li key={i}>{s}</li>)}</ul></div>
-        <div className="cell"><h3><i>왜</i>원인</h3>{m.why.map((w, i) => <Chain key={i} chain={w.chain} />)}</div>
+        <div className="cell">
+          <h3><i>왜</i>원인</h3>
+          <div className="causes">
+            {m.why.map((w, i) => <div className="cause" key={i}><b><span className="tag">{w.region}</span>{w.title || null}</b><p>{w.text}</p></div>)}
+          </div>
+        </div>
         <div className="cell">
           <h3><i>영향</i>{demand ? '어떤 원자재 수요에' : '어디에, 어떻게'}</h3>
           <div className="impact">{m.impact.map((x, i) => <div className="imp" key={i}><b>{x.area}</b><span>{x.text}</span></div>)}</div>
           {m.metrics.krw && (
             <div className="krw num">
-              <div><small>현지 가격 (주간)</small><strong className={`chg ${signClass(m.metrics.krw.price_pct)}`}>{pctText(m.metrics.krw.price_pct)}</strong></div>
+              <div><small>달러 가격 (주간)</small><strong className={`chg ${signClass(m.metrics.krw.price_pct)}`}>{pctText(m.metrics.krw.price_pct)}</strong></div>
               <div><small>환율 효과</small><strong className={`chg ${signClass(m.metrics.krw.fx_pct)}`}>{pctText(m.metrics.krw.fx_pct)}</strong></div>
               <div><small>원화 구매가</small><strong className={`chg ${signClass(m.metrics.krw.krw_pct)}`}>{pctText(m.metrics.krw.krw_pct)}</strong></div>
             </div>
@@ -269,7 +276,6 @@ function Briefing({ r, go }: { r: Report; go: (tab: string, sub?: string) => voi
             const m = r.markets[id];
             if (!m || m.error) return null;
             const main = m.metrics.series[0];
-            const now = shortSignal(m.signal), before = shortSignal(m.prev_signal);
             return (
               <button className="sig-row" key={id} onClick={() => go(tab, id)}>
                 <div className="sig-name-w">
@@ -278,10 +284,7 @@ function Briefing({ r, go }: { r: Report; go: (tab: string, sub?: string) => voi
                 </div>
                 <div className="sig-dir-w"><DirPill dir={m.direction} /></div>
                 <div className="sig-text">{m.headline}</div>
-                <div className="sig-end">
-                  <span className={`buy ${buyClass(m.signal)}`}>{m.signal}</span>
-                  <span className="was">{!before ? '' : before === now ? '어제와 같음' : <>어제 {before} → <b>오늘 {now}</b></>}</span>
-                </div>
+                <div className="sig-end"><QuarterChg m={m} /></div>
               </button>
             );
           })}
