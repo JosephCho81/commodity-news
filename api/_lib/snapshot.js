@@ -7,10 +7,13 @@ import { fetchLmePrice } from './lme-data.js';
 import { fetchZceFutures } from './zce-futures.js';
 import { fetchUSDKRWRate, fetchCNYUSDRate, fetchJPYUSDRate } from './exchange-rate.js';
 import { fetchOverseasAluminumScrap } from './recycleinme.js';
-import { getKSTDate, readPriceHistory, savePriceHistory } from './cache-store.js';
+import { fetchAnthraciteImports } from './customs.js';
+import { getKSTDate, readPriceHistory } from './cache-store.js';
+import { buildBackfill, mergeHistory } from './history-backfill.js';
 
 export const FUTURES_KEYS = ['sf', 'sm', 'jm', 'j', 'al', 'ad', 'rb', 'hc'];
 const HISTORY_DAYS = 400; // 1년 범위(최저·최고) 계산용
+const BACKFILL_BELOW = 200; // 시계열이 이보다 짧으면 과거분을 소스에서 채운다
 
 // 스냅샷 → 시계열 1행 (순수 함수 — 테스트 대상)
 export function toHistoryEntry(snap) {
@@ -36,7 +39,7 @@ export async function collectSnapshot(token) {
   const errors = [];
   const guard = (name, p) => p.catch(e => { errors.push(`${name}: ${e.message}`); return null; });
 
-  const [usdKrw, cnyUsd, jpyUsd, lme, futures, scrapOverseas, krLatest] = await Promise.all([
+  const [usdKrw, cnyUsd, jpyUsd, lme, futures, scrapOverseas, krLatest, customs] = await Promise.all([
     guard('usd_krw', fetchUSDKRWRate(token, helpers)),
     guard('cny_usd', fetchCNYUSDRate(token, helpers)),
     guard('jpy_usd', fetchJPYUSDRate(token, helpers)),
@@ -44,6 +47,7 @@ export async function collectSnapshot(token) {
     guard('futures', fetchZceFutures(FUTURES_KEYS)),
     guard('scrap_overseas', fetchOverseasAluminumScrap()),
     token ? guard('scrap_kr', getFromFirestore(token, 'kr_scrap_weekly', '_latest')) : Promise.resolve(null),
+    guard('anthracite_customs', fetchAnthraciteImports()),
   ]);
 
   // 환율 상수 fallback은 숫자처럼 보이지만 실측이 아니다 — 스냅샷에는 넣지 않는다
@@ -59,6 +63,7 @@ export async function collectSnapshot(token) {
   let scrapKr = null;
   try { scrapKr = krLatest?.record ? JSON.parse(krLatest.record) : null; } catch { scrapKr = null; }
   if (!scrapKr?.items?.length) errors.push('scrap_kr: 보관 기록 없음');
+  if (!customs) errors.push('anthracite_customs: 수집 실패 또는 인증키 없음');
 
   return {
     date: getKSTDate(),
@@ -68,7 +73,7 @@ export async function collectSnapshot(token) {
     futures: futures ?? {},
     scrap_overseas: scrapOverseas ?? {},
     scrap_kr: scrapKr,
-    anthracite_customs: null, // 관세청 월간 수입단가 — 인증키 등록 후 연결
+    anthracite_customs: customs,
     errors,
   };
 }
@@ -83,7 +88,11 @@ export async function refreshSnapshot(token) {
       saveToFirestore(token, 'commodity_cache', 'market_snapshot_latest', payload),
     ]);
     const history = await readPriceHistory(token, 'market');
-    await savePriceHistory(token, 'market', history, toHistoryEntry(snap), HISTORY_DAYS);
+    const incoming = history.length < BACKFILL_BELOW ? await buildBackfill(snap, FUTURES_KEYS, HISTORY_DAYS).catch(() => []) : [];
+    // 오늘 행은 방금 수집한 실측값으로 교체하고, 백필은 빈 날짜만 채운다
+    const today = toHistoryEntry(snap);
+    const merged = mergeHistory([...history.filter(h => h.d !== today.d), today], incoming, HISTORY_DAYS);
+    await saveToFirestore(token, 'commodity_cache', 'price_history_market', { items: JSON.stringify(merged), updated_at: String(Date.now()) });
   }
   console.log(`[Snapshot] ${snap.date} 수집 완료 — 누락 ${snap.errors.length}건${snap.errors.length ? ': ' + snap.errors.join(' / ') : ''}`);
   return snap;

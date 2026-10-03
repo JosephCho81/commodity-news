@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { parseScrapListing, decodeDataPage } from './recycleinme.js';
 import { toHistoryEntry } from './snapshot.js';
 import { dropUnsourcedRange } from './tab-recarburizer.js';
+import { parseNitemtrade } from './customs.js';
 
 // ─── recycleinme 목록 파싱 ──────────────────────────────────────────────────
 const row = (Category, Subcat, OpenPrice, ClosePrice, Units, Dat = '2026-10-01 00:00:00.000') =>
@@ -57,4 +58,40 @@ assert.equal(decodeDataPage('<div data-page="{&quot;a&quot;:&quot;x&amp;y&quot;}
   assert.equal(r.price_range_text, '200~215 USD/MT');
 }
 
+// ─── 관세청 무연탄 수입단가 ──────────────────────────────────────────────────
+{
+  const item = (year, kg, usd) => `<item><impDlr>${usd}</impDlr><impWgt>${kg}</impWgt><year>${year}</year></item>`;
+  const xml = `<response><header><resultCode>00</resultCode><resultMsg>정상서비스.</resultMsg></header><body><items>${
+    item('총계', 99000000, 9900000)}${item('2026.08', 38639000, 6877742)}${item('2026.05', 48000, 20064)}${item('2026.06', 0, 0)
+  }</items></body></response>`;
+  const rows = parseNitemtrade(xml);
+  assert.deepEqual(rows.map(r => r.ym), ['2026-05', '2026-06', '2026-08']);   // 총계 제외, 오래된 순
+  assert.deepEqual(rows[2], { ym: '2026-08', tons: 38639, usd: 6877742, usd_per_t: 178, thin: false });
+  assert.equal(rows[0].usd_per_t, null);  // 48톤 소량 월 — 단가 418달러로 튀므로 표시 안 함
+  assert.equal(rows[0].thin, true);
+  assert.equal(rows[1].usd_per_t, null);  // 수입 0
+  assert.throws(() => parseNitemtrade('<response><header><resultCode>03</resultCode><resultMsg>인증에 실패하였습니다.</resultMsg></header></response>'), /03: 인증에 실패/);
+  assert.throws(() => parseNitemtrade('<OpenAPI_ServiceResponse><cmmMsgHeader><returnAuthMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</returnAuthMsg></cmmMsgHeader></OpenAPI_ServiceResponse>'), /SERVICE_KEY_IS_NOT_REGISTERED/);
+}
+
 console.log('snapshot tests passed');
+
+// ─── 시계열 백필 병합 ────────────────────────────────────────────────────────
+{
+  const { mergeHistory, parseSinaDaily } = await import('./history-backfill.js');
+  const existing = [{ d: '2026-10-02', lme: 3109.5, scrap: { 'us:AL Sheet': 1984 } }];
+  const incoming = [
+    { d: '2026-10-01', lme: 3120, sf: 5950 },
+    { d: '2026-10-02', lme: 9999, sf: 5982, scrap: { 'us:AL Sheet': 1, 'us:Cast Alum': 1609 } },
+  ];
+  assert.deepEqual(mergeHistory(existing, incoming, 400), [
+    { d: '2026-10-01', lme: 3120, sf: 5950 },
+    { d: '2026-10-02', lme: 3109.5, sf: 5982, scrap: { 'us:AL Sheet': 1984, 'us:Cast Alum': 1609 } }, // 실측 우선, 빈 칸만 백필
+  ]);
+  assert.equal(mergeHistory(existing, incoming, 1).length, 1);
+
+  const sina = 'var x=([{"d":"2026-09-29","c":"5900.000","s":"5950.000"},{"d":"2026-09-30","c":"5982.000","s":"0"},{"d":"2026-09-30x","c":"1","s":"1"},{"d":"2026-10-01","c":"99999","s":"0"}]);';
+  assert.deepEqual(parseSinaDaily(sina, [3000, 12000]), [{ d: '2026-09-29', v: 5950 }, { d: '2026-09-30', v: 5982 }]);
+  assert.deepEqual(parseSinaDaily('<html>', [0, 1]), []);
+  console.log('history backfill tests passed');
+}

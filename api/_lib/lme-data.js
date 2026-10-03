@@ -2,6 +2,33 @@
 
 import { getLmeHolidayNote } from './uk-holidays.js';
 
+const MONTHS = { january: '01', february: '02', march: '03', april: '04', may: '05', june: '06', july: '07', august: '08', september: '09', october: '10', november: '11', december: '12' };
+
+// westmetall 표 → [{date:'YYYY-MM-DD', price}] 최신순 (순수 함수 — 테스트 대상)
+// 패턴: <td>16. March 2026</td><td>3,440.00</td>. 날짜는 Date 생성자가 못 읽어 결정적으로 파싱.
+export function parseWestmetallRows(html, limit = Infinity) {
+  const rowRegex = /<tr[^>]*>\s*<td[^>]*>([\d]+\.\s*\w+\s*\d{4})<\/td>\s*<td[^>]*>([\d,]+\.\d+)<\/td>/g;
+  const rows = [];
+  let m;
+  while ((m = rowRegex.exec(html)) !== null && rows.length < limit) {
+    const price = parseFloat(m[2].replace(/,/g, ''));
+    const dm = m[1].trim().match(/(\d{1,2})\.\s*([A-Za-z]+)\s*(\d{4})/);
+    const mm = dm && MONTHS[dm[2].toLowerCase()];
+    if (!mm || !(price > 1500 && price < 5000)) continue;
+    rows.push({ date: `${dm[3]}-${mm}-${dm[1].padStart(2, '0')}`, price });
+  }
+  return rows;
+}
+
+export async function fetchLmeHistory() {
+  const res = await fetch('https://www.westmetall.com/en/markdaten.php?action=table&field=LME_Al_cash', {
+    signal: AbortSignal.timeout(10000),
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36' },
+  });
+  if (!res.ok) throw new Error(`westmetall HTTP ${res.status}`);
+  return parseWestmetallRows(await res.text());
+}
+
 // ─── LME 알루미늄 Cash-Settlement 가격 fetch (westmetall.com) ──────────────
 // 소스: https://www.westmetall.com/en/markdaten.php?action=table&field=LME_Al_cash
 // westmetall.com은 독일 금속거래 회사가 운영하며 LME Cash-Settlement를 텍스트로 게시.
@@ -20,32 +47,12 @@ export async function fetchLmePrice() {
     if (!res.ok) throw new Error(`westmetall HTTP ${res.status}`);
     const html = await res.text();
 
-    // 테이블에서 최신 2개 행 파싱
-    // 패턴: <td>16. March 2026</td><td>3,440.00</td><td>...</td>
-    const rowRegex = /<tr[^>]*>\s*<td[^>]*>([\d]+\.\s*\w+\s*\d{4})<\/td>\s*<td[^>]*>([\d,]+\.\d+)<\/td>/g;
-    const rows = [];
-    let m;
-    while ((m = rowRegex.exec(html)) !== null) {
-      const dateStr = m[1].trim(); // "16. March 2026"
-      const priceStr = m[2].replace(/,/g, ''); // "3440.00"
-      const price = parseFloat(priceStr);
-      if (price > 1500 && price < 5000) {
-        rows.push({ dateStr, price });
-      }
-      if (rows.length >= 2) break;
-    }
-
+    const rows = parseWestmetallRows(html, 2);
     if (rows.length === 0) throw new Error('westmetall: 가격 파싱 실패');
 
     const latest = rows[0];
     const prev   = rows[1] ?? null;
-
-    // 날짜 파싱: "16. March 2026" → "2026-03-16" (Date 생성자는 이 형식을 못 읽음 — 결정적 파싱)
-    const MONTHS = { january: '01', february: '02', march: '03', april: '04', may: '05', june: '06', july: '07', august: '08', september: '09', october: '10', november: '11', december: '12' };
-    const dm = latest.dateStr.match(/(\d{1,2})\.\s*([A-Za-z]+)\s*(\d{4})/);
-    const date = dm && MONTHS[dm[2].toLowerCase()]
-      ? `${dm[3]}-${MONTHS[dm[2].toLowerCase()]}-${dm[1].padStart(2, '0')}`
-      : latest.dateStr;
+    const date = latest.date;
 
     const change = prev ? +(latest.price - prev.price).toFixed(2) : null;
     const changePct = (change !== null && prev)
