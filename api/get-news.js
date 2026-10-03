@@ -31,10 +31,10 @@ const TAB_MODULES = {
 
 const VALID_TABS = new Set(['steelmaker', 'aluminum', 'dross', 'ferroalloy', 'recarburizer', 'summary']);
 
-function sendLatestFallback(res, latest) {
+function sendLatestFallback(res, latest, reason) {
   return res.status(200).json({
     ...JSON.parse(latest.data),
-    _cached: true, _fallback: true, _age_min: 0,
+    _cached: true, _fallback: true, _fallback_reason: reason, _age_min: 0,
     _data_date: latest.date ?? null,
   });
 }
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
       const latest = await readLatest(token, tab);
       if (latest?.data) {
         console.log(`[Fallback] JSON 파싱 실패 → ${tab}_latest 반환`);
-        return sendLatestFallback(res, latest);
+        return sendLatestFallback(res, latest, `JSON 파싱 실패: ${e.message}`);
       }
       return res.status(500).json({ error: 'JSON parse failed', detail: e.message, raw_preview: raw.slice(0, 300) });
     }
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
         if (!mod.isValid(parsed)) {
           console.warn(`[Firestore] 유효성 검사 실패 — ${tab}_latest fallback 시도`);
           const latest = await readLatest(token, tab);
-          if (latest?.data) return sendLatestFallback(res, latest);
+          if (latest?.data) return sendLatestFallback(res, latest, '유효성 검사 실패');
           return res.status(200).json({ ...parsed, _cached: false, _age_min: 0 });
         }
 
@@ -187,7 +187,7 @@ export default async function handler(req, res) {
     const latest = await readLatest(token, tab);
     if (latest?.data) {
       console.log(`[Fallback] 예외 → ${tab}_latest 반환`);
-      return sendLatestFallback(res, latest);
+      return sendLatestFallback(res, latest, `예외: ${err.message}`);
     }
     return res.status(500).json({ error: err.message });
   }
