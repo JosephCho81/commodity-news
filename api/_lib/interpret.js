@@ -191,6 +191,11 @@ export function sanitizeOutput(out, allowed, articleCount, inputText = '') {
   return { result: r, dropped };
 }
 
+// 화면에 보일 최소 구성: 한 줄, 지금 1개 이상, 영향 1개 이상, 전망 문장
+export function isComplete(r) {
+  return !!(r?.headline && r.now?.length && r.impact?.length && r.outlook?.view);
+}
+
 // 한 시장 해석 생성. callAgent를 주입받아 모델 비교·테스트에 쓴다.
 export async function interpretMarket(market, { history, snap, articles, callAgent, model }) {
   const metrics = marketMetrics(market, history);
@@ -202,16 +207,19 @@ export async function interpretMarket(market, { history, snap, articles, callAge
   let { result, dropped } = sanitizeOutput(res.json, allowed, articles.length, input);
   const usages = [res.usage];
 
-  // 입력에 없는 숫자로 문장이 지워졌으면 사유를 알려주고 한 번만 다시 쓰게 한다(빈칸 방지). 다시 써도 검증은 같다.
+  // 입력에 없는 숫자로 문장이 지워졌거나 핵심 칸이 비었으면(2026-10-03 Opus가 빈 JSON 반환) 한 번만 다시 쓰게 한다.
+  if (!isComplete(result)) dropped.push('필수 칸 비어 있음(지금·영향·전망)');
   if (dropped.length) {
     console.warn(`[Interpret] ${market} 숫자 불일치 ${dropped.length}건 — 재작성: ${dropped.join(' | ').slice(0, 300)}`);
     const retry = await ask(`${input}\n\n【수정 요청】 아래 문장은 입력에 없는 숫자나 다른 단위를 써서 삭제됐다. 입력에 있는 숫자·단위만 써서 JSON 전체를 다시 작성하라. 기준선이 필요하면 입력의 1년 범위·현재가를 쓴다.\n${dropped.map(d => `- ${d}`).join('\n')}`, `interpret-${market}-retry`).catch(() => null);
     usages.push(retry?.usage);
     if (retry?.json) {
       const second = sanitizeOutput(retry.json, allowed, articles.length, input);
-      if (second.dropped.length < dropped.length) ({ result, dropped } = second);
+      const better = isComplete(second.result) && (!isComplete(result) || second.dropped.length < dropped.length);
+      if (better) ({ result, dropped } = second);
     }
   }
+  if (!isComplete(result)) throw new Error(`${market} 해석이 비어 있음(재작성 후에도)`);
   const usage = { cost: { total_cost: +usages.reduce((a, u) => a + (u?.cost?.total_cost ?? 0), 0).toFixed(5) } };
   return {
     market,

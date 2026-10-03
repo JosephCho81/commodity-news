@@ -1,7 +1,7 @@
 // node api/_lib/interpret.test.mjs — 결정적 지표·해석 검증 계층 회귀 테스트 (npm test)
 import assert from 'node:assert/strict';
 import { seriesStats, direction, buySignal, krwEffect, marketMetrics } from './market-metrics.js';
-import { allowedNumbers, numbersOk, unitsOk, sanitizeOutput, buildInput, extraLines } from './interpret.js';
+import { allowedNumbers, numbersOk, unitsOk, sanitizeOutput, buildInput, extraLines, isComplete } from './interpret.js';
 
 // ─── 지표 ────────────────────────────────────────────────────────────────────
 const hist = Array.from({ length: 30 }, (_, i) => ({
@@ -84,5 +84,9 @@ assert.equal(unitsOk('LME 1년 저점 2,986달러', 'LME 알루미늄: 3,109.5 U
   assert.match(input, /\[1\] 신랑재경 · 2026-09-30 \(이전 보도\) — 光大期货日报/);
   assert.match(buildInput('ferro', marketMetrics('ferro', hist), snap, []), /기사 없음/);
 }
+
+// 형식은 맞지만 내용이 빈 응답(2026-10-03 Opus 철강 업황) — 완성으로 보지 않는다
+assert.equal(isComplete({ headline: '철강 정체', now: [], why: [], impact: [], outlook: { view: '', watch: [], up: '', down: '' } }), false);
+assert.equal(isComplete({ headline: 'h', now: ['a'], impact: [{ area: 'x', text: 'y' }], outlook: { view: 'v' } }), true);
 
 console.log('interpret tests passed');
