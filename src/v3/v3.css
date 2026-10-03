@@ -110,7 +110,6 @@
 .v3 .chain span { padding: 3px 8px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); font-weight: 600; }
 .v3 .chain span.end { background: var(--navy-light); border-color: transparent; color: var(--navy); }
 .v3 .chain em { font-style: normal; color: var(--text4); padding-inline: 2px; }
-.v3 .chain sup { font-size: 10.5px; color: var(--text3); margin-left: 4px; }
 .v3 .impact { display: grid; gap: 8px; }
 .v3 .imp { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 10px; font-size: 14px; }
 .v3 .imp b { font-size: 13px; }
@@ -130,13 +129,6 @@
 .v3 .scen b { display: block; font-size: 11.5px; }
 .v3 .scen .s-up b { color: var(--up); } .v3 .scen .s-dn b { color: var(--down); }
 
-.v3 .src { padding: 12px 16px; display: grid; gap: 6px; font-size: 13px; }
-.v3 .src li { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 6px; }
-.v3 .src ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
-.v3 .src .id { color: var(--text3); font-weight: 700; }
-.v3 .src a { text-decoration: none; color: var(--text2); }
-.v3 .src a:hover { text-decoration: underline; }
-.v3 .src small { color: var(--text3); margin-left: 6px; }
 
 /* 서브탭 */
 .v3 .subtabs { display: flex; justify-content: center; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; align-self: center; }

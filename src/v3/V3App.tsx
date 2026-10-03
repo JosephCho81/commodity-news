@@ -7,9 +7,8 @@ type Series = { key: string; label: string; unit: string; value: number; date: s
 type Market = {
   market: string; name: string; direction: 'up' | 'down' | 'flat' | 'mixed'; signal: string; prev_signal: string | null;
   metrics: { series: Series[]; krw: { price_pct: number; fx_pct: number; krw_pct: number } | null };
-  headline: string | null; now: string[]; why: { chain: string[]; src: number[] }[]; impact: { area: string; text: string }[];
+  headline: string | null; now: string[]; why: { chain: string[] }[]; impact: { area: string; text: string }[];
   outlook: { view: string | null; watch: string[]; up: string | null; down: string | null };
-  sources: { id: number; source: string; title: string; url: string; published: string; repeat: boolean }[];
   error?: string;
 };
 type ScrapItem = { item: string; grade: string; price: number; change: number };
@@ -110,7 +109,7 @@ function CustomsCell({ name, rows }: { name: string; rows: { ym: string; usd_per
   );
 }
 
-function Chain({ chain, src }: { chain: string[]; src: number[] }) {
+function Chain({ chain }: { chain: string[] }) {
   return (
     <div className="chain">
       {chain.map((s, i) => (
@@ -119,7 +118,6 @@ function Chain({ chain, src }: { chain: string[]; src: number[] }) {
           <span className={i === chain.length - 1 ? 'end' : ''}>{s}</span>
         </span>
       ))}
-      {src?.length > 0 && <sup>[{src.join(',')}]</sup>}
     </div>
   );
 }
@@ -142,7 +140,7 @@ function MarketView({ m, extra }: { m: Market; extra?: any }) {
       </div>
       <div className="four">
         <div className="cell"><h3><i>지금</i>어떻게 돌아가나</h3><ul>{m.now.map((s, i) => <li key={i}>{s}</li>)}</ul></div>
-        <div className="cell"><h3><i>왜</i>원인</h3>{m.why.map((w, i) => <Chain key={i} chain={w.chain} src={w.src} />)}</div>
+        <div className="cell"><h3><i>왜</i>원인</h3>{m.why.map((w, i) => <Chain key={i} chain={w.chain} />)}</div>
         <div className="cell">
           <h3><i>영향</i>{demand ? '어떤 원자재 수요에' : '어디에, 어떻게'}</h3>
           <div className="impact">{m.impact.map((x, i) => <div className="imp" key={i}><b>{x.area}</b><span>{x.text}</span></div>)}</div>
@@ -166,19 +164,6 @@ function MarketView({ m, extra }: { m: Market; extra?: any }) {
           )}
         </div>
       </div>
-      {m.sources.length > 0 && (
-        <div className="box">
-          <div className="box-h"><h2>근거 기사</h2><small>원문 링크</small></div>
-          <div className="src"><ol>
-            {m.sources.map(s => (
-              <li key={s.id}>
-                <span className="id">{s.id}</span>
-                <span><a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a><small>{s.source} · {s.published.slice(0, 10)}{s.repeat ? ' · 이전 보도' : ''}</small></span>
-              </li>
-            ))}
-          </ol></div>
-        </div>
-      )}
     </>
   );
 }
