@@ -90,13 +90,13 @@ export async function readPriceHistory(token, tab) {
   return [];
 }
 
-// entry = { d: 'YYYY-MM-DD', ...수치 } — 같은 날짜는 덮어쓰고 90일 초과분 제거
-export async function savePriceHistory(token, tab, history, entry) {
+// entry = { d: 'YYYY-MM-DD', ...수치 } — 같은 날짜는 덮어쓰고 maxDays 초과분 제거
+export async function savePriceHistory(token, tab, history, entry, maxDays = PRICE_HISTORY_DAYS) {
   if (!token || !entry?.d) return history;
   try {
     const merged = [...history.filter(h => h?.d && h.d !== entry.d), entry]
       .sort((a, b) => a.d.localeCompare(b.d))
-      .slice(-PRICE_HISTORY_DAYS);
+      .slice(-maxDays);
     await saveToFirestore(token, 'commodity_cache', `price_history_${tab}`, {
       items: JSON.stringify(merged),
       updated_at: String(Date.now()),

@@ -69,7 +69,7 @@ function AnthracitePrices({ data }: { data: RecarburizerData }) {
                 ? <><span className="recab-price-val">{cp.domestic_shanxi}</span><span className="recab-price-unit"> CNY/MT</span></>
                 : hasText(cp.price_range_text)
                   ? <span className="recab-price-val">{cp.price_range_text}</span>
-                  : <span className="recab-price-val">100~180 USD/MT</span>
+                  : <span className="recab-price-val">공개 시세 없음</span>
             }
           </div>
           {!cp.fob_qinhuangdao && !cp.domestic_shanxi && hasText(cp.price_range_source) && (
@@ -104,7 +104,7 @@ function AnthracitePrices({ data }: { data: RecarburizerData }) {
               ? <><span className="recab-price-val">USD {rp.fob_murmansk}/MT</span></>
               : hasText(rp.price_range_text)
                 ? <span className="recab-price-val">{rp.price_range_text}</span>
-                : <span className="recab-price-val">80~150 USD/MT</span>
+                : <span className="recab-price-val">공개 시세 없음</span>
             }
           </div>
           {!rp.fob_murmansk && hasText(rp.price_range_source) && (

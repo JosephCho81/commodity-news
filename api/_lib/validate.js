@@ -17,9 +17,9 @@ export const PRICE_BOUNDS = {
   fesi_cny:              [4000, 9000],   // 참고 5,500~7,000
   femn_cny:              [5000, 11000],  // 참고 6,500~8,500
   simn_cny:              [3500, 8500],   // 참고 4,800~6,500
-  anthracite_china_fob:  [60, 280],      // 참고 100~180
-  anthracite_russia_fob: [50, 220],      // 참고 80~150
-  anthracite_cif_korea:  [60, 320],
+  anthracite_china_fob:  [60, 400],      // 2026-10 실거래 200달러대 — 구 참고범위(100~180)는 근거 없어 폐기
+  anthracite_russia_fob: [50, 350],
+  anthracite_cif_korea:  [60, 450],
   lme_al:                [1500, 4500],   // src/utils/format.ts isValidLmePrice와 동일
   mn_ore_cif:            [2, 12],        // USD/dmtu
   cny_usd:               [0.10, 0.18],

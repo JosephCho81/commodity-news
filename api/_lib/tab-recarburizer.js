@@ -69,6 +69,19 @@ export function buildPrompt(ctx) {
   return prompt;
 }
 
+// LLM이 출처 없이 "통상 범위"·"전일 제시 범위"를 되풀이해 몇 년째 같은 범위가 표시됐다(2026-10-03 발견).
+// 실제 출처(도메인·매체명)가 없는 범위는 가격으로 쓰지 않는다.
+const UNSOURCED_RANGE_RE = /통상|전일|일반적|추정|업계|범위 및|확인 불가|검색 실패/;
+export function dropUnsourcedRange(p) {
+  if (!p?.price_range_text) return;
+  const src = String(p.price_range_source ?? '').trim();
+  if (!src || UNSOURCED_RANGE_RE.test(src)) {
+    console.warn(`[Recarb] 출처 없는 가격 범위 제거: ${p.price_range_text} (${src || '출처 없음'})`);
+    p.price_range_text = null;
+    p.price_range_source = null;
+  }
+}
+
 // price_range_text "100~180 USD/MT" → [100, 180]. 파싱 실패 시 null.
 function parseUsdRange(text) {
   if (!text) return null;
@@ -134,6 +147,8 @@ export async function postProcess({ parsed, ctx, searchResults }) {
   applyPrice(parsed.russia_price, 'fob_murmansk',    'anthracite_russia_fob', prevRec?.russia_price);
   if (parsed.china_price)  parsed.china_price.cif_korea  = validatePrice(parsed.china_price.cif_korea,  'anthracite_cif_korea').value;
   if (parsed.russia_price) parsed.russia_price.cif_korea = validatePrice(parsed.russia_price.cif_korea, 'anthracite_cif_korea').value;
+  dropUnsourcedRange(parsed.china_price);
+  dropUnsourcedRange(parsed.russia_price);
 
   parsed.key_issues = attachSourceMeta(
     dedupKeyIssues(parsed.key_issues ?? [], ctx.newsHistory),

@@ -2,10 +2,11 @@
 // vercel.json의 cron: "0 19 * * *" (UTC 19:00 = KST 04:00)
 // Firestore: commodity_cache/{tab} 문서를 덮어쓰기 (최신 1개 유지)
 
-export const config = { maxDuration: 300 }; // 5분 — 탭 병렬(≤110s) + summary(≤110s) + 남은 시간에 실패 탭 재시도
+export const config = { maxDuration: 300 }; // 5분 — 스냅샷(~10s) + 탭 병렬(≤110s) + summary(≤110s) + 남은 시간에 실패 탭 재시도
 
 import { FIREBASE_ENABLED, getFirestoreToken, saveToFirestore } from './_lib/firebase.js';
 import { getKSTDate } from './_lib/cache-store.js';
+import { refreshSnapshot } from './_lib/snapshot.js';
 
 // summary는 4탭 캐시를 주입받으므로 4탭 완료 후 순차 호출 (병렬이면 어제 데이터 주입됨)
 const TABS = ['steelmaker', 'aluminum', 'dross', 'ferroalloy', 'recarburizer'];
@@ -54,6 +55,19 @@ export default async function handler(req, res) {
     else console.error(`[Cron] ${tab} 실패 (${outcome.sec}s):`, outcome.error);
   };
 
+  // 숫자 스냅샷을 먼저 수집 — 탭 생성 실패와 무관하게 오늘 숫자는 남긴다
+  let token = null;
+  if (FIREBASE_ENABLED) {
+    try {
+      token = await getFirestoreToken();
+      const snap = await refreshSnapshot(token);
+      results.snapshot = { ok: true, missing: snap.errors, sec: Math.round((Date.now() - t0) / 1000) };
+    } catch (e) {
+      results.snapshot = { ok: false, error: e.message };
+      console.error('[Cron] 스냅샷 실패:', e.message);
+    }
+  }
+
   await Promise.allSettled(TABS.map(t => refreshTab(t)));
   await refreshTab(FINAL_TAB); // 4탭의 오늘 캐시가 생성된 뒤에 summary 생성
 
@@ -66,13 +80,12 @@ export default async function handler(req, res) {
   }
 
   const totalTabs = TABS.length + 1;
-  const successCount = Object.values(results).filter(r => r.ok).length;
+  const successCount = [...TABS, FINAL_TAB].filter(t => results[t]?.ok).length;
   console.log(`[Cron] 완료: ${successCount}/${totalTabs} 성공`);
 
   // Vercel Hobby 로그는 1시간만 남는다 — 실패 원인 추적용으로 결과를 보관
-  if (FIREBASE_ENABLED) {
+  if (token) {
     try {
-      const token = await getFirestoreToken();
       await saveToFirestore(token, 'commodity_cache', `cron_log_${getKSTDate()}`, {
         started_at: startedAt,
         finished_at: new Date().toISOString(),
