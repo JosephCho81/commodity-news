@@ -15,10 +15,15 @@ export const NEWS_KEYWORDS = {
   aluminum:     ['알루미늄', '알미늄', 'LME', '비철'],
 };
 
+const NAMED_ENTITIES = { rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', ndash: '–', mdash: '—', hellip: '…', middot: '·', deg: '°', times: '×' };
+
 export function decodeEntities(s) {
   return String(s)
     .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&apos;/g, "'")
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+    .replace(/&([a-z]+);/g, (m, n) => NAMED_ENTITIES[n] ?? m)
+    .replace(/&#(\d+);/g, (m, d) => String.fromCodePoint(Number(d)))
+    .replace(/&#x([0-9a-f]+);/gi, (m, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/&amp;/g, '&');
 }
 

@@ -1,10 +1,23 @@
 {
   "functions": {
-    "api/get-news.js": { "maxDuration": 120 },
-    "api/cron-refresh.js": { "maxDuration": 300 },
-    "api/macro-sentinel.js": { "maxDuration": 120 }
+    "api/get-news.js": {
+      "maxDuration": 120
+    },
+    "api/cron-refresh.js": {
+      "maxDuration": 300
+    },
+    "api/macro-sentinel.js": {
+      "maxDuration": 120
+    },
+    "api/collect-daily.js": {
+      "maxDuration": 120
+    }
   },
   "crons": [
+    {
+      "path": "/api/collect-daily",
+      "schedule": "30 18 * * *"
+    },
     {
       "path": "/api/cron-refresh",
       "schedule": "0 19 * * *"
@@ -14,27 +27,45 @@
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "Pragma", "value": "no-cache" },
-        { "key": "Expires", "value": "0" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
       ]
     },
     {
       "source": "/(.*).html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     }
   ]

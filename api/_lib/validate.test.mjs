@@ -95,15 +95,16 @@ assert.equal(filterNewsByKeywords(rssItems, ['동부메탈']).length, 1);
 // 매체명 "페로타임즈"가 '페로' 키워드에 오탐되지 않도록 키워드는 품목명 전체 사용
 assert.equal(filterNewsByKeywords([{ title: '페로타임즈 손바닥뉴스 6월 11일' }], ['페로망간', '합금철']).length, 0);
 
-// ─── 입찰 기준점 ────────────────────────────────────────────────────────────
+// ─── 입찰 기준점 (기준 시각 고정 — 실행 월에 따라 결과가 바뀌지 않게) ───────────────
+const BID_NOW = Date.parse('2026-06-15T00:00:00Z');
 const hist = [
   { d: '2026-03-04', sf: 6000 }, { d: '2026-03-05', sf: 6050 }, { d: '2026-06-10', sf: 5874 },
 ];
-const base = findBidBaseline(hist, [3, 9], 'sf');
+const base = findBidBaseline(hist, [3, 9], 'sf', BID_NOW);
 assert.equal(base.baseline, 6000);     // 입찰 월(3월) 첫 데이터
 assert.equal(base.date, '2026-03-04');
-assert.equal(findBidBaseline(hist, [], 'sf'), null);     // 입찰 월 미설정 → 숨김
-assert.equal(findBidBaseline([], [3], 'sf'), null);
+assert.equal(findBidBaseline(hist, [], 'sf', BID_NOW), null);     // 입찰 월 미설정 → 숨김
+assert.equal(findBidBaseline([], [3], 'sf', BID_NOW), null);
 
 // ─── computeFxCostBreakdown: 원가 변동 요인분해 (환율 vs 시세, 전부 결정적) ──
 // 시세·환율 동시 상승: fx=150×100=15,000 / px=(160-150)×1480=14,800 / total=29,800

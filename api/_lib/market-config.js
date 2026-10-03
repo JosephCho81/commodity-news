@@ -25,11 +25,12 @@ export const BID_MONTHS = {
 // @param {Array<{d: string}>} history - 날짜 오름차순, 품목 값 필드 포함
 // @param {number[]} bidMonths - 입찰 월 배열
 // @param {string} valueKey - history 항목에서 읽을 값 필드명
+// @param {number} [nowMs] - 기준 시각(테스트용 고정값). 기본은 현재
 // @returns {{ baseline: number, date: string }|null}
-export function findBidBaseline(history, bidMonths, valueKey) {
+export function findBidBaseline(history, bidMonths, valueKey, nowMs = Date.now()) {
   if (!Array.isArray(history) || history.length === 0) return null;
   if (!Array.isArray(bidMonths) || bidMonths.length === 0) return null;
-  const now = new Date(Date.now() + 9 * 3600000);
+  const now = new Date(nowMs + 9 * 3600000);
   // 최근 12개월 내 가장 가까운 과거 입찰 월 산출
   for (let back = 0; back < 12; back++) {
     const dt = new Date(now.getFullYear(), now.getMonth() - back, 1);
