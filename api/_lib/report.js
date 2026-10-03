@@ -3,6 +3,7 @@
 
 import { interpretMarket, MARKET_NAMES, allowedNumbers, unitsOk, numbersOk } from './interpret.js';
 import { seriesStats } from './market-metrics.js';
+import { DEFAULT_MODEL } from './agent.js';
 
 export const MARKETS = ['ferro', 'al1', 'al2', 'recarb', 'steel'];
 
@@ -40,7 +41,7 @@ export function buildBriefInput(results, history) {
   return lines.join('\n');
 }
 
-export async function generateReport({ history, snap, evidence, callAgent, model, date }) {
+export async function generateReport({ history, snap, evidence, callAgent, model = DEFAULT_MODEL, date }) {
   // 동시 2개 — 5개를 한꺼번에 보내면 요청 한도(429)에 걸린다
   const settled = new Array(MARKETS.length);
   let next = 0;
