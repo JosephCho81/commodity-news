@@ -1,0 +1,9 @@
+{
+  "name": "kr-scrap-ocr",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pngjs": "7.0.0",
+    "tesseract.js": "5.1.1"
+  }
+}

@@ -1,0 +1,28 @@
+# 국내 알루미늄 스크랩 주간 고시 보관 — 같은 게시글을 매주 덮어쓰므로 하루 2회 확인해 새 이미지만 저장
+# 필요 시크릿: CRON_SECRET (macro-sentinel과 동일)
+name: kr-scrap-archive
+
+on:
+  schedule:
+    - cron: '20 0 * * *'   # 09:20 KST
+    - cron: '20 9 * * *'   # 18:20 KST
+  workflow_dispatch:
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: scripts/kr-scrap
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: OCR and archive
+        env:
+          ARCHIVE_URL: https://news.a1kor.com/api/kr-scrap-archive
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: node ocr.mjs --post
