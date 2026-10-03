@@ -11,6 +11,9 @@
     },
     "api/collect-daily.js": {
       "maxDuration": 300
+    },
+    "api/get-report.js": {
+      "maxDuration": 15
     }
   },
   "crons": [
@@ -25,7 +28,7 @@
   ],
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/((?!get-report).*)",
       "headers": [
         {
           "key": "Cache-Control",

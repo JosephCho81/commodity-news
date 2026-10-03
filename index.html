@@ -42,9 +42,11 @@
     <div id="root"></div>
     <script>
       // 첫 탭(브리핑) API 프리로드 — JS 번들 파싱을 기다리지 않고 즉시 요청 시작
-      window.__preloadSummary = fetch('/api/get-news?tab=summary')
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .catch(function () { return null; });
+      // ?v=3(새 화면)은 새 리포트 API를 미리 받는다
+      var isV3 = /[?&]v=3(&|$)/.test(location.search);
+      var pre = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+      window.__preloadReport = isV3 ? pre('/api/get-report') : null;
+      window.__preloadSummary = isV3 ? null : pre('/api/get-news?tab=summary');
     </script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
