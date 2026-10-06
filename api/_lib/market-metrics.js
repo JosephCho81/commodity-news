@@ -101,7 +101,7 @@ export function marketMetrics(market, history) {
   const series = def.keys.map(([key, label]) => ({
     key,
     label: !CNY_KEYS.includes(key) ? label : label.endsWith(')') ? `${label.slice(0, -1)}, 달러 환산)` : `${label} (달러 환산)`,
-    unit: 'USD/t',
+    unit: 'USD/톤',
     ...(seriesStats(conv, key) ?? {}),
   })).filter(s => s.value != null);
   const main = series.find(s => s.key === def.main) ?? null;

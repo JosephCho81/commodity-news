@@ -57,7 +57,7 @@ assert.equal(direction(null), 'flat');
 }
 {
   const m = marketMetrics('ferro', hist);
-  assert.equal(m.series[0].unit, 'USD/t');                    // 중국 선물도 달러 표시(위안 금지)
+  assert.equal(m.series[0].unit, 'USD/톤');                    // 중국 선물도 달러 표시(위안 금지)
   assert.equal(m.series[0].label, 'FeSi 선물(ZCE, 달러 환산)');
   assert.equal(marketMetrics('al1', [{ d: '2026-09-01', al: 20000, cnyusd: 0.14 }]).series[0].label, 'SHFE 1차 알루미늄 (달러 환산)');
   assert.equal(m.series[0].value, Math.round(5710 * 0.14));

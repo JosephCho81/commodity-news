@@ -102,7 +102,7 @@ function CustomsCell({ name, rows }: { name: string; rows: { ym: string; usd_per
     <div className="n">
       <div className="n-l">{name}산 무연탄 평균 수입단가 (관세청)</div>
       <div className="n-v">
-        <strong className="num">{fmt(last.usd_per_t!)}</strong><span className="u">USD/t</span>
+        <strong className="num">{fmt(last.usd_per_t!)}</strong><span className="u">USD/톤</span>
         {prev && <><span className={`chg ${cls}`}>{pctText(chg)}</span><span className="u">{Number(prev.ym.slice(5))}월 대비</span></>}
       </div>
       <Spark values={valid.map(r => r.usd_per_t!)} cls={cls} />
@@ -241,7 +241,7 @@ function OverseasScrap({ code, n }: { code: string; n: Report['numbers'] }) {
     <div className="box">
       <div className="box-h"><h2>{COUNTRY[code]} 알루미늄 스크랩</h2><small>{g.date} · 해외 야드 매입가</small></div>
       <div className="tbl-wrap"><table className="num">
-        <thead><tr><th>등급</th><th className="r">USD/lb</th><th className="r">USD/t</th>{fx > 0 && <th className="r">원/kg 환산</th>}<th className="r">전일 대비</th></tr></thead>
+        <thead><tr><th>등급</th><th className="r">USD/lb</th><th className="r">USD/톤</th>{fx > 0 && <th className="r">원/kg 환산</th>}<th className="r">전일 대비</th></tr></thead>
         <tbody>
           {g.items.map(it => (
             <tr key={it.grade}>
