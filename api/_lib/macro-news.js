@@ -143,11 +143,6 @@ export function analyzeMacroShock(items, nowMs = Date.now()) {
   };
 }
 
-export function isMacroTrigger(analysis, prevFingerprint) {
-  return analysis.score >= MACRO_TRIGGER_SCORE
-    && analysis.distinctSources >= 2
-    && analysis.fingerprint !== (prevFingerprint ?? null);
-}
 
 // ─── 수집 (네트워크) ─────────────────────────────────────────────────────────
 export async function fetchGlobalMacroNews() {

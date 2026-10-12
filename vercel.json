@@ -1,8 +1,5 @@
 {
   "functions": {
-    "api/macro-sentinel.js": {
-      "maxDuration": 60
-    },
     "api/collect-daily.js": {
       "maxDuration": 300
     },
@@ -13,7 +10,7 @@
   "crons": [
     {
       "path": "/api/collect-daily",
-      "schedule": "30 18 * * *"
+      "schedule": "0 21 * * *"
     }
   ],
   "headers": [

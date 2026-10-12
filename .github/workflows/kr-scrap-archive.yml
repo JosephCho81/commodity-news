@@ -1,5 +1,5 @@
 # 국내 알루미늄 스크랩 주간 고시 보관 — 같은 게시글을 매주 덮어쓰므로 하루 2회 확인해 새 이미지만 저장
-# 필요 시크릿: CRON_SECRET (macro-sentinel과 동일)
+# 필요 시크릿: CRON_SECRET (Vercel 환경변수의 CRON_SECRET와 동일 값)
 name: kr-scrap-archive
 
 on:
@@ -19,7 +19,7 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for wf in kr-scrap-archive.yml macro-sentinel.yml; do
+          for wf in kr-scrap-archive.yml; do
             gh api -X PUT "repos/${{ github.repository }}/actions/workflows/$wf/enable"
           done
 

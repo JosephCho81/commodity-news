@@ -25,6 +25,5 @@ npm run build   # vite build — 배포 게이트
 ## 배포·갱신
 
 main 브랜치 푸시 시 Vercel 자동 배포.
-- 매일 03:30 KST: `/api/collect-daily` — 숫자 스냅샷 → 근거 기사 → 시장 5개 해석 + 브리핑
-- 매시간: 매크로 센티널(GitHub Actions) — 새 거시 이벤트면 리포트 재생성(하루 1회)
+- 매일 KST 06시대 1회: `/api/collect-daily` — 숫자 스냅샷 → 근거 기사 → 시장 5개 해석 + 브리핑
 - 하루 2회: 국내 알루미늄 스크랩 고시 보관(GitHub Actions OCR)

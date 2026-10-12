@@ -2,7 +2,7 @@
 // 2026-06-12 미·이란 합의 미반영 사고의 재발 방지: 국면 전환(conflict→deal) 감지를 못 박는다.
 import assert from 'node:assert/strict';
 import {
-  parseGoogleNewsItems, dedupMacroItems, analyzeMacroShock, isMacroTrigger,
+  parseGoogleNewsItems, dedupMacroItems, analyzeMacroShock,
   buildMacroSection, MACRO_TRIGGER_SCORE,
 } from './macro-news.js';
 
@@ -41,8 +41,6 @@ const conflictDay = [
 const a1 = analyzeMacroShock(conflictDay, NOW);
 assert.equal(a1.fingerprint, 'iran:conflict');
 assert.ok(a1.score >= MACRO_TRIGGER_SCORE);
-assert.equal(isMacroTrigger(a1, 'iran:conflict'), false); // 같은 국면 지속 → 재트리거 금지
-assert.equal(isMacroTrigger(a1, null), true);             // 초기 상태 → 트리거
 
 // ─── 국면 전환: 갈등 보도 물량 속에서도 합의 국면 감지 (2026-06-12 사고 시나리오) ──
 const dealBreaks = [
@@ -53,8 +51,6 @@ const dealBreaks = [
 ];
 const a2 = analyzeMacroShock(dealBreaks, NOW);
 assert.equal(a2.fingerprint, 'iran:conflict+deal');       // 합의가 묻히지 않음
-assert.equal(isMacroTrigger(a2, 'iran:conflict'), true);  // 국면 전환 → 트리거
-assert.equal(isMacroTrigger(a2, 'iran:conflict+deal'), false);
 // 증거에 deal 국면 헤드라인 포함 + URL 중복 없음
 assert.ok(a2.evidence.some(e => /deal|peace/i.test(e.title)));
 assert.equal(new Set(a2.evidence.map(e => e.url)).size, a2.evidence.length);
@@ -74,15 +70,12 @@ const quiet = analyzeMacroShock([
 ], NOW);
 assert.equal(quiet.score < MACRO_TRIGGER_SCORE, true);
 
-// ─── 단발 기사(1건)로는 트리거 금지 + 단일 소스 금지 ────────────────────────
-const single = analyzeMacroShock([item('OPEC considers output deal', 'X')], NOW);
-assert.equal(isMacroTrigger(single, null), false);
+// ─── 단일 소스 집계 ─────────────────────────────────────────────────────────
 const oneSource = analyzeMacroShock([
   item('Iran war intensifies', 'OnlyOne'), item('Iran war strikes continue', 'OnlyOne'),
   item('Iran war attack reported', 'OnlyOne'),
 ], NOW);
 assert.equal(oneSource.distinctSources, 1);
-assert.equal(isMacroTrigger(oneSource, null), false);
 
 // ─── 36시간 초과 헤드라인은 무시 ────────────────────────────────────────────
 const stale = analyzeMacroShock(conflictDay.map(i => ({ ...i, ts: NOW - 48 * 3600000 })), NOW);
