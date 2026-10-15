@@ -49,9 +49,15 @@
 | frankfurter (ECB) | exchange-rate.js | 주말은 시계열에 넣지 않음 |
 | recycleinme | recycleinme.js | "Canada" 페이지가 UK 라벨 → lb 행=캐나다, 톤 행=영국 |
 | 관세청 nitemtrade (HS 270111) | customs.js | 월 1회(15일경 전월분), 1,000톤 미만 월 제외, 전 용도 평균 |
-| 국내 스크랩 주간 고시 | scripts/kr-scrap, kr-scrap.js | 같은 게시글을 매주 덮어씀 → 2026-10-02분부터 보관. 화면에 회사명 표기 금지 |
+| 국내 스크랩 주간 고시 | scripts/kr-scrap, kr-scrap.js | 같은 게시글을 매주 덮어씀 → 2026-10-02분부터 보관(10/09분은 판독 실패로 유실). 화면에 회사명 표기 금지. 판독 방식은 아래 "국내 고시 판독" |
 | 근거 매체 | evidence.js `DOMAINS` | 신랑재경·마이스틸·AL Circle·Aluminium Today·스틸데일리·페로타임즈, 철강금속신문(유료 → 제목만) |
 | 거시 헤드라인 | macro-news.js | Google News 와이어, 국면 fingerprint |
+
+### 국내 고시 판독
+- 2026-10-08 고시부터 양식 변경: 12행 → **16행**(폐차장 기계철·알루미늄 캔 압축·발판 작업/미작업 추가). 본문 이미지는 1.1MB 썸네일(`thumb-…_WxH`)이라 Firestore 문서 한도(1MiB)를 넘는다 → 원본(`thumb-`·`_WxH` 제거, 약 170KB)을 우선 받는다.
+- 행 위치는 고정 좌표 대신 노란 '주간 단가' 칸을 세로로 훑어 찾는다. 기준 LME·환율·적용기간은 원본 917px 기준 좌표를 폭에 맞춰 늘리고, 기준가 칸은 빨간 칸 윗변을 찾아 기준으로 삼는다. 글자는 잘라서 이진화·3배 확대 후 읽는다.
+- 서버 판정(kr-scrap.js): 행 수 ≠ `KR_SCRAP_ITEMS`(16)면 양식 변경으로 보고 실패 처리 → **양식이 또 바뀌면 `KR_SCRAP_ITEMS`를 고친다**. 화살표가 있는데 금액이 0·빈 값이면 실패(썸네일에서 ▼50을 '0'으로 읽은 실제 사례). 지난주 대조는 품목명 기준, 직전 주(5~9일 전) 기록일 때만.
+- 10/08~10/16 실패는 Actions 로그가 매번 빨간색이었는데 알림이 없어 8일간 몰랐다. 이상 시 `gh run list --workflow kr-scrap-archive.yml`부터 본다.
 
 ### LLM
 - Perplexity **Agent API**(`/v1/agent`), 운영 모델 `openai/gpt-5.6-luna`(Vercel env `AGENT_MODEL`, 2026-10-12~). 코드 기본값은 `anthropic/claude-sonnet-5-5` — env를 지우고 재배포하면 Sonnet으로 돌아간다. **검색 도구 없음**.
@@ -73,7 +79,7 @@
 | `commodity_cache/evidence_{날짜}`·`_latest`, `evidence_seen` | 근거 묶음, 최근 5일 사용 URL(빼지 않고 후순위) |
 | `commodity_cache/market_report_{날짜}`·`_latest` | 하루치 리포트 |
 | `commodity_cache/collect_log_{날짜}`, `pplx_budget_{날짜}` | 실행 기록, 호출 수 (`macro_state`는 센티널 제거 후 쓰지 않음) |
-| `kr_scrap_weekly/{기준일}`·`_latest` | 국내 고시 판독값 + 원본 이미지(저장소가 공개라 git 대신 Firestore) |
+| `kr_scrap_weekly/{기준일}`·`_latest` | 국내 고시 판독값 + 원본 이미지(저장소가 공개라 git 대신 Firestore). 실패분은 `failed-{해시12자}`. 이미지가 80만 자(base64) 넘으면 이미지 없이 판독값만 저장 |
 
 2026-10 이전 탭 구조의 캐시 문서(`{tab}_{날짜}` 등)는 남아 있으나 쓰지 않는다.
 
@@ -93,6 +99,7 @@
 | 우선순위 | 항목 | 비고 |
 |---------|------|------|
 | 높음 | 2026-10-13 06시대 첫 Luna 실행 확인 | `market_report_2026-10-13`의 `model`·`cost_usd`, 화면 문장 품질 |
+| 중간 | 국내 고시 판독 실패 알림 | 지금은 Actions 실패를 아무도 모른다. 무료 수단(실패 시 GitHub 이슈 생성 등) 검토 |
 | 중간 | 국내 스크랩 예상가 계산식 보정 | 고시 몇 주 쌓인 뒤 품목별 반응도 반영, 적중률 표시 |
 | 중간 | 가탄제 무연탄 직접 근거 | 무료 기사 소스 없음(sxcoal 유료). 지금은 원료탄·코크스·관세청으로 설명 |
 | 낮음 | 관세청 키 재발급 시 교체 | 대화에 노출됨 |
