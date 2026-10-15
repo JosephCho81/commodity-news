@@ -8,6 +8,8 @@ import { FIREBASE_ENABLED, getFirestoreToken, getFromFirestore, saveToFirestore 
 import { buildRecord } from './_lib/kr-scrap.js';
 
 const COLLECTION = 'kr_scrap_weekly';
+// Firestore 문서 한도 1MiB. 원본 이미지가 이보다 크면 이미지 없이 판독값만 남긴다(썸네일은 1MB를 넘는다).
+const MAX_IMAGE_B64 = 800_000;
 
 export default async function handler(req, res) {
   if (!process.env.CRON_SECRET || req.headers['authorization'] !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -21,6 +23,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'raw·image_b64·image_sha256 필요' });
   }
 
+  try {
+    return await archive(res, { raw, image_b64, image_sha256, source_url });
+  } catch (e) {
+    console.error('[KrScrap] 보관 실패', e);
+    return res.status(500).json({ error: String(e?.message ?? e).slice(0, 300) });
+  }
+}
+
+async function archive(res, { raw, image_b64, image_sha256, source_url }) {
   const token = await getFirestoreToken();
   const latest = await getFromFirestore(token, COLLECTION, '_latest');
   if (latest?.image_sha256 === image_sha256) {
@@ -32,6 +43,8 @@ export default async function handler(req, res) {
 
   const { record, issues, fatal } = buildRecord(raw, prev);
   const status = fatal ? 'failed' : issues.length ? 'review' : 'ok';
+  const imageFits = image_b64.length <= MAX_IMAGE_B64;
+  if (!imageFits) issues.push(`원본 이미지 ${image_b64.length}자 — 문서 한도로 이미지 보관 생략`);
   const docId = !fatal && record.base_date ? record.base_date : `failed-${image_sha256.slice(0, 12)}`;
 
   await saveToFirestore(token, COLLECTION, docId, {
@@ -39,7 +52,7 @@ export default async function handler(req, res) {
     record: record,
     raw: raw,
     issues: issues,
-    image_b64,
+    image_b64: imageFits ? image_b64 : '',
     image_sha256,
     source_url: String(source_url ?? ''),
     fetched_at: new Date().toISOString(),

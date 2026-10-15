@@ -6,10 +6,9 @@ export const KR_SCRAP_ITEMS = [
   ['SAS', 'A'], ['SAS', 'B'],
   ['CHIP', '12S'], ['CHIP', '60'],
   ['노베압축', '-'], ['작업 휠', '-'], ['프로파일', '-'], ['드로스', '-'],
+  ['폐차장 기계철', '-'], ['알루미늄 캔 압축', '-'], ['발판', '작업'], ['발판', '미작업'],
 ];
-
-// 고시 이미지 고정 레이아웃 — 크기가 바뀌면 칸 좌표를 믿을 수 없다
-export const KR_SCRAP_LAYOUT = { width: 731, height: 1332 };
+// 2026-10-08 고시부터 16행 양식. 품목명은 OCR하지 않으므로 행 수가 다르면 양식 변경으로 보고 저장값으로 쓰지 않는다.
 
 const STEP = 50;
 
@@ -42,12 +41,8 @@ export function buildRecord(raw, prev = null, now = new Date()) {
   let fatal = false;
   const flag = (msg, isFatal = false) => { issues.push(msg); if (isFatal) fatal = true; };
 
-  if (raw?.width !== KR_SCRAP_LAYOUT.width || raw?.height !== KR_SCRAP_LAYOUT.height) {
-    flag(`이미지 크기 변경 ${raw?.width}x${raw?.height}`, true);
-  }
-
   const prices = (raw?.prices ?? []).map(toNum);
-  if (prices.length !== KR_SCRAP_ITEMS.length) flag(`단가 개수 ${prices.length}`, true);
+  if (prices.length !== KR_SCRAP_ITEMS.length) flag(`단가 행 수 ${prices.length} (양식 변경 의심, ${raw?.width}x${raw?.height})`, true);
 
   const baseLme = toNum(raw?.base_lme);
   const baseFx = toNum(raw?.base_fx);
@@ -72,6 +67,7 @@ export function buildRecord(raw, prev = null, now = new Date()) {
     const ch = raw?.changes?.[i] ?? {};
     const digits = toNum(ch.digits);
     let change = 0;
+    if (ch.sign && !(digits > 0)) flag(`${item} ${grade} 전주 대비 화살표는 있는데 금액 판독 실패 ${ch.digits}`, true);
     if (digits !== null && digits > 0) {
       if (digits % STEP !== 0) flag(`${item} ${grade} 전주 대비 ${ch.digits} 50원 단위 아님`, true);
       if (ch.sign !== 1 && ch.sign !== -1) flag(`${item} ${grade} 전주 대비 방향 판독 실패`, true);
@@ -80,10 +76,12 @@ export function buildRecord(raw, prev = null, now = new Date()) {
     return { item, grade, price, change };
   });
 
-  // 직전 주 기록과 대조: 이번 주 단가 - 전주 대비 = 지난주 단가 (같은 주 재게시는 대조 생략)
-  if (prev?.items && prev.base_date && baseDate && prev.base_date < baseDate) {
-    items.forEach((it, i) => {
-      const p = prev.items[i]?.price;
+  // 직전 주 기록과 대조: 이번 주 단가 - 전주 대비 = 지난주 단가.
+  // 바로 전 주(5~9일 전)일 때만 — 같은 주 재게시나 놓친 주가 끼면 '전주 대비'가 다른 주를 가리킨다. 품목은 이름으로 맞춘다.
+  const gapDays = prev?.base_date && baseDate ? (Date.parse(baseDate) - Date.parse(prev.base_date)) / 86400000 : 0;
+  if (prev?.items && gapDays >= 5 && gapDays <= 9) {
+    items.forEach((it) => {
+      const p = prev.items.find(x => x.item === it.item && x.grade === it.grade)?.price;
       if (Number.isFinite(p) && it.price !== null && it.price - it.change !== p) {
         flag(`${it.item} ${it.grade} 지난주 대조 불일치 (지난주 ${p}, 이번 주 ${it.price}, 대비 ${it.change})`);
       }
