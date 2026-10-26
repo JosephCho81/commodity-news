@@ -99,10 +99,19 @@ function inkCrop(png, rect) {
   const vals = [];
   for (let y = rect.top; y < rect.top + rect.height; y++) for (let x = rect.left; x < rect.left + rect.width; x++) vals.push(lum(x, y));
   const bg = [...vals].sort((a, b) => a - b)[vals.length >> 1];
+  const ink = (x, y) => Math.abs(vals[y * rect.width + x] - bg) > 70;
+  // 칸 테두리(세로 막대)는 지운다 — 이미지 폭이 917→920px로 바뀌자 기준가·날짜 칸 왼쪽에 테두리가 들어와
+  // "1,324.60"이 "1.32460", "(10/23금)"이 "00/233"으로 읽혔다(2026-10-16·23 고시). 글자 획은 칸 높이의 80%를 채우지 않는다
+  const border = new Set();
+  for (let x = 0; x < rect.width; x++) {
+    let n = 0;
+    for (let y = 0; y < rect.height; y++) if (ink(x, y)) n++;
+    if (n >= rect.height * 0.8) border.add(x);
+  }
   const out = new PNG({ width: rect.width * ZOOM + PAD * 2, height: rect.height * ZOOM + PAD * 2 });
   out.data.fill(255);
   for (let y = 0; y < rect.height; y++) for (let x = 0; x < rect.width; x++) {
-    if (Math.abs(vals[y * rect.width + x] - bg) <= 70) continue;
+    if (!ink(x, y) || border.has(x)) continue;
     for (let dy = 0; dy < ZOOM; dy++) for (let dx = 0; dx < ZOOM; dx++) {
       const i = (out.width * (PAD + y * ZOOM + dy) + PAD + x * ZOOM + dx) << 2;
       out.data[i] = out.data[i + 1] = out.data[i + 2] = 0;
@@ -134,7 +143,7 @@ async function readImage(buf) {
     }
     raw.period_end = await read(sc(RECT.period_end, Math.round(RECT.period_end.top * scale)), '0123456789/~');
     if (baseTop !== null) {
-      for (const [k, wl] of [['base_lme', '0123456789,.'], ['base_fx', '0123456789,.'], ['base_lme_date', '0123456789/'], ['base_fx_date', '0123456789/']]) {
+      for (const [k, wl] of [['base_lme', '0123456789,.'], ['base_fx', '0123456789,.'], ['base_lme_date', '0123456789/()'], ['base_fx_date', '0123456789/()']]) {
         raw[k] = await read(sc(RECT[k], baseTop + Math.round(RECT[k].dy * scale)), wl);
       }
     }

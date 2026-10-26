@@ -1,6 +1,6 @@
 // node api/_lib/kr-scrap.test.mjs — 국내 스크랩 고시 판정 회귀 테스트 (npm test)
 import assert from 'node:assert/strict';
-import { buildRecord, resolveMonthDay, toNum } from './kr-scrap.js';
+import { buildRecord, resolveMonthDay, toNum, toFixed2, alreadyArchived } from './kr-scrap.js';
 
 const NOW = new Date('2026-10-16T03:00:00Z');
 
@@ -75,5 +75,48 @@ assert.equal(buildRecord({ ...RAW, base_fx_date: '' }, null, NOW).fatal, true); 
   assert.deepEqual(buildRecord(RAW, { ...prev, base_date: '2026-10-15' }, NOW).issues, []);
   assert.deepEqual(buildRecord(RAW, { ...prev, base_date: '2026-10-01' }, NOW).issues, []);
 }
+
+// ─── 2026-10-16·23 고시: 이미지 폭 920px에서 테두리가 칸에 들어와 기준환율 "1.32460"으로 판독 → 2주 누락 ───────
+assert.equal(toFixed2('1.32460'), 1324.6);                       // 쉼표를 마침표로 읽어도 소수 둘째 자리 고정
+assert.equal(toFixed2('1,348.50'), 1348.5);
+assert.equal(toFixed2('3,033.00'), 3033);
+assert.equal(toFixed2('3.03300'), 3033);
+assert.equal(toFixed2('134.05'), 134.05);                        // 자리 수가 모자라면 범위 검사가 거른다
+assert.equal(toFixed2('1,3a4.60'), null);
+assert.equal(toFixed2(''), null);
+{
+  const P = ['3,600', '3,400', '3,050', '2,600', '3,500', '2,900', '2,700', '2,900', '2,600', '3,850', '3,850', '1,900', '3,100', '2,200', '3,550', '3,100'];
+  const D100 = { digits: '100', sign: -1 };
+  // 10/16 고시 원본을 고친 OCR로 다시 읽은 값(Firestore failed-a77192a97530 보관 이미지)
+  const oct16 = {
+    width: 920, height: 1710, prices: P,
+    changes: [D100, D100, D100, D100, D100, D100, D100, D100, D100, NONE, NONE, { digits: '100', sign: -1 }, { digits: '100', sign: -1 }, { digits: '200', sign: -1 }, D100, D100],
+    base_lme: '2,999.00', base_fx: '1,348.50', base_lme_date: '(10/155)', base_fx_date: '(10/163)', period_end: '~10/24',
+  };
+  const r16 = buildRecord(oct16, null, new Date('2026-10-16T05:00:00Z'));
+  assert.equal(r16.fatal, false);
+  assert.equal(r16.record.base_date, '2026-10-16');
+  assert.equal(r16.record.base_fx, 1348.5);
+  // 옛 판독값("1.34850")도 이제 같은 값으로 읽힌다
+  assert.equal(buildRecord({ ...oct16, base_fx: '1.34850' }, null, new Date('2026-10-16T05:00:00Z')).record.base_fx, 1348.5);
+  // 10/23 고시: 전주(10/16) 단가 − 전주 대비 = 지난주 단가 대조까지 통과
+  const oct23 = {
+    ...oct16, prices: P.map((p, i) => (i === 13 ? '2,300' : p)),
+    changes: P.map((_, i) => (i === 13 ? { digits: '100', sign: 1 } : NONE)),
+    base_lme: '3,033.00', base_fx: '1,324.60', base_lme_date: '(10/225)', base_fx_date: '(10/235', period_end: '10/31',
+  };
+  const r23 = buildRecord(oct23, r16.record, new Date('2026-10-23T05:00:00Z'));
+  assert.equal(r23.fatal, false);
+  assert.deepEqual(r23.issues, []);
+  assert.equal(r23.record.base_date, '2026-10-23');
+  assert.equal(r23.record.period_end, '2026-10-31');
+  assert.deepEqual(r23.record.items[13], { item: '알루미늄 캔 압축', grade: '-', price: 2300, change: 100 });
+}
+// 실패한 이미지는 같은 해시여도 다시 처리한다
+assert.equal(alreadyArchived({ image_sha256: 'a', last_status: 'ok' }, 'a'), true);
+assert.equal(alreadyArchived({ image_sha256: 'a', last_status: 'review' }, 'a'), true);
+assert.equal(alreadyArchived({ image_sha256: 'a', last_status: 'failed' }, 'a'), false);
+assert.equal(alreadyArchived({ image_sha256: 'a', last_status: 'ok' }, 'b'), false);
+assert.equal(alreadyArchived(null, 'a'), false);
 
 console.log('kr-scrap tests passed');

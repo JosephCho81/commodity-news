@@ -33,6 +33,20 @@ export function toNum(s) {
   return Number(t);
 }
 
+// 기준가·기준환율 칸은 항상 소수 둘째 자리("3,033.00", "1,324.60")다. OCR이 쉼표·마침표를 헷갈려도("1.32460")
+// 숫자 자리만으로 값이 정해진다 — 숫자 외 문자는 구분 기호 [,.]만 허용 (순수 함수)
+export function toFixed2(s) {
+  const t = String(s ?? '').trim();
+  if (!/^[\d,.]+$/.test(t)) return null;
+  const digits = t.replace(/[,.]/g, '');
+  return digits.length >= 3 ? Number(digits) / 100 : null;
+}
+
+// 같은 이미지를 이미 보관했나. 판독에 실패한 이미지는 다음 실행에서 다시 처리한다 — 해시만 보고 넘기면 OCR을 고쳐도
+// 그 주 고시가 영영 안 들어오고, 워크플로는 "unchanged 성공"으로 끝나 실패가 보이지 않았다(2026-10-16·23 고시 2주 누락).
+// 실패가 이어지면 매 실행 422로 워크플로가 실패해 드러난다 (순수 함수)
+export const alreadyArchived = (latest, sha) => latest?.image_sha256 === sha && latest.last_status !== 'failed';
+
 // raw: OCR 원본 { width, height, prices[], changes[{digits, sign}], base_lme, base_lme_date, base_fx, base_fx_date, period_end }
 // prev: 직전 저장 레코드(record 형식) 또는 null
 // 반환: { record, issues[], fatal }
@@ -44,8 +58,8 @@ export function buildRecord(raw, prev = null, now = new Date()) {
   const prices = (raw?.prices ?? []).map(toNum);
   if (prices.length !== KR_SCRAP_ITEMS.length) flag(`단가 행 수 ${prices.length} (양식 변경 의심, ${raw?.width}x${raw?.height})`, true);
 
-  const baseLme = toNum(raw?.base_lme);
-  const baseFx = toNum(raw?.base_fx);
+  const baseLme = toFixed2(raw?.base_lme);
+  const baseFx = toFixed2(raw?.base_fx);
   if (!(baseLme >= 1500 && baseLme <= 4500)) flag(`기준 LME 범위 밖 ${raw?.base_lme}`, true);
   if (!(baseFx >= 1000 && baseFx <= 1900)) flag(`기준환율 범위 밖 ${raw?.base_fx}`, true);
 

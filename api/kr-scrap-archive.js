@@ -5,7 +5,7 @@
 export const config = { maxDuration: 30 };
 
 import { FIREBASE_ENABLED, getFirestoreToken, getFromFirestore, saveToFirestore } from './_lib/firebase.js';
-import { buildRecord } from './_lib/kr-scrap.js';
+import { buildRecord, alreadyArchived } from './_lib/kr-scrap.js';
 
 const COLLECTION = 'kr_scrap_weekly';
 // Firestore 문서 한도 1MiB. 원본 이미지가 이보다 크면 이미지 없이 판독값만 남긴다(썸네일은 1MB를 넘는다).
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 async function archive(res, { raw, image_b64, image_sha256, source_url }) {
   const token = await getFirestoreToken();
   const latest = await getFromFirestore(token, COLLECTION, '_latest');
-  if (latest?.image_sha256 === image_sha256) {
+  if (alreadyArchived(latest, image_sha256)) {
     return res.status(200).json({ status: 'unchanged', base_date: latest.base_date ?? null });
   }
 
