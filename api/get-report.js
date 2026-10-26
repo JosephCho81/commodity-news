@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   const markets = {};
   for (const [k, m] of Object.entries(report.markets ?? {})) {
     // 내부 진단 필드와 근거 기사 목록은 화면에 보내지 않는다(근거는 생성 단계에서만 쓴다)
-    const { usage, dropped, model, sources, ...rest } = m;
+    const { usage, dropped, model, sources, now_src, ...rest } = m;
     markets[k] = rest;
   }
   const brief = report.brief ? { one_liner: report.brief.one_liner, lead: report.brief.lead, common: report.brief.common ?? [] } : null;

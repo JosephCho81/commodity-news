@@ -101,7 +101,7 @@ export function marketMetrics(market, history) {
   const series = def.keys.map(([key, label]) => ({
     key,
     label: !CNY_KEYS.includes(key) ? label : label.endsWith(')') ? `${label.slice(0, -1)}, 달러 환산)` : `${label} (달러 환산)`,
-    unit: 'USD/톤',
+    unit: '달러/톤',
     ...(seriesStats(conv, key) ?? {}),
   })).filter(s => s.value != null);
   const main = series.find(s => s.key === def.main) ?? null;
@@ -113,3 +113,16 @@ export function marketMetrics(market, history) {
     krw: market === 'steel' ? null : krwEffect(conv, def.main),
   };
 }
+
+// 시세 날짜와 오늘 사이에 빠진 평일 수 (양 끝 제외). 평소 중국 선물 0·LME 1(전일 확정치가 하루 늦다) —
+// 2 이상이면 휴장(국경절 등)으로 멈춘 가격이다. 주말은 세지 않는다 (순수 함수)
+export const HOLIDAY_GAP = 2;
+export function missedWeekdays(from, to) {
+  let n = 0;
+  for (let t = Date.parse(`${from}T00:00:00Z`) + 86400000; t < Date.parse(`${to}T00:00:00Z`); t += 86400000) {
+    const wd = new Date(t).getUTCDay();
+    if (wd !== 0 && wd !== 6) n++;
+  }
+  return n;
+}
+export const isHalted = (seriesDate, today) => !!seriesDate && !!today && missedWeekdays(seriesDate, today) >= HOLIDAY_GAP;

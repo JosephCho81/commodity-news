@@ -8,7 +8,9 @@ export const DEFAULT_MODEL = process.env.AGENT_MODEL || 'anthropic/claude-sonnet
 /**
  * @returns {Promise<{ text: string, json: object|null, usage: object|null, model: string }>}
  */
-export async function callAgent({ instructions, input, schema = null, model = DEFAULT_MODEL, maxOutputTokens = 2500, label = 'agent' }) {
+// timeoutMs: 재시도까지 포함한 전체 시간 상한 — 300초 함수 한도 안에서 마지막 호출(검수)이 넘치지 않게
+export async function callAgent({ instructions, input, schema = null, model = DEFAULT_MODEL, maxOutputTokens = 2500, label = 'agent', timeoutMs = 100000 }) {
+  const deadline = Date.now() + timeoutMs;
   await reserveCall(label);
   const body = {
     model,
@@ -26,9 +28,9 @@ export async function callAgent({ instructions, input, schema = null, model = DE
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(100000),
+      signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())),
     });
-    if (res.status !== 429 || attempt >= 3) break;
+    if (res.status !== 429 || attempt >= 3 || Date.now() + 4000 * (attempt + 1) + 5000 > deadline) break;
     await new Promise(r => setTimeout(r, 4000 * (attempt + 1)));
   }
   if (!res.ok) throw new Error(`Agent HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);

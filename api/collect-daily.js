@@ -1,5 +1,6 @@
 // api/collect-daily.js — 하루 1회 수집 (Vercel Cron "0 21 * * *" = KST 06시대, Hobby 크론은 그 시간 안 임의 시각)
-// 1) 시장 숫자 스냅샷  2) 시장별 근거 묶음(신뢰 소스 기사 본문)  3) 시장별 해석 + 브리핑(LLM 6~11회).
+// 1) 시장 숫자 스냅샷  2) 시장별 근거 묶음(신뢰 소스 기사 본문)  3) 시장별 해석 + 브리핑(LLM 6~11회)
+// 4) 게시 게이트(사실 오류 문장 삭제) → 저장 → 남은 시간이 있으면 LLM 일관성 검수 1회 → 다시 저장 (docs/quality.md).
 // 출근길에 보는 리포트라 하루 1회로 충분하다. 거시 이벤트 재생성(센티널)은 2026-10-12 제거 — LLM 비용이 하루 2배가 됐다.
 
 export const config = { maxDuration: 300 };
@@ -12,6 +13,8 @@ import { generateReport } from './_lib/report.js';
 import { callAgent } from './_lib/agent.js';
 import { setBudgetToken } from './_lib/budget.js';
 import { fetchGlobalMacroNews, buildMacroSection } from './_lib/macro-news.js';
+import { finalizeReport } from './_lib/gate.js';
+import { judgeAndFinalize } from './_lib/judge.js';
 
 const SEEN_DAYS = 5;
 
@@ -70,13 +73,22 @@ export default async function handler(req, res) {
         history: JSON.parse(hist.items), snap: JSON.parse(snapDoc.data), evidence: JSON.parse(evDoc.data),
         callAgent, date, macroSection: buildMacroSection(macro, 10),
       });
-      const payload = { data: JSON.stringify(report), date, generated_at: report.generated_at };
-      await Promise.all([
-        saveToFirestore(token, 'commodity_cache', `market_report_${date}`, payload),
-        saveToFirestore(token, 'commodity_cache', 'market_report_latest', payload),
-      ]);
+      const save = (r) => {
+        const payload = { data: JSON.stringify(r), date, generated_at: r.generated_at };
+        return Promise.all([
+          saveToFirestore(token, 'commodity_cache', `market_report_${date}`, payload),
+          saveToFirestore(token, 'commodity_cache', 'market_report_latest', payload),
+        ]);
+      };
+      let full = finalizeReport(report);
+      await save(full); // 검수 전 저장 — 검수가 시간 초과·실패해도 오늘 리포트는 남는다
+      // 4) LLM 일관성 검수 — 함수 300초 한도에서 여유 10초를 남긴다
+      const judged = await judgeAndFinalize(full, { callAgent, budgetMs: 290000 - (Date.now() - t0) });
+      if (judged.report) { full = judged.report; await save(full); }
+      result.judge = { issues: judged.issues ?? null, skipped: judged.skipped ?? null, error: judged.error ?? null, cost_usd: judged.cost_usd ?? 0 };
+      result.quality = { counts: full.quality.counts, by_id: full.quality.by_id, removed: full.quality.removed, cite_dropped: full.quality.cite_dropped };
       const failed = Object.values(report.markets).filter(m => m.error).map(m => `${m.market}: ${m.error}`);
-      result.report = { ok: !failed.length && !report.brief?.error, failed, cost_usd: report.cost_usd, model: report.model };
+      result.report = { ok: !failed.length && !report.brief?.error, failed, cost_usd: +(report.cost_usd + (judged.cost_usd ?? 0)).toFixed(4), model: report.model };
     } catch (e) {
       result.report = { ok: false, error: e.message };
     }

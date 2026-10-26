@@ -2,13 +2,14 @@
 // 입력: 결정적 지표(market-metrics) + 시장별 추가 숫자 + 근거 기사(evidence) + 거시 헤드라인. 출력: 4칸(지금·왜·영향·전망).
 // 방향은 코드가 정하고, LLM은 그 이유와 의미만 쓴다. 입력에 없는 숫자·위안 표기가 들어간 문장은 버린다.
 
-import { marketMetrics } from './market-metrics.js';
+import { marketMetrics, seriesStats, isHalted } from './market-metrics.js';
+import { citeCheck, codeNumbersOf, isResultsArticle, macroLines, numberedBody } from './cite.js';
 
 export const MARKET_NAMES = { ferro: '합금철', al1: '알루미늄 1차', al2: '알루미늄 2차', recarb: '가탄제', steel: '철강 업황' };
 
 export const DIR_KO = { up: '강세', down: '약세', flat: '보합', mixed: '혼조' };
 
-const FOCUS = {
+export const FOCUS = {
   ferro: '페로실리콘(FeSi)·실리콘망간(SiMn)·페로망간. 국내 제강사가 탈산·합금용으로 수입하는 중국산 가격 흐름.',
   al1: '1차 알루미늄(LME·SHFE). 제강사 탈산제용 알루미늄 원가의 기준.',
   al2: '2차 알루미늄(주조합금·ADC12)과 알루미늄 스크랩·드로스. 탈산제 원료 가격.',
@@ -35,12 +36,18 @@ export const INSTRUCTIONS = `당신은 국내 제강사 구매팀이 매일 아�
 
 사실 규칙
 - 가격은 달러 또는 원으로만 쓴다. "위안"·"元"·"CNY"는 쓰지 않는다. 기사에 위안 금액만 있으면 금액 없이 "인하", "인상" 같은 방향으로만 쓴다. 위안이 들어간 문장은 삭제된다.
-- 숫자는 입력에 적힌 값과 단위를 그대로 옮긴다. 반올림·환산·새 계산 금지. USD는 "달러"로, 무게 단위 t는 "톤"으로 쓴다(예: 톤당 280달러). 입력과 숫자나 단위가 다르면 그 문장은 삭제된다.
+- 숫자는 입력에 적힌 값과 단위를 그대로 옮긴다. 반올림·환산·새 계산 금지. 가격 단위는 "달러"로 쓰고("USD" 금지), 무게 단위 t는 "톤"으로 쓴다(예: 톤당 280달러). 입력과 숫자나 단위가 다르면 그 문장은 삭제된다.
 - 휴일·행사 이름은 기사에 나온 대로 쓴다(중국 10월 연휴 = 국경절).
 - 글로벌 와이어 헤드라인의 거시 사안(전쟁·휴전·유가·관세 등)은 근거 기사나 숫자에서 이 시장 가격으로 이어지는 경로가 확인될 때만 원인으로 쓴다. "직접 반영된 흔적이 없다", "영향은 제한적"인 사안은 원인 칸에 넣지 않는다.
 - 원인(why)은 근거 기사·글로벌 와이어 헤드라인에 있는 내용만 쓰고, 근거로 쓴 번호를 src에 반드시 넣는다(헤드라인이 근거면 0). 근거 번호가 없는 원인은 삭제된다. 기사가 하나도 없으면 숫자에서 직접 보이는 것(원가·선물 동반 하락 등)만 쓰고 src는 빈 배열로 둔다.
+- now의 각 문장과 why마다 cite에 근거 문장 번호를 1~3개 단다(기사 문장 앞 "[2-3]"의 "2-3", 헤드라인은 "0-1"). 【숫자】 줄 값만 말하는 문장은 cite를 비우고 그 숫자를 1개 이상 그대로 쓴다.
+  인용 문장에 없는 사실·숫자를 쓰지 않는다. 번호가 틀리거나, 문장 속 숫자가 인용 문장과 【숫자】 줄 어디에도 없거나, cite도 숫자도 없는 문장은 삭제된다.
 - 방향(강세·약세·보합)은 입력에 정해져 있다. 이와 반대되는 결론을 쓰지 않는다.
+- 원화 강세·약세와 원/달러 상승·하락은 【원/달러 방향(코드 계산)】 줄만 따른다.
+- "휴장" 표시가 붙은 시세는 멈춘 가격이다. 오늘·이번 주의 새 움직임처럼 쓰지 않고, 쓸 때는 마지막 거래일을 밝힌다.
+- "(○일 전 고시 …)"처럼 오래됐다고 표시된 고시가·시세는 현재 값으로 쓰지 않는다. 쓸 때는 고시일·기준월을 밝힌다.
 - "(이전 보도)"로 표시된 기사는 배경으로만 쓰고 새 소식처럼 쓰지 않는다.
+- "(실적 기사 …)" 표시가 붙은 기사의 실적·생산량은 지난 분기 숫자다. "○분기에 ~했다"처럼 과거로 쓰고, 오늘·이번 주 수급의 원인으로 쓰지 않는다.
 
 출력은 JSON 스키마를 따른다.`;
 
@@ -50,16 +57,23 @@ export const SCHEMA = {
   required: ['headline', 'now', 'why', 'impact', 'outlook'],
   properties: {
     headline: { type: 'string', description: '오늘 이 시장을 한 줄로. 45자 이내' },
-    now: { type: 'array', items: { type: 'string' }, description: '지금 어떻게 돌아가나 — 움직임과 국내외 배경, 2~3문장' },
+    now: {
+      type: 'array', description: '지금 어떻게 돌아가나 — 움직임과 국내외 배경, 2~3문장',
+      items: {
+        type: 'object', additionalProperties: false, required: ['text', 'cite'],
+        properties: { text: { type: 'string' }, cite: { type: 'array', items: { type: 'string' }, description: '근거 문장 번호 "기사-문장"(예 2-3). 숫자 줄만 말하면 빈 배열' } },
+      },
+    },
     why: {
       type: 'array',
       items: {
-        type: 'object', additionalProperties: false, required: ['region', 'title', 'text', 'src'],
+        type: 'object', additionalProperties: false, required: ['region', 'title', 'text', 'src', 'cite'],
         properties: {
           region: { type: 'string', enum: ['국내', '중국', '해외'] },
           title: { type: 'string', description: '원인 요약, 20자 이내' },
           text: { type: 'string', description: '정세·사건 → 영향받은 산업·수급 → 가격 결과, 2~3문장' },
           src: { type: 'array', items: { type: 'integer' }, description: '근거 번호. 기사는 1부터, 거시 헤드라인은 0' },
+          cite: { type: 'array', items: { type: 'string' }, description: '근거 문장 번호 "기사-문장"(예 2-3), 1~3개' },
         },
       },
     },
@@ -85,49 +99,82 @@ export const SCHEMA = {
 const fmt = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
 const pct = (v) => (v == null ? '-' : `${v > 0 ? '+' : ''}${v}%`);
 
+const ageDays = (d, today) => (d && today ? Math.round((Date.parse(today) - Date.parse(d)) / 86400000) : 0);
+const NOTICE_MAX_DAYS = 14; // quality.js noticeFacts와 같게 — 이보다 오래된 주간 고시·야드 시세는 현재 값으로 쓰지 않게 표시
+const oldNote = (d, today, what) => (ageDays(d, today) > NOTICE_MAX_DAYS ? ` (${ageDays(d, today)}일 전 ${what} — 현재 값으로 쓰지 말고 쓸 때는 ${what}일을 밝힌다)` : '');
+
 // 시장별 추가 숫자 줄 (순수 함수)
 export function extraLines(market, snap) {
   const out = [];
   if (market === 'al2') {
     const kr = snap.scrap_kr;
     if (kr?.items?.length) {
-      out.push(`국내 알루미늄 스크랩 매입가 (${kr.base_date} 고시, 기준 LME ${fmt(kr.base_lme)} USD/t · 환율 ${kr.base_fx}원):`);
+      out.push(`국내 알루미늄 스크랩 매입가 (${kr.base_date} 고시, 기준 LME ${fmt(kr.base_lme)} 달러/톤 · 환율 ${kr.base_fx}원)${oldNote(kr.base_date, snap.date, '고시')}:`);
       for (const it of kr.items) out.push(`  ${it.item}${it.grade !== '-' ? ' ' + it.grade : ''} ${fmt(it.price)}원/kg (전주 대비 ${it.change ? (it.change > 0 ? '+' : '') + it.change + '원' : '0원'})`);
     }
     for (const [code, name] of [['us', '미국'], ['ca', '캐나다']]) {
       const g = snap.scrap_overseas?.[code];
-      if (g?.items?.length) out.push(`${name} 야드 매입가 (${g.date}): ${g.items.map(i => `${i.grade} ${fmt(i.usd_t)} USD/t`).join(', ')}`);
+      if (g?.items?.length) out.push(`${name} 야드 매입가 (${g.date})${oldNote(g.date, snap.date, '시세')}: ${g.items.map(i => `${i.grade} ${fmt(i.usd_t)} 달러/톤`).join(', ')}`);
     }
     const al = snap.futures?.al?.settle, ad = snap.futures?.ad?.settle, cnyusd = snap.fx?.cny_usd?.rate;
-    if (al && ad && cnyusd) out.push(`SHFE 1차-2차 가격차: ${fmt(Math.round((al - ad) * cnyusd))} USD/t (달러 환산)`);
+    if (al && ad && cnyusd) out.push(`SHFE 1차-2차 가격차: ${fmt(Math.round((al - ad) * cnyusd))} 달러/톤 (달러 환산)`);
   }
   if (market === 'recarb') {
     const c = snap.anthracite_customs;
     for (const [cc, name] of [['CN', '중국'], ['RU', '러시아']]) {
       const rows = (c?.countries?.[cc] ?? []).filter(r => r.usd_per_t).slice(-4);
-      if (rows.length) out.push(`관세청 무연탄 평균 수입단가 ${name}산 (CIF, 전 용도 평균): ${rows.map(r => `${r.ym} ${r.usd_per_t} USD/t`).join(', ')}`);
+      if (rows.length) out.push(`관세청 무연탄 평균 수입단가 ${name}산 (CIF, 전 용도 평균, 월별 — 쓸 때는 기준월을 밝힌다): ${rows.map(r => `${r.ym} ${r.usd_per_t} 달러/톤`).join(', ')}`);
     }
   }
   return out;
 }
 
-// LLM 입력 텍스트. 숫자 검증 때 같은 텍스트를 허용 목록으로 쓴다.
-export function buildInput(market, metrics, snap, articles, macroSection = '') {
-  const lines = [`【오늘】 ${snap.date ?? ''} (한국 시간). 기사 날짜와 비교해 지난 일·진행 중인 일·예정된 일을 구분한다.`, `【시장】 ${MARKET_NAMES[market]} — ${FOCUS[market]}`, ''];
+// 원/달러 방향 한 줄 — 원/달러 하락 = 원화 강세. 변동률만 주면 LLM이 방향을 거꾸로 읽는다(glove-news 2026-10-26) (순수 함수)
+export function fxDirectionLine(fx) {
+  if (!fx || fx.w1_pct == null || fx.m1_pct == null) return null;
+  const head = `【원/달러 방향(코드 계산)】 ${fmt(fx.value)}원, 1주 ${pct(fx.w1_pct)} · 1개월 ${pct(fx.m1_pct)}`;
+  if (fx.w1_pct < 0 && fx.m1_pct < 0) return `${head} → 원/달러 하락 = 원화 강세(달러 결제 수입 원가를 낮추는 쪽). "원화 약세"·"환율 상승"이라고 쓰지 않는다.`;
+  if (fx.w1_pct > 0 && fx.m1_pct > 0) return `${head} → 원/달러 상승 = 원화 약세(달러 결제 수입 원가를 높이는 쪽). "원화 강세"·"환율 하락"이라고 쓰지 않는다.`;
+  return `${head} → 1주·1개월 방향이 엇갈림. 원화 강세·약세로 단정하지 않는다.`;
+}
+
+// 원화 환산 주간 변동 줄. 환율 효과는 시세 거래일 기준 5행이라 원/달러 시계열의 1주와 부호가 다를 수 있다 —
+// 방향 줄과 반대 부호를 넘기면 "환율 상승 효과"를 써서 화면에 원화 강세·약세가 함께 나왔다(2026-10-19 합금철·가탄제). 그때는 환율 효과를 넘기지 않는다 (순수 함수)
+const wonWord = (p) => (p < 0 ? '원화 강세' : p > 0 ? '원화 약세' : '변동 없음');
+export function krwLine(krw, fx) {
+  if (!krw) return null;
+  const trend = fx?.w1_pct < 0 && fx?.m1_pct < 0 ? -1 : fx?.w1_pct > 0 && fx?.m1_pct > 0 ? 1 : 0;
+  if (trend && Math.sign(krw.fx_pct) === -trend) return `원화 환산 주간 변동: 달러 가격 ${pct(krw.price_pct)} → 원화 기준 ${pct(krw.krw_pct)} (환율 영향은 작다)`;
+  return `원화 환산 주간 변동: 달러 가격 ${pct(krw.price_pct)}, 원/달러 ${pct(krw.fx_pct)}(${wonWord(krw.fx_pct)}) → 원화 기준 ${pct(krw.krw_pct)}`;
+}
+
+const RESULTS_NOTE = ' (실적 기사 — 지난 분기 숫자다. "~분기에 ~했다"로 과거로 쓰고 지금 수급의 원인으로 쓰지 않는다)';
+
+// LLM 입력 텍스트. 숫자 검증 때 같은 텍스트를 허용 목록으로 쓴다. fx: 원/달러 지표(seriesStats)
+export function buildInput(market, metrics, snap, articles, macroSection = '', fx = null) {
+  const today = snap.date ?? '';
+  const lines = [`【오늘】 ${today} (한국 시간). 기사 날짜와 비교해 지난 일·진행 중인 일·예정된 일을 구분한다.`, `【시장】 ${MARKET_NAMES[market]} — ${FOCUS[market]}`, ''];
   lines.push(`【판정(코드 계산, 변경 금지)】 방향: ${DIR_KO[metrics.direction]}`, '', '【숫자】 (중국 선물은 날짜별 환율로 달러 환산한 값)');
   for (const s of metrics.series) {
-    lines.push(`${s.label}: ${fmt(s.value)} ${s.unit} (${s.date}) | 1일 ${pct(s.d1_pct)} · 1주 ${pct(s.w1_pct)} · 1개월 ${pct(s.m1_pct)} | 1년 범위 ${fmt(s.y_low)}~${fmt(s.y_high)} ${s.unit}, 현재 위치 ${s.y_pos}% (0=최저, 100=최고)`);
+    const halt = isHalted(s.date, today) ? ` — 휴장: ${s.date} 이후 거래 없음. 멈춘 가격이라 새 움직임으로 쓰지 않고, 쓸 때는 ${s.date} 기준임을 밝힌다` : '';
+    lines.push(`${s.label}: ${fmt(s.value)} ${s.unit} (${s.date}) | 1일 ${pct(s.d1_pct)} · 1주 ${pct(s.w1_pct)} · 1개월 ${pct(s.m1_pct)} | 1년 범위 ${fmt(s.y_low)}~${fmt(s.y_high)} ${s.unit}, 현재 위치 ${s.y_pos}% (0=최저, 100=최고)${halt}`);
   }
   const q = metrics.quarter;
   if (q?.usd_pct != null) lines.push(`${q.quarter} 시작 전(${q.base_date}) 대비: 달러 기준 ${pct(q.usd_pct)}, 원화 기준 ${pct(q.krw_pct)}`);
-  if (metrics.krw) lines.push(`원화 환산 주간 변동: 현지 가격 ${pct(metrics.krw.price_pct)}, 환율 ${pct(metrics.krw.fx_pct)} → 원화 기준 ${pct(metrics.krw.krw_pct)}`);
+  const kl = krwLine(metrics.krw, fx);
+  if (kl) lines.push(kl);
   if (snap.fx?.usd_krw?.rate) lines.push(`원/달러 환율: ${snap.fx.usd_krw.rate}원`);
+  const fl = fxDirectionLine(fx);
+  if (fl) lines.push(fl);
   lines.push(...extraLines(market, snap));
   lines.push('', '【근거 기사】');
   if (!articles.length) lines.push('(오늘 이 시장의 신뢰 매체 기사 없음 — 숫자만으로 쓴다)');
   articles.forEach((a, i) => {
-    lines.push(`[${i + 1}] ${a.source} · ${a.published.slice(0, 10)}${a.repeat ? ' (이전 보도)' : ''} — ${a.title}`);
-    if (a.body) lines.push(a.body);
+    const age = ageDays(a.published.slice(0, 10), today);
+    lines.push(`[${i + 1}] ${a.source} · ${a.published.slice(0, 10)}${age > 0 ? ` (${age}일 전)` : ''}${a.repeat ? ' (이전 보도)' : ''}${isResultsArticle(a) ? RESULTS_NOTE : ''} — ${a.title}`);
+    // 문장마다 번호 — 해설은 근거 문장 번호를 달고 코드가 원문과 대조한다(cite.js)
+    const body = numberedBody(a, i);
+    if (body) lines.push(body);
     lines.push('');
   });
   return lines.join('\n') + macroSection;
@@ -177,7 +224,8 @@ export function unitsOk(text, inputText) {
 }
 
 // LLM 출력에서 입력에 없는 숫자가 든 항목을 제거. 제거 내역은 dropped로 돌려준다 (순수 함수 — 테스트 대상)
-export function sanitizeOutput(out, allowed, articleCount, inputText = '') {
+// citeCtx: 근거 문장 번호 검증(cite.js) — 없으면(옛 출력·테스트) 기사 번호(src) 검증만
+export function sanitizeOutput(out, allowed, articleCount, inputText = '', citeCtx = null) {
   const dropped = [];
   const keep = (t, where) => {
     if (noCny(t) && numbersOk(t, allowed) && (!inputText || unitsOk(t, inputText))) return true;
@@ -186,17 +234,36 @@ export function sanitizeOutput(out, allowed, articleCount, inputText = '') {
   };
   // 근거 번호: 0 = 거시 헤드라인, 1~N = 기사. 기사가 있는 날 근거 없는 원인은 지어낸 것으로 보고 버린다.
   const validSrc = (src) => (src ?? []).filter(n => Number.isInteger(n) && n >= 0 && n <= articleCount);
+  // 근거 문장 대조 — 통과하면 인용한 기사 번호를 돌려준다. cite 칸이 없는 출력은 검사하지 않는다
+  const cited = (text, cite, where, requireCite) => {
+    if (!citeCtx || !Array.isArray(cite)) return [];
+    const c = citeCheck(text, cite, { ...citeCtx, requireCite });
+    if (c.ok === false) { dropped.push(`G2 ${where}: ${c.reason} — ${text.slice(0, 60)}`); return null; }
+    return c.articles;
+  };
+  // now: 새 스키마는 {text, cite}, 옛 출력·테스트는 문자열
+  const now = (out.now ?? []).slice(0, 3)
+    .map(x => (typeof x === 'string' ? { text: x, cite: undefined } : { text: x?.text ?? '', cite: x?.cite }))
+    .map(x => ({ ...x, arts: x.text && keep(x.text, 'now') ? cited(x.text, x.cite, 'now', false) : null }))
+    .filter(x => x.arts);
   // 스키마 개수 제약을 API가 받지 않아 여기서 자른다(지금 3·왜 3·영향 3·변수 3)
   const r = {
     headline: keep(out.headline ?? '', 'headline') ? out.headline : null,
-    now: (out.now ?? []).slice(0, 3).filter(t => keep(t, 'now')),
+    now: now.map(x => x.text),
+    // 문장별 인용 기사 번호(내부 점검·LLM 검수용, 화면 API에서는 뺀다)
+    now_src: now.map(x => x.arts),
     why: (out.why ?? []).slice(0, 3)
-      .map(w => ({ region: ['국내', '중국', '해외'].includes(w.region) ? w.region : '해외', title: w.title ?? '', text: w.text ?? '', src: validSrc(w.src) }))
+      .map(w => ({ region: ['국내', '중국', '해외'].includes(w.region) ? w.region : '해외', title: w.title ?? '', text: w.text ?? '', src: validSrc(w.src), cite: w.cite }))
       .filter(w => {
         if (!w.text || !keep(`${w.title} ${w.text}`, 'why')) return false;
+        const arts = cited(`${w.title} ${w.text}`, w.cite, 'why', articleCount > 0);
+        if (!arts) return false;
+        // 인용 문장의 기사 번호로 src를 바로잡는다 — LLM이 단 기사 번호와 실제 인용 문장이 다를 수 있다
+        if (arts.length) w.src = arts;
         if (articleCount > 0 && !w.src.length) { dropped.push(`why(근거 번호 없음): ${w.title}`); return false; }
         return true;
-      }),
+      })
+      .map(({ cite, ...w }) => w),
     impact: (out.impact ?? []).slice(0, 3).filter(i => keep(`${i.area} ${i.text}`, 'impact')),
     outlook: {
       view: keep(out.outlook?.view ?? '', 'outlook.view') ? out.outlook.view : null,
@@ -216,22 +283,24 @@ export function isComplete(r) {
 // 한 시장 해석 생성. callAgent를 주입받아 모델 비교·테스트에 쓴다.
 export async function interpretMarket(market, { history, snap, articles, callAgent, model, macroSection = '' }) {
   const metrics = marketMetrics(market, history);
-  const input = buildInput(market, metrics, snap, articles, macroSection);
+  const input = buildInput(market, metrics, snap, articles, macroSection, seriesStats(history, 'usdkrw'));
   const allowed = allowedNumbers(input);
+  const citeCtx = { articles, macro: macroLines(macroSection), codeNumbers: codeNumbersOf(input) };
   const ask = (text, label) => callAgent({ instructions: INSTRUCTIONS, input: text, schema: SCHEMA, model, maxOutputTokens: 6000, label });
   let res = await ask(input, `interpret-${market}`);
   if (!res.json) throw new Error(`${market} JSON 파싱 실패: ${res.text.slice(0, 200)}`);
-  let { result, dropped } = sanitizeOutput(res.json, allowed, articles.length, input);
+  let { result, dropped } = sanitizeOutput(res.json, allowed, articles.length, input, citeCtx);
   const usages = [res.usage];
 
   // 입력에 없는 숫자로 문장이 지워졌거나 핵심 칸이 비었으면(2026-10-03 Opus가 빈 JSON 반환) 한 번만 다시 쓰게 한다.
+  // 인용 대조(G2)로만 지운 문장은 재작성하지 않는다 — 문장 하나 때문에 시장 전체를 다시 쓰면 호출이 두 배가 됐다(2026-10-26 시험 실행 5개 중 3개)
   if (!isComplete(result)) dropped.push('필수 칸 비어 있음(지금·영향·전망)');
-  if (dropped.length) {
+  if (dropped.some(d => !d.startsWith('G2'))) {
     console.warn(`[Interpret] ${market} 숫자 불일치 ${dropped.length}건 — 재작성: ${dropped.join(' | ').slice(0, 300)}`);
-    const retry = await ask(`${input}\n\n【수정 요청】 아래 문장은 입력에 없는 숫자·다른 단위·위안 표기를 쓰거나 근거 번호가 없어 삭제됐다. 입력에 있는 숫자·단위만, 가격은 달러·원으로만 쓰고 원인마다 근거 번호를 달아 JSON 전체를 다시 작성하라. 기준선이 필요하면 입력의 1년 범위·현재가를 쓴다.\n${dropped.map(d => `- ${d}`).join('\n')}`, `interpret-${market}-retry`).catch(() => null);
+    const retry = await ask(`${input}\n\n【수정 요청】 아래 문장은 입력에 없는 숫자·다른 단위·위안 표기를 쓰거나 근거 번호·근거 문장 번호가 틀려 삭제됐다. 입력에 있는 숫자·단위만, 가격은 달러·원으로만 쓰고 원인마다 근거 번호(src)를, now·원인마다 근거 문장 번호(cite)를 달아 JSON 전체를 다시 작성하라. cite를 비운 문장은 【숫자】 줄의 숫자를 그대로 쓴다. 기준선이 필요하면 입력의 1년 범위·현재가를 쓴다.\n${dropped.map(d => `- ${d}`).join('\n')}`, `interpret-${market}-retry`).catch(() => null);
     usages.push(retry?.usage);
     if (retry?.json) {
-      const second = sanitizeOutput(retry.json, allowed, articles.length, input);
+      const second = sanitizeOutput(retry.json, allowed, articles.length, input, citeCtx);
       const better = isComplete(second.result) && (!isComplete(result) || second.dropped.length < dropped.length);
       if (better) ({ result, dropped } = second);
     }

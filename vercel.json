@@ -5,6 +5,9 @@
     },
     "api/get-report.js": {
       "maxDuration": 15
+    },
+    "api/audit.js": {
+      "maxDuration": 15
     }
   },
   "crons": [

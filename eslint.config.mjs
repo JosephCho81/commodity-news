@@ -21,6 +21,7 @@ export default [
         crypto: 'readonly',
         atob: 'readonly',
         btoa: 'readonly',
+        structuredClone: 'readonly',
       },
     },
     rules: { 'no-undef': 'error' },

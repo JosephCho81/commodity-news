@@ -1,7 +1,9 @@
 // api/_lib/report.js — 시장 5개 해석 + 브리핑을 묶어 하루치 리포트 생성
 // 저장: commodity_cache/market_report_{날짜} + market_report_latest
 
-import { interpretMarket, MARKET_NAMES, allowedNumbers, unitsOk, numbersOk, noCny, DIR_KO } from './interpret.js';
+import { interpretMarket, MARKET_NAMES, allowedNumbers, unitsOk, numbersOk, noCny, DIR_KO, fxDirectionLine } from './interpret.js';
+import { distinctItems } from './gate.js';
+import { noticeFacts } from './quality.js';
 import { seriesStats } from './market-metrics.js';
 import { DEFAULT_MODEL } from './agent.js';
 
@@ -13,7 +15,8 @@ const BRIEF_INSTRUCTIONS = `당신은 국내 제강사 구매팀이 매일 아�
 - one_liner: 오늘 원자재 시장 전체를 한 줄로(40자 이내). 가장 중요한 변화가 먼저.
 - lead: 3~4문장. 오늘 시장을 움직인 국내·해외 정세 → 그 영향을 받은 산업·시장 → 앞으로의 방향을 이어서 쓴다.
 - common: 여러 시장에 동시에 작용하는 요인(환율, 중국 정책·연휴, 철강 감산, 거시 이벤트 등) 1~3개. 각 요인은 2문장으로, 무슨 일이 왜 일어났고 어느 시장에 어떤 경로로 어떤 방향으로 작용하는지 쓴다. 거시 이벤트는 아래 헤드라인에 있는 것만 쓴다.
-문체는 서술체 평서문. 숫자는 입력에 있는 값과 단위를 그대로 쓴다. 가격은 달러·원으로만 쓰고 위안은 쓰지 않는다.`;
+문체는 서술체 평서문. 숫자는 입력에 있는 값과 단위를 그대로 쓴다. 가격은 달러·원으로만 쓰고("USD"·위안 금지) 단위는 "달러"로 쓴다.
+원화 강세·약세는 【원/달러 방향(코드 계산)】 줄만 따른다. common 항목끼리 title이 겹치지 않게 서로 다른 요인을 쓴다.`;
 
 const BRIEF_SCHEMA = {
   type: 'object', additionalProperties: false, required: ['one_liner', 'lead', 'common'],
@@ -40,7 +43,7 @@ export function buildBriefInput(results, history) {
     if (r.outlook?.view) lines.push(`  · 전망: ${r.outlook.view}`);
   }
   const fx = seriesStats(history, 'usdkrw');
-  if (fx) lines.push('', `【환율】 원/달러 ${fx.value}원 (1주 ${fx.w1_pct > 0 ? '+' : ''}${fx.w1_pct}%, 1개월 ${fx.m1_pct > 0 ? '+' : ''}${fx.m1_pct}%)`);
+  if (fx) lines.push('', `【환율】 원/달러 ${fx.value}원 (1주 ${fx.w1_pct > 0 ? '+' : ''}${fx.w1_pct}%, 1개월 ${fx.m1_pct > 0 ? '+' : ''}${fx.m1_pct}%)`, fxDirectionLine(fx) ?? '');
   return lines.join('\n');
 }
 
@@ -76,8 +79,8 @@ export async function generateReport({ history, snap, evidence, callAgent, model
         brief = {
           one_liner: okText(res.json.one_liner ?? '') ? res.json.one_liner : null,
           lead: okText(res.json.lead ?? '') ? res.json.lead : null,
-          common: (res.json.common ?? []).slice(0, 3)
-            .filter(c => okText(`${c.title} ${c.text}`))
+          // 제목이 겹치거나 본문이 20자 미만인 요인은 뺀다(S1)
+          common: distinctItems((res.json.common ?? []).filter(c => okText(`${c.title} ${c.text}`))).slice(0, 3)
             .map(c => ({ ...c, markets: (c.markets ?? []).filter(n => Object.values(MARKET_NAMES).includes(n)) })),
           usage: res.usage,
         };
@@ -88,6 +91,9 @@ export async function generateReport({ history, snap, evidence, callAgent, model
   }
 
   const cost = [...ok.map(r => r.usage?.cost?.total_cost ?? 0), brief?.usage?.cost?.total_cost ?? 0].reduce((a, b) => a + b, 0);
-  return { date, model, generated_at: new Date().toISOString(), markets, brief, cost_usd: +cost.toFixed(4) };
+  // fx·notices: 품질 판정(quality.js)·검수(judge.js)가 쓰는 코드 사실 — 원/달러 방향, 고시·통계 기준일
+  const fxs = seriesStats(history, 'usdkrw');
+  const fx = fxs ? { value: fxs.value, date: fxs.date, w1_pct: fxs.w1_pct, m1_pct: fxs.m1_pct } : null;
+  return { date, model, generated_at: new Date().toISOString(), markets, brief, fx, notices: noticeFacts(snap), cost_usd: +cost.toFixed(4) };
 }
 

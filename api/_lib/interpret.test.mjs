@@ -1,7 +1,7 @@
 // node api/_lib/interpret.test.mjs — 결정적 지표·해석 검증 계층 회귀 테스트 (npm test)
 import assert from 'node:assert/strict';
-import { seriesStats, direction, krwEffect, marketMetrics, withConverted, quarterChange } from './market-metrics.js';
-import { allowedNumbers, numbersOk, unitsOk, sanitizeOutput, buildInput, extraLines, isComplete, noCny } from './interpret.js';
+import { seriesStats, direction, krwEffect, marketMetrics, withConverted, quarterChange, missedWeekdays, isHalted } from './market-metrics.js';
+import { allowedNumbers, numbersOk, unitsOk, sanitizeOutput, buildInput, extraLines, isComplete, noCny, fxDirectionLine, krwLine } from './interpret.js';
 
 // ─── 지표 ────────────────────────────────────────────────────────────────────
 const hist = Array.from({ length: 30 }, (_, i) => ({
@@ -57,7 +57,7 @@ assert.equal(direction(null), 'flat');
 }
 {
   const m = marketMetrics('ferro', hist);
-  assert.equal(m.series[0].unit, 'USD/톤');                    // 중국 선물도 달러 표시(위안 금지)
+  assert.equal(m.series[0].unit, '달러/톤');                   // 중국 선물도 달러 표시(위안 금지), USD 대신 달러
   assert.equal(m.series[0].label, 'FeSi 선물(ZCE, 달러 환산)');
   assert.equal(marketMetrics('al1', [{ d: '2026-09-01', al: 20000, cnyusd: 0.14 }]).series[0].label, 'SHFE 1차 알루미늄 (달러 환산)');
   assert.equal(m.series[0].value, Math.round(5710 * 0.14));
@@ -121,10 +121,16 @@ assert.equal(unitsOk('LME 1년 저점 2,986달러', 'LME 알루미늄: 3,109.5 U
   const al2 = extraLines('al2', snap).join('\n');
   assert.match(al2, /드로스 2,000원\/kg \(전주 대비 0원\)/);
   assert.match(al2, /SAS A 3,650원\/kg \(전주 대비 -50원\)/);
-  assert.match(al2, /AL Extrusion 2,315 USD\/t/);
-  assert.match(al2, /1차-2차 가격차: 43 USD\/t \(달러 환산\)/);   // 310위안 × 0.14
-  assert.doesNotMatch(al2, /CNY|위안/);
-  assert.equal(extraLines('recarb', snap)[0], '관세청 무연탄 평균 수입단가 중국산 (CIF, 전 용도 평균): 2026-08 178 USD/t'); // 소량 월 제외
+  assert.match(al2, /AL Extrusion 2,315 달러\/톤/);
+  assert.match(al2, /1차-2차 가격차: 43 달러\/톤 \(달러 환산\)/);   // 310위안 × 0.14
+  assert.doesNotMatch(al2, /CNY|위안|USD/);
+  assert.doesNotMatch(al2, /일 전 고시/);                           // 오늘 날짜가 없으면 나이 표시 없음
+  // 14일 넘은 주간 고시·야드 시세는 "현재 값으로 쓰지 말라" 표시(F1)
+  const old = extraLines('al2', { ...snap, date: '2026-10-20' }).join('\n');
+  assert.match(old, /2026-10-02 고시, .*\(18일 전 고시 — 현재 값으로 쓰지 말고/);
+  assert.match(old, /미국 야드 매입가 \(2026-09-30\) \(20일 전 시세/);
+  assert.doesNotMatch(extraLines('al2', { ...snap, date: '2026-10-09' }).join('\n'), /일 전/);
+  assert.equal(extraLines('recarb', snap)[0], '관세청 무연탄 평균 수입단가 중국산 (CIF, 전 용도 평균, 월별 — 쓸 때는 기준월을 밝힌다): 2026-08 178 달러/톤'); // 소량 월 제외
   const input = buildInput('ferro', marketMetrics('ferro', hist), snap, [
     { source: '신랑재경', published: '2026-09-30T00:00:00Z', title: '光大期货日报', body: '锰硅…', repeat: true },
   ]);
@@ -133,6 +139,35 @@ assert.equal(unitsOk('LME 1년 저점 2,986달러', 'LME 알루미늄: 3,109.5 U
   assert.match(buildInput('ferro', marketMetrics('ferro', hist), snap, [], '\n【글로벌 와이어 헤드라인】 x'), /【글로벌 와이어 헤드라인】 x$/);
   assert.match(input, /\[1\] 신랑재경 · 2026-09-30 \(이전 보도\) — 光大期货日报/);
   assert.match(buildInput('ferro', marketMetrics('ferro', hist), snap, []), /기사 없음/);
+
+  // 휴장 표시: 9/30 이후 평일 2일(10/1·10/2)이 빠지면 멈춘 가격(F2). 월요일의 금요일 시세는 휴장이 아니다
+  const halted = buildInput('ferro', marketMetrics('ferro', hist), { ...snap, date: '2026-10-05' }, []);
+  assert.match(halted, /FeSi 선물\(ZCE, 달러 환산\): .* — 휴장: 2026-09-30 이후 거래 없음/);
+  assert.doesNotMatch(buildInput('ferro', marketMetrics('ferro', hist), { ...snap, date: '2026-10-01' }, []), /휴장/);
+  assert.equal(missedWeekdays('2026-10-23', '2026-10-26'), 0);   // 금 → 월
+  assert.equal(isHalted('2026-10-16', '2026-10-20'), false);     // LME는 하루 늦게 확정 — 평일 1일 빠짐은 정상
+  assert.equal(isHalted('2026-09-30', '2026-10-03'), true);
+
+  // 기사: 나이·이전 보도·실적 기사 표시, 문장 번호
+  const arts = [
+    { source: 'AL Circle', published: '2026-10-24T07:37:00Z', title: 'Hydro reports $965m Q3 EBITDA on strong aluminium prices', body: 'Hydro posted record output. Prices stayed strong in the quarter.' },
+    { source: 'AL Circle', published: '2026-10-02T00:00:00Z', title: 'Ex-China market awaits Q4 MJP settlement', body: '' },
+  ];
+  const withArts = buildInput('al1', marketMetrics('al1', hist), { ...snap, date: '2026-10-26' }, arts);
+  assert.match(withArts, /\[1\] AL Circle · 2026-10-24 \(2일 전\) \(실적 기사 — 지난 분기 숫자다/);
+  assert.match(withArts, /\[1-1\] Hydro posted record output\.\n\[1-2\] Prices stayed strong in the quarter\./);
+  assert.doesNotMatch(withArts.split('\n').find(l => l.startsWith('[2]')), /실적 기사/);   // 분기 계약가(MJP)는 실적이 아니다
+
+  // 원/달러 방향 줄: 1주·1개월이 같은 쪽일 때만 원화 강세·약세로 단정
+  assert.match(fxDirectionLine({ value: 1324.45, w1_pct: -0.57, m1_pct: -2.26 }), /원\/달러 하락 = 원화 강세.*"원화 약세"·"환율 상승"이라고 쓰지 않는다/);
+  assert.match(fxDirectionLine({ value: 1400, w1_pct: 0.3, m1_pct: 1.1 }), /원화 약세/);
+  assert.match(fxDirectionLine({ value: 1400, w1_pct: 0.3, m1_pct: -1.1 }), /엇갈림/);
+  assert.equal(fxDirectionLine(null), null);
+  // 환율 효과 부호가 방향 줄과 반대면 넘기지 않는다(2026-10-19 "환율 상승 효과" — 원/달러는 1주 -0.7%·1개월 -4.03%)
+  const down = { w1_pct: -0.7, m1_pct: -4.03 };
+  assert.equal(krwLine({ price_pct: -2.65, fx_pct: 0.17, krw_pct: -2.48 }, down), '원화 환산 주간 변동: 달러 가격 -2.65% → 원화 기준 -2.48% (환율 영향은 작다)');
+  assert.equal(krwLine({ price_pct: -0.11, fx_pct: -1.58, krw_pct: -1.69 }, down), '원화 환산 주간 변동: 달러 가격 -0.11%, 원/달러 -1.58%(원화 강세) → 원화 기준 -1.69%');
+  assert.match(krwLine({ price_pct: 1, fx_pct: 0.2, krw_pct: 1.2 }, { w1_pct: 0.1, m1_pct: -1 }), /원\/달러 \+0.2%\(원화 약세\)/);
 }
 
 // 형식은 맞지만 내용이 빈 응답(2026-10-03 Opus 철강 업황) — 완성으로 보지 않는다

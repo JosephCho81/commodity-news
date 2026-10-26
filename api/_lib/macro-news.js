@@ -176,7 +176,8 @@ export function buildMacroSection(macro, limit = 14) {
 
   let s = '\n\n【글로벌 와이어 헤드라인 (최근 24시간, Google News 수집) — 매크로 이벤트 판단의 사실 근거】\n';
   s += '아래 헤드라인이 오늘 시장을 움직인 매크로 이벤트 판단의 1차 근거. 헤드라인에 없는 이벤트를 지어내지 말 것.\n';
-  for (const it of picked) s += `- (${it.date ?? '날짜미상'}${it.source ? `, ${it.source}` : ''}) ${it.title}\n`;
+  // 줄마다 근거 번호 "0-k" — 해설이 인용하면 코드가 이 줄과 대조한다(cite.js)
+  picked.forEach((it, k) => { s += `[0-${k + 1}] (${it.date ?? '날짜미상'}${it.source ? `, ${it.source}` : ''}) ${it.title}\n`; });
   if (analysis.score >= MACRO_TRIGGER_SCORE) {
     s += `→ 위 헤드라인 다수가 같은 사안을 보도 중. 이 사안을 공통 요인 첫 항목으로 쓰고, 어느 시장에 어떤 방향으로 작용하는지(에너지·운임 경로 포함) 밝힐 것.\n`;
   }

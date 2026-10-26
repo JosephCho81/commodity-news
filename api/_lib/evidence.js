@@ -3,6 +3,7 @@
 // 해석(3단계)은 여기서 모은 본문만 근거로 쓴다.
 
 import { parseRssItems, decodeEntities } from './rss-news.js';
+import { truePublished } from './pageDate.js';
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36';
 const MAX_AGE_H = 72;          // 주말 직후에도 직전 거래일 리포트가 들어오도록
@@ -292,7 +293,11 @@ export async function collectEvidence({ seen = new Set(), now = Date.now() } = {
       const base = { title: c.title, url: c.url, source: d.name, lang: c.lang, published: c.published, ...(c.repeat ? { repeat: true } : {}) };
       // 제목만 쓰는 기사는 본문으로 관련성을 확인할 수 없으니 제목에 품목명이 직접 있어야 한다
       if (d.titleOnly) return spec.title.test(c.title) ? { ...base, body: '', title_only: true } : null;
-      return finalizeArticle(base, extractBody(await getText(c.url), d.body ?? null, 20000), market);
+      const html = await getText(c.url);
+      // Google News 날짜는 재게시·갱신일일 수 있다 — 페이지가 밝힌 발행일로 기사 나이를 다시 보고, 기간 밖이면 버린다
+      const published = truePublished(c.published, html, now);
+      if (ageH(published, now) > WIDE_AGE_H) return null;
+      return finalizeArticle({ ...base, published, ...(published !== c.published ? { gn_published: c.published } : {}) }, extractBody(html, d.body ?? null, 20000), market);
     });
     markets[market] = articles.filter(Boolean);
     stats[market] = { gn: gnLists.flat().length, decoded: decoded.length, picked: picked.length, kept: markets[market].length };
