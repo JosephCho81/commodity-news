@@ -50,15 +50,6 @@
 .v3 .lead h1 { margin: 4px 0 6px; font-size: 21px; line-height: 1.4; letter-spacing: -.6px; text-wrap: balance; }
 .v3 .lead p { margin: 0; color: var(--text2); font-size: 14.5px; }
 
-/* 신호판 */
-.v3 .sig { display: grid; gap: 1px; background: var(--border2); }
-.v3 .sig-row { display: grid; grid-template-columns: 200px 74px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); cursor: pointer; text-align: left; border: 0; font: inherit; color: inherit; width: 100%; }
-.v3 .sig-row:hover { background: var(--surface2); }
-.v3 .sig-name { font-weight: 700; font-size: 15px; }
-.v3 .sig-num { font-size: 12.5px; color: var(--text3); }
-.v3 .sig-text { font-size: 14px; color: var(--text2); min-width: 0; }
-.v3 .sig-end { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-
 .v3 .dir { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
 .v3 .dir.up { color: var(--up); background: var(--up-bg); }
 .v3 .dir.down { color: var(--down); background: var(--down-bg); }
@@ -67,11 +58,6 @@
 .v3 .qtr small { font-size: 11px; color: var(--text3); }
 .v3 .qtr b { font-size: 14px; font-variant-numeric: tabular-nums; }
 
-/* 공통 요인 */
-.v3 .factors { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1px; background: var(--border2); }
-.v3 .factor { background: var(--surface); padding: 13px 16px; display: flex; flex-direction: column; gap: 4px; }
-.v3 .factor h3 { margin: 0; font-size: 14.5px; }
-.v3 .factor p { margin: 0; font-size: 13.5px; color: var(--text2); }
 .v3 .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
 .v3 .tag { font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 4px; background: var(--navy-light); color: var(--navy); }
 
@@ -177,11 +163,6 @@
 .v3 .foot { padding: 18px 0 8px; font-size: 12px; color: var(--text3); display: grid; gap: 4px; text-align: center; }
 
 @media (max-width: 720px) {
-  .v3 .sig-row { grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "n e" "t t"; row-gap: 6px; }
-  .v3 .sig-row .sig-name-w { grid-area: n; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .v3 .sig-row .sig-text { grid-area: t; }
-  .v3 .sig-row .sig-end { grid-area: e; }
-  .v3 .sig-row .sig-dir-w { display: none; }
   .v3 { font-size: 13.5px; line-height: 1.6; }
   .v3 .lead { padding: 14px 14px 12px; }
   .v3 .lead h1 { font-size: 17px; }
@@ -189,7 +170,7 @@
   .v3 .mkt-head h1 { font-size: 18px; }
   .v3 .cell { padding: 12px 14px; gap: 6px; }
   .v3 .cell h3 { font-size: 14px; }
-  .v3 .cause p, .v3 .cause b, .v3 .w, .v3 .sig-text, .v3 .factor p { font-size: 13px; }
+  .v3 .cause p, .v3 .cause b, .v3 .w { font-size: 13px; }
   .v3 .para { font-size: 13.5px; line-height: 1.7; }
   .v3 .scen div { font-size: 12.5px; }
   .v3 .ws-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
@@ -201,8 +182,6 @@
   .v3 .rel-x { font-size: 13px; }
   .v3 .n { padding: 10px 14px; }
   .v3 .n-v strong { font-size: 18px; }
-  .v3 .sig-row { padding: 10px 14px; }
-  .v3 .sig-name { font-size: 14px; }
   .v3 table { font-size: 13px; }
   .v3 .brand span { display: none; }
   /* 탭 6개가 360px 폭에서도 한 줄에 다 보이게(가로 스크롤에 마지막 탭이 숨지 않게) */
@@ -210,5 +189,118 @@
   .v3 nav button { flex: 1 1 auto; padding: 10px 2px; font-size: 12.5px; letter-spacing: -.3px; }
   .v3 nav button:first-child, .v3 nav button:last-child { margin-inline: 0; }
 }
-@media (min-width: 721px) { .v3 .sig-name-w .dir { display: none; } }
 @media (prefers-reduced-motion: no-preference) { .v3 nav button { transition: color .15s, border-color .15s; } }
+
+/* ─── 브리핑(뉴스레터풍, 2026-11-17 시안 승인) ───────────────────────────────
+   흰 지면 한 장 위에 섹션을 이어 둔다. 여러 열(숫자·카드)은 높이 고정, 글이 긴 칸(흐름)은 한 열 */
+.v3 .nl { gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; padding-bottom: 28px; }
+.v3 .nl button { font: inherit; color: inherit; text-align: left; border: 0; background: none; cursor: pointer; padding: 0; }
+
+.v3 .nl-hero { position: relative; min-height: 210px; display: flex; align-items: center; color: #fff; overflow: hidden; }
+.v3 .nl-hero-t { position: relative; z-index: 2; padding: 24px 30px; max-width: 62%; }
+.v3 .nl-kick { font-size: 12px; font-weight: 700; letter-spacing: .16em; opacity: .8; }
+.v3 .nl-hero h1 { margin: 8px 0 0; font-size: 32px; line-height: 1.25; font-weight: 800; letter-spacing: -.03em; text-wrap: balance; }
+.v3 .nl-hero-d { margin-top: 12px; font-size: 15px; font-weight: 600; opacity: .9; }
+.v3 .nl-hero-art { position: absolute; right: 0; bottom: 0; height: 100%; z-index: 1; }
+.v3 .nl-hero-art svg { height: 100%; width: auto; display: block; }
+
+.v3 .nl .nl-ins { position: relative; display: block; width: 100%; text-align: center; padding: 32px 96px 30px; border-bottom: 1px solid var(--border2); }
+.v3 .nl-tag { color: var(--navy); font-size: 12px; font-weight: 700; letter-spacing: .14em; }
+.v3 .nl-ins h2 { margin: 10px 0 12px; font-size: 23px; font-weight: 800; letter-spacing: -.03em; line-height: 1.38; }
+.v3 .nl-ins .para { color: var(--text3); }
+.v3 .nl-go { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 62px; height: 92px; border-radius: 46px 0 0 46px; background: #2f63b8; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .06em; line-height: 1.3; display: flex; flex-direction: column; justify-content: center; padding-left: 15px; text-align: left; }
+.v3 .nl-go em { font-style: normal; font-size: 17px; margin-top: 3px; }
+
+.v3 .nl-sec { padding: 0 28px; }
+.v3 .nl-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 26px 0 12px; }
+.v3 .nl-h b { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+.v3 .nl-h small { font-size: 12px; color: var(--text4); white-space: nowrap; }
+
+.v3 .nl-tiles { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+.v3 .nl .nl-tile { border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px 9px; height: 112px; display: flex; flex-direction: column; min-width: 0; }
+.v3 .nl button.nl-tile:hover { border-color: var(--navy); }
+.v3 .nl-k { font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3 .nl-v { font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin-top: 2px; line-height: 1.3; white-space: nowrap; }
+.v3 .nl-v small { font-size: 12px; font-weight: 600; color: var(--text3); margin-left: 4px; letter-spacing: 0; }
+.v3 .nl-tile .spark { height: 24px; margin-top: auto; }
+
+/* 띠는 높이 고정(시안 150px에서 낮춤 — 사용자 요청). 그림 자리는 글과 겹치지 않게 비워 둔다 */
+.v3 .nl-bands { display: grid; gap: 10px; }
+.v3 .nl .nl-band { position: relative; display: grid; grid-template-columns: 136px 1px minmax(0,1fr); align-items: center; height: 100px; padding-right: 150px; overflow: hidden; color: #fff; border-radius: 4px; }
+.v3 .nl .nl-band:hover { filter: brightness(1.06); }
+.v3 .nl-band-n { padding-left: 24px; position: relative; z-index: 2; }
+.v3 .nl-band-n b { display: block; font-size: 19px; font-weight: 800; letter-spacing: -.03em; line-height: 1.25; }
+.v3 .nl-chip { display: inline-block; margin-top: 6px; font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 20px; background: rgba(255,255,255,.94); }
+.v3 .nl-chip.up { color: var(--up); } .v3 .nl-chip.down { color: var(--down); } .v3 .nl-chip.flat, .v3 .nl-chip.mixed { color: var(--flat); }
+.v3 .nl-band-bar { width: 1px; height: 60px; background: rgba(255,255,255,.45); }
+.v3 .nl-band-m { position: relative; z-index: 2; margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.5; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.v3 .nl-band-art { position: absolute; right: 0; top: 0; height: 100%; z-index: 1; }
+.v3 .nl-band-art svg { height: 100%; width: auto; display: block; }
+
+.v3 .nl-lead { margin-bottom: 14px; }
+.v3 .nl-factors { display: grid; border-top: 1px solid var(--border2); }
+.v3 .nl-factor { padding: 12px 0; border-bottom: 1px solid var(--border2); display: grid; gap: 4px; }
+.v3 .nl-factor h3 { margin: 0; font-size: 15px; }
+
+.v3 .nl-cards { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px 18px; }
+.v3 .nl .nl-card { display: block; min-width: 0; }
+.v3 .nl-thumb { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--border); }
+.v3 .nl-thumb > div, .v3 .nl-thumb svg { width: 100%; height: 100%; display: block; }
+.v3 .nl-eff { position: absolute; left: 10px; top: 10px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #fff; }
+.v3 .nl-eff.up { color: var(--up); } .v3 .nl-eff.down { color: var(--down); }
+.v3 .nl-rg { display: block; text-align: center; font-size: 12.5px; color: var(--navy); font-weight: 700; margin-top: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3 .nl-card h3 { margin: 2px 0 0; text-align: center; font-size: 15.5px; font-weight: 700; line-height: 1.45; letter-spacing: -.02em; height: 2.9em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.v3 .nl-foot { display: flex; margin: 32px 28px 0; padding: 22px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.v3 .nl-sig { display: flex; gap: 12px; flex: 1.1; padding-right: 20px; border-right: 1px solid var(--border); }
+.v3 .nl-sig > div { flex: 1; text-align: center; min-width: 0; }
+.v3 .nl-ico { width: 60px; height: 60px; margin: 0 auto; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.08); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; }
+.v3 .nl-sig b { display: block; font-size: 13.5px; margin-top: 10px; }
+.v3 .nl-sv { font-size: 15px; font-weight: 800; margin-top: 2px; }
+.v3 .nl-sig small { display: block; font-size: 11px; color: var(--text3); margin-top: 2px; line-height: 1.45; }
+.v3 .nl-sig small .chg { font-size: 11px; }
+.v3 .nl-cal { flex: 1; padding-left: 24px; min-width: 0; }
+.v3 .nl-cal > b { display: block; font-size: 14px; margin-bottom: 4px; }
+.v3 .nl-when { color: #3d6fc4; font-size: 13px; font-weight: 700; margin-top: 8px; }
+.v3 .nl-what { font-size: 13.5px; color: var(--text2); line-height: 1.45; }
+
+@media (max-width: 720px) {
+  .v3 main.nl-main { padding-inline: 0; padding-top: 0; }
+  .v3 .nl { border-radius: 0; border-inline: 0; }
+  .v3 .nl-hero { min-height: 172px; }
+  .v3 .nl-hero-t { padding: 18px 16px; max-width: 72%; }
+  .v3 .nl-kick { font-size: 11px; }
+  .v3 .nl-hero h1 { font-size: 21px; }
+  .v3 .nl-hero-d { font-size: 13px; margin-top: 8px; }
+  .v3 .nl-hero-art { right: -40px; height: 82%; }
+  .v3 .nl .nl-ins { text-align: left; padding: 24px 60px 24px 16px; }
+  .v3 .nl-ins h2 { font-size: 18px; margin: 8px 0; }
+  .v3 .nl-go { width: 46px; height: 76px; padding-left: 10px; font-size: 9.5px; }
+  .v3 .nl-sec { padding: 0 16px; }
+  .v3 .nl-h { margin: 22px 0 10px; }
+  .v3 .nl-h b { font-size: 16px; }
+  .v3 .nl-h small { font-size: 11px; }
+  .v3 .nl-tiles { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .v3 .nl .nl-tile { height: 104px; padding: 9px 11px 8px; }
+  .v3 .nl-k { font-size: 11.5px; }
+  .v3 .nl-v { font-size: 18px; }
+  .v3 .nl-v small { font-size: 11px; margin-left: 3px; }
+  .v3 .nl .nl-band { grid-template-columns: 104px 1px minmax(0,1fr); height: 88px; padding-right: 60px; }
+  .v3 .nl-band-n { padding-left: 14px; }
+  .v3 .nl-band-n b { font-size: 14.5px; letter-spacing: -.04em; white-space: nowrap; }
+  .v3 .nl-chip { font-size: 11px; padding: 1px 8px; margin-top: 5px; }
+  .v3 .nl-band-bar { height: 52px; }
+  .v3 .nl-band-m { padding-left: 12px; font-size: 13px; line-height: 1.45; -webkit-line-clamp: 3; }
+  .v3 .nl-band-art { right: -50px; }
+  .v3 .nl-factor h3 { font-size: 14px; }
+  .v3 .nl-cards { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px 12px; }
+  .v3 .nl-rg { font-size: 11.5px; margin-top: 8px; }
+  /* 좁은 칸에서는 제목을 3줄까지(높이 고정이라 카드끼리 높이가 같다) */
+  .v3 .nl-card h3 { font-size: 13.5px; height: 4.35em; -webkit-line-clamp: 3; }
+  .v3 .nl-foot { flex-direction: column; margin: 26px 16px 0; padding: 20px 0; }
+  .v3 .nl-sig { border-right: 0; padding: 0 0 18px; border-bottom: 1px solid var(--border); gap: 6px; }
+  .v3 .nl-ico { width: 52px; height: 52px; }
+  .v3 .nl-sig b { font-size: 12.5px; }
+  .v3 .nl-sv { font-size: 14px; }
+  .v3 .nl-cal { padding: 16px 0 0; }
+}

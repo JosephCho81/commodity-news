@@ -2,6 +2,7 @@
 // 탭: 브리핑 | 세계 동향 | 합금철 | 알루미늄(1차·2차·스크랩) | 가탄제 | 철강 업황. 세계 동향은 get-report 응답의 world(explore.js가 따로 저장)
 import { useEffect, useMemo, useState } from 'react';
 import './v3.css';
+import { BAND_COLOR, SIGNAL_ICON, bandArt, heroArt, thumbArt } from './art';
 
 type Series = { key: string; label: string; unit: string; value: number; date: string; d1_pct: number | null; w1_pct: number | null; m1_pct: number | null; y_low: number; y_high: number; y_pos: number; spark: number[] };
 type Market = {
@@ -380,63 +381,150 @@ function IssueList({ label, items, date, go }: { label: string; items: Issue[]; 
   );
 }
 
-// 브리핑 — 영향이 큰 사안부터 3건(생성 단계에서 규모 순으로 정렬돼 온다)
-function TopIssues({ r, go }: { r: Report; go: (tab: string) => void }) {
-  const items = (r.world?.issues ?? []).slice(0, 3);
-  return items.length ? <IssueList label="오늘의 세계 동향" items={items} date={r.date} go={go} /> : null;
-}
 // 품목 탭 — 그 품목에 닿는 사안
 function RelatedIssues({ r, keys, go }: { r: Report; keys: string[]; go: (tab: string) => void }) {
   const items = (r.world?.issues ?? []).filter(x => x.markets.some(k => keys.includes(k))).slice(0, 4);
   return items.length ? <IssueList label="이 품목에 닿는 세계 동향" items={items} date={r.date} go={go} /> : null;
 }
 
-// ─── 브리핑 ──────────────────────────────────────────────────────────────────
+// ─── 브리핑(뉴스레터풍) ──────────────────────────────────────────────────────
+// 상단 그림 → 오늘의 한 사안 → 숫자 6칸 → 품목 띠 → 오늘의 흐름(lead·공통 요인) → 세계 동향 카드 → 신호·지켜볼 것.
+// 여러 열로 놓는 칸(숫자·카드)은 높이를 고정해 날마다 글 길이가 달라도 빈 공간이 생기지 않게 한다
+const Art = ({ html, className }: { html: string; className?: string }) => <div className={className} aria-hidden="true" dangerouslySetInnerHTML={{ __html: html }} />;
+const SecH = ({ title, sub }: { title: string; sub?: string }) => <div className="nl-h"><b>{title}</b>{sub && <small>{sub}</small>}</div>;
+const FOOT_SIGNALS = ['steel_world', 'lme_al_stock', 'us_housing'];
+
 function Briefing({ r, go }: { r: Report; go: (tab: string, sub?: string) => void }) {
+  const hero = heroArt(r.date);
+  const d = new Date(`${r.date}T00:00:00Z`);
+  const rows = SIGNAL_ROWS.map(([id, tab]) => ({ id, tab, m: r.markets[id] })).filter(x => x.m && !x.m.error);
+  const top = r.world?.issues?.[0];
+  const issues = r.world?.issues ?? [];
+  const cards = issues.slice(0, issues.length > 1 ? Math.min(6, issues.length - (issues.length % 2)) : 1);
+  const signals = r.world?.signals ?? [];
+  const foot = [...FOOT_SIGNALS.map(k => signals.find(s => s.key === k)).filter((s): s is Signal => !!s), ...signals.filter(s => !FOOT_SIGNALS.includes(s.key))].slice(0, 3);
+  const fx = r.numbers?.fx?.usd_krw;
+  const seen: Record<string, number> = {};
   return (
-    <section className="panel">
-      {r.brief?.one_liner && (
-        <div className="box lead">
-          <div className="lbl">오늘의 시장</div>
-          <h1>{r.brief.one_liner}</h1>
-          {r.brief.lead && <p>{r.brief.lead}</p>}
+    <section className="panel nl">
+      <div className="nl-hero" style={{ background: hero.bg }}>
+        <div className="nl-hero-t">
+          <div className="nl-kick">DAILY BRIEF</div>
+          <h1>{(r.brief?.one_liner ?? '오늘의 원자재').split(', ').map((t, i) => <span key={i}>{i > 0 && <br />}{t}</span>)}</h1>
+          <div className="nl-hero-d">{d.getUTCMonth() + 1}.{d.getUTCDate()} {WEEKDAY[d.getUTCDay()]}요일</div>
         </div>
+        <Art className="nl-hero-art" html={hero.svg} />
+      </div>
+
+      {top && (
+        <button className="nl-ins" onClick={() => go('world')}>
+          <div className="nl-tag">TODAY INSIGHT</div>
+          <h2>{top.title}</h2>
+          {top.outlook && <Para text={top.outlook} />}
+          <span className="nl-go">GO<br />INSIDE<em>→</em></span>
+        </button>
       )}
-      <div className="box">
-        <div className="box-h"><h2>시장 신호판</h2><small>눌러서 시장별 상세</small></div>
-        <div className="sig">
-          {SIGNAL_ROWS.map(([id, tab]) => {
-            const m = r.markets[id];
-            if (!m || m.error) return null;
-            const main = m.metrics.series[0];
+
+      <div className="nl-sec">
+        <SecH title="오늘의 숫자" sub="1주 변동 · 중국 선물은 달러 환산" />
+        <div className="nl-tiles">
+          {rows.map(({ id, tab, m }) => {
+            const s = m.metrics.series[0];
+            if (!s) return null;
+            const cls = signClass(s.w1_pct);
             return (
-              <button className="sig-row" key={id} onClick={() => go(tab, id)}>
-                <div className="sig-name-w">
-                  <div className="sig-name">{m.name}</div><DirPill dir={m.direction} />
-                  {main && <div className="sig-num num">{main.label.replace(/\(.*\)/, '').trim()} {fmt(main.value)} · 주간 {pctText(main.w1_pct)}</div>}
-                </div>
-                <div className="sig-dir-w"><DirPill dir={m.direction} /></div>
-                <div className="sig-text">{m.headline}</div>
-                <div className="sig-end"><QuarterChg m={m} /></div>
+              <button className="nl-tile" key={id} onClick={() => go(tab, id)}>
+                <div className="nl-k">{m.name} · {s.label.replace(/\(.*\)/, '').trim()}</div>
+                <div className="nl-v num">{fmt(s.value)}<small>{s.unit.replace('USD', '달러')}</small></div>
+                <div className={`chg ${cls}`}>1주 {pctText(s.w1_pct)}</div>
+                <Spark values={s.spark} cls={cls} />
               </button>
             );
           })}
+          {fx && (
+            <div className="nl-tile">
+              <div className="nl-k">원/달러 환율</div>
+              <div className="nl-v num">{fmt(fx.rate)}<small>원</small></div>
+              <div className="u">{md(fx.date)} 기준</div>
+            </div>
+          )}
         </div>
       </div>
-      <TopIssues r={r} go={go} />
-      {r.brief?.common?.length ? (
-        <div className="box">
-          <div className="box-h"><h2>공통 요인</h2><small>여러 시장에 동시에 작용</small></div>
-          <div className="factors">
-            {r.brief.common.map((c, i) => (
-              <div className="factor" key={i}>
-                <h3>{c.title}</h3><p>{c.text}</p>
+
+      <div className="nl-sec">
+        <SecH title="품목별 한 줄" sub="누르면 품목 탭으로" />
+        <div className="nl-bands">
+          {rows.map(({ id, tab, m }) => (
+            <button className="nl-band" key={id} style={{ background: BAND_COLOR[id] }} onClick={() => go(tab, id)}>
+              <div className="nl-band-n"><b>{m.name}</b><span className={`nl-chip ${m.direction}`}>{DIR_KO[m.direction]}</span></div>
+              <i className="nl-band-bar" />
+              <p className="nl-band-m">{m.headline}</p>
+              <Art className="nl-band-art" html={bandArt(id)} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {(r.brief?.lead || r.brief?.common?.length) ? (
+        <div className="nl-sec">
+          <SecH title="오늘의 흐름" sub="여러 시장에 동시에 작용하는 요인" />
+          {r.brief?.lead && <Para className="para nl-lead" text={r.brief.lead} />}
+          <div className="nl-factors">
+            {(r.brief?.common ?? []).map((c, i) => (
+              <div className="nl-factor" key={i}>
+                <h3>{c.title}</h3><Para text={c.text} />
                 {c.markets?.length > 0 && <div className="tags">{c.markets.map(t => <span className="tag" key={t}>{t}</span>)}</div>}
               </div>
             ))}
           </div>
         </div>
       ) : null}
+
+      {cards.length > 0 && (
+        <div className="nl-sec">
+          <SecH title="세계 동향" sub="눌러서 전체 보기" />
+          <div className="nl-cards">
+            {cards.map((x, i) => {
+              const nth = (seen[x.category] = (seen[x.category] ?? -1) + 1);
+              const eff = EFFECT[x.effect];
+              return (
+                <button className="nl-card" key={i} onClick={() => go('world')}>
+                  <div className="nl-thumb">
+                    <Art html={thumbArt(x.category, BAND_COLOR[x.markets[0]] ?? BAND_COLOR.steel, nth)} />
+                    {eff && <span className={`nl-eff ${eff[0]}`}>{eff[1]}</span>}
+                  </div>
+                  {x.region && <span className="nl-rg">【{x.region}】</span>}
+                  <h3>{x.title}</h3>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="nl-foot">
+        {foot.length > 0 && (
+          <div className="nl-sig">
+            {foot.map(s => {
+              const pct = s.yoy != null ? s.yoy : s.prev ? +(((s.value - s.prev) / s.prev) * 100).toFixed(2) : null;
+              return (
+                <div key={s.key}>
+                  <Art className="nl-ico" html={SIGNAL_ICON[s.group] ?? SIGNAL_ICON.steel} />
+                  <b>{s.label}</b>
+                  <div className="nl-sv num">{fmt(s.value)}{s.unit}</div>
+                  <small>{s.when}{pct != null && <> · <span className={`chg ${signClass(pct)}`}>{pctText(pct)}</span> {s.yoy != null ? '전년 대비' : `${s.prev_label} 대비`}</>}</small>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="nl-cal">
+          <b>지켜볼 것</b>
+          {rows.map(({ id, m }) => m.outlook.watch[0] && (
+            <div key={id}><div className="nl-when">{m.name}</div><div className="nl-what">{m.outlook.watch[0]}</div></div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -516,7 +604,7 @@ export default function V3App() {
           </nav>
         </div>
       </div>
-      <main className="wrap">
+      <main className={tab === 'brief' && r ? 'wrap nl-main' : 'wrap'}>
         {body}
         {r && (
           <footer className="foot">
