@@ -33,6 +33,12 @@ export function reportTexts(report) {
     add(`${k}.outlook.up`, m.outlook?.up);
     add(`${k}.outlook.down`, m.outlook?.down);
   }
+  // 세계 동향(리포트와 따로 저장, audit·get-report 응답에만 붙는다 — 같은 문장 검사를 받는다)
+  (report?.world?.issues ?? []).forEach((x, i) => {
+    add(`world.issues[${i}].title`, x.title);
+    (x.what ?? []).forEach((t, j) => add(`world.issues[${i}].what[${j}]`, t));
+    for (const f of ['relation', 'reach', 'outlook']) add(`world.issues[${i}].${f}`, x[f]);
+  });
   return out;
 }
 

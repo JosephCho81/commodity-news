@@ -3,13 +3,17 @@
 
 const NAMED_ENTITIES = { rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', ndash: '–', mdash: '—', hellip: '…', middot: '·', deg: '°', times: '×' };
 
+// 범위를 벗어난 숫자 엔티티(&#2013266080; 같은 깨진 표기)는 그대로 둔다 — fromCodePoint가 던지면 기사 하나 때문에 수집 전체가 죽는다
+// (glove-news 2026-11-17 세계 동향 첫 실행: "Invalid code point 2013266080". 처음 보는 사이트를 여는 탐색에서 드러남)
+const codePoint = (m, n) => (Number.isInteger(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m);
+
 export function decodeEntities(s) {
   return String(s)
     .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&apos;/g, "'")
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
     .replace(/&([a-z]+);/g, (m, n) => NAMED_ENTITIES[n] ?? m)
-    .replace(/&#(\d+);/g, (m, d) => String.fromCodePoint(Number(d)))
-    .replace(/&#x([0-9a-f]+);/gi, (m, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (m, d) => codePoint(m, Number(d)))
+    .replace(/&#x([0-9a-f]+);/gi, (m, h) => codePoint(m, parseInt(h, 16)))
     .replace(/&amp;/g, '&');
 }
 

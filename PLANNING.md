@@ -1,5 +1,5 @@
 # commodity-news 현재 상태
-> 최종 업데이트: 2026-10-27 (품질 장치 87f3566, 국내 고시 920px 판독 수정 9310f1d)
+> 최종 업데이트: 2026-11-17 (세계 동향 탐색 추가 — 미배포)
 
 (주)한국에이원 — 회사 내부와 국내 제강사 구매팀(무료 제공)이 매일 아침 10분 동안 보는 원자재 시황.
 화면 단위는 기사가 아니라 **시장**이다. 시장마다 "지금 어떻게 돌아가나 → 왜 → 어디에 어떻게 영향 → 앞으로"를 숫자와 함께 보여준다.
@@ -13,7 +13,7 @@
 1. **숫자는 결정적 소스만** — 거래소·관세청·공시·야드 매입가를 코드로 수집. 수집 실패는 null + `errors` 기록, 추정값·상수로 채우지 않는다. 근거 없는 "통상 범위"를 가격처럼 쓰지 않는다(가탄제 100~180 사고).
 2. **방향·신호는 코드, 해석은 LLM** — 강세/약세·구매 유리/불리는 주간 변동률 규칙으로 코드가 정한다. LLM은 이유·영향·전망만 쓰고 판정을 바꾸지 못한다.
 3. **LLM 출력은 검증 후 저장** — 입력에 없는 숫자, 통화 단위가 다른 숫자(元→원 등)가 든 문장은 삭제하고 1회 재작성. 핵심 칸이 비어도 재작성, 그래도 비면 그 시장은 오류로 남긴다. 인용 번호가 틀린 문장(G2)은 지우기만 하고 재작성하지 않는다. 저장 직전 게시 게이트가 사실 오류(H) 문장을 지운다 — 기준은 `docs/quality.md`.
-4. **근거는 신뢰 매체 화이트리스트만** — 검색형 LLM으로 사실을 발굴하지 않는다. 근거 기사는 해석 생성에만 쓰고 화면에는 표시하지 않는다.
+4. **리포트 근거는 신뢰 매체 화이트리스트만** — 리포트 해설은 검색형 LLM으로 사실을 발굴하지 않는다. 예외는 세계 동향(별도 문서·별도 함수): 웹 검색으로 찾되 코드가 원문을 열어 인용문·발행일·복수 매체를 대조한다(docs/quality.md). 근거 기사는 해석 생성에만 쓰고 화면에는 표시하지 않는다.
 5. **방문자 요청으로 생성하지 않는다** — 생성은 새벽 수집 작업만. 화면 API는 읽기 전용 + CDN 캐시.
 6. **셀프 fetch는 공개 도메인** — `VERCEL_URL`은 Vercel Authentication에 막힌다. `news.a1kor.com` 사용.
 
@@ -22,13 +22,14 @@
 ## 데이터 흐름
 
 ```
+[매일 KST 05시대] Vercel cron "0 20 * * *" → /api/explore (300s) — 세계 동향: 공식 신호 + 관점 5개 웹 탐색 → 원문 대조 → 사안 작성·검증 → world_{날짜}·world_latest
 [매일 KST 06시대] Vercel cron "0 21 * * *" → /api/collect-daily (300s) — 하루 1회 고정(출근길 열람용)
    1) 스냅샷   snapshot.js  — 환율·LME·중국 선물 8종·해외 스크랩·국내 고시·관세청 무연탄
    2) 근거     evidence.js  — 시장별 신뢰 매체 기사 본문 (Google News 원문 해독 + 국내 RSS)
    3) 리포트   report.js    — 시장 5개 해석(interpret.js, 동시 2) + 브리핑(공통 요인에 거시 헤드라인)
    4) 품질     gate.js      — 게시 게이트(H 결함 문장 삭제) → 저장 → 남은 시간 45초 이상이면 LLM 검수 1회(judge.js) → 다시 저장
 [하루 2회]   GitHub Actions kr-scrap-archive — 국내 스크랩 고시 이미지 OCR → /api/kr-scrap-archive
-[조회]       / → src/v3/V3App.tsx → /api/get-report (s-maxage 600, stale-while-revalidate 3600)
+[조회]       / → src/v3/V3App.tsx → /api/get-report(리포트 + world_latest) (s-maxage 600, stale-while-revalidate 3600)
 [점검]       /api/audit?date=YYYY-MM-DD | ?days=N (Bearer CRON_SECRET, 읽기 전용) — 결함 집계·근거 기사·탈락 문장
 ```
 
@@ -85,6 +86,7 @@
 | `commodity_cache/price_history_market` | 시계열 400일(값마다 실제 거래일 날짜). 200행 미만이면 자동 백필 |
 | `commodity_cache/evidence_{날짜}`·`_latest`, `evidence_seen` | 근거 묶음, 최근 5일 사용 URL(빼지 않고 후순위) |
 | `commodity_cache/market_report_{날짜}`·`_latest` | 하루치 리포트. 품질용 `fx`(원/달러 방향)·`notices`(고시·통계 기준일)·`quality`(남은 결함)·`checks`(게이트·검수가 지운 문장), 시장별 `now_src`·`dropped` — 화면 API는 이 필드를 내보내지 않는다 |
+| `commodity_cache/world_{날짜}`·`world_latest` | 세계 동향(explore.js) — 신호·사안(화면용 + 내부용 주소·매체)·`log`(관점별 건수·비용, `rejected` 원문 대조 탈락, `dropped` 문장 탈락). get-report가 주소·매체를 빼고 `world`로 내보낸다 |
 | `commodity_cache/collect_log_{날짜}`, `pplx_budget_{날짜}` | 실행 기록, 호출 수 (`macro_state`는 센티널 제거 후 쓰지 않음) |
 | `kr_scrap_weekly/{기준일}`·`_latest` | 국내 고시 판독값 + 원본 이미지(저장소가 공개라 git 대신 Firestore). 실패분은 `failed-{해시12자}`. 이미지가 80만 자(base64) 넘으면 이미지 없이 판독값만 저장 |
 
@@ -101,6 +103,7 @@
 - 매크로 센티널(매시간 거시 이벤트 감지 → 리포트 재생성)은 2026-10-12 제거 — 10/5~8 중 4일이 하루 2회 생성돼 LLM 비용이 2배였다. 출근길에 한 번 보는 리포트라 되살리지 말 것.
 - 공개 저장소 예약 워크플로 60일 비활성 정지 → kr-scrap 워크플로의 `keepalive` 잡이 enable API로 재활성화.
 - 수동 실행: `curl -H "Authorization: Bearer $CRON_SECRET" https://news.a1kor.com/api/collect-daily` (약 2분, Luna 약 $0.03)
+- 세계 동향 수동 실행: 같은 꼴로 `/api/explore` (LLM 6회, 미실측 — glove-news 실측 약 $0.15·2분)
 
 ## 남은 작업
 

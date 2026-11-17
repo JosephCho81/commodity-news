@@ -101,15 +101,12 @@
 .v3 .cell { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .v3 .cell h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; }
 .v3 .cell h3 i { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--accent); letter-spacing: .3px; }
-.v3 .cell ul { margin: 0; padding-left: 16px; display: grid; gap: 4px; font-size: 14px; color: var(--text2); }
-.v3 .cell ul li::marker { color: var(--text4); }
+/* 이어 읽는 문단 — 숫자만 굵게 */
+.v3 .para { margin: 0; font-size: 14.5px; line-height: 1.75; color: var(--text2); }
+.v3 .para b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
 .v3 .causes { display: grid; gap: 12px; }
 .v3 .cause b { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 2px; }
 .v3 .cause p { margin: 0; font-size: 14px; color: var(--text2); }
-.v3 .impact { display: grid; gap: 8px; }
-.v3 .imp { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 10px; font-size: 14px; }
-.v3 .imp b { font-size: 13px; }
-.v3 .imp span { color: var(--text2); }
 .v3 .krw { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; margin-top: 2px; }
 .v3 .krw div { background: var(--surface2); border-radius: 8px; padding: 7px 9px; display: flex; flex-direction: column; }
 .v3 .krw small { font-size: 11px; color: var(--text3); }
@@ -118,7 +115,7 @@
 .v3 .w { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 8px; font-size: 14px; }
 .v3 .w b { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 11.5px; margin-top: 2px; }
 .v3 .w p { margin: 0; color: var(--text2); }
-.v3 .view { margin: 0; font-size: 14px; color: var(--text); font-weight: 600; }
+.v3 .para.view { color: var(--text); }
 .v3 .scen { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
 .v3 .scen div { border-radius: 8px; padding: 7px 10px; font-size: 13px; }
 .v3 .scen .s-up { background: var(--up-bg); } .v3 .scen .s-dn { background: var(--down-bg); }
@@ -151,6 +148,30 @@
 .v3 .calc-row .calc-res { border-color: var(--navy); }
 .v3 .calc p { margin: 0; font-size: 12.5px; color: var(--text2); }
 
+/* 세계 동향 — 신호판은 구조가 같은 숫자 칸이라 여러 열, 사안 카드는 길이가 제각각인 글이라 항상 한 열 */
+.v3 .ws-g { padding: 10px 16px 14px; border-top: 1px solid var(--border2); }
+.v3 .box-h + .ws-g { border-top: 0; }
+.v3 .ws-gh { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 6px; letter-spacing: .3px; }
+.v3 .ws-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.v3 .ws { background: var(--surface2); border-radius: 8px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.v3 .ws .n-v strong { font-size: 19px; }
+.v3 .ws-c { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.v3 .ws .n-src { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.v3 .iss { gap: 10px; }
+.v3 .iss-m { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.v3 .iss-m .dir { font-size: 11.5px; padding: 1px 8px; }
+.v3 .tag.mk { background: var(--accent-light); color: var(--accent); }
+.v3 .iss-d { font-size: 12px; color: var(--text3); }
+.v3 .iss-t { margin: 0; font-size: 17px; line-height: 1.45; letter-spacing: -.3px; }
+.v3 .iss-s { display: grid; gap: 3px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.v3 .iss-s h4 { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--navy); }
+.v3 .rel { display: grid; gap: 1px; background: var(--border2); }
+.v3 .rel-row { display: grid; gap: 4px; padding: 12px 16px; background: var(--surface); border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+.v3 .rel-row:hover { background: var(--surface2); }
+.v3 .rel-t { font-weight: 700; font-size: 15px; line-height: 1.45; }
+.v3 .rel-x { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.v3 .rel-x b { color: var(--text); }
+
 .v3 .state { padding: 60px 16px; text-align: center; color: var(--text3); }
 .v3 .foot { padding: 18px 0 8px; font-size: 12px; color: var(--text3); display: grid; gap: 4px; text-align: center; }
 
@@ -167,16 +188,26 @@
   .v3 .mkt-head h1 { font-size: 18px; }
   .v3 .cell { padding: 12px 14px; gap: 6px; }
   .v3 .cell h3 { font-size: 14px; }
-  .v3 .cell ul, .v3 .cause p, .v3 .cause b, .v3 .imp, .v3 .w, .v3 .view, .v3 .sig-text, .v3 .factor p { font-size: 13px; }
-  .v3 .imp b, .v3 .scen div { font-size: 12.5px; }
+  .v3 .cause p, .v3 .cause b, .v3 .w, .v3 .sig-text, .v3 .factor p { font-size: 13px; }
+  .v3 .para { font-size: 13.5px; line-height: 1.7; }
+  .v3 .scen div { font-size: 12.5px; }
+  .v3 .ws-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+  .v3 .ws-g { padding: 8px 12px 12px; }
+  .v3 .ws .n-v strong { font-size: 16px; }
+  .v3 .iss-t { font-size: 15.5px; }
+  .v3 .rel-row { padding: 10px 14px; }
+  .v3 .rel-t { font-size: 14px; }
+  .v3 .rel-x { font-size: 13px; }
   .v3 .n { padding: 10px 14px; }
   .v3 .n-v strong { font-size: 18px; }
   .v3 .sig-row { padding: 10px 14px; }
   .v3 .sig-name { font-size: 14px; }
   .v3 table { font-size: 13px; }
   .v3 .brand span { display: none; }
-  .v3 .imp { grid-template-columns: minmax(0,1fr); gap: 2px; }
-  .v3 nav button { padding: 10px 8px; font-size: 13px; }
+  /* 탭 6개가 360px 폭에서도 한 줄에 다 보이게(가로 스크롤에 마지막 탭이 숨지 않게) */
+  .v3 nav { gap: 0; }
+  .v3 nav button { flex: 1 1 auto; padding: 10px 2px; font-size: 12.5px; letter-spacing: -.3px; }
+  .v3 nav button:first-child, .v3 nav button:last-child { margin-inline: 0; }
 }
 @media (min-width: 721px) { .v3 .sig-name-w .dir { display: none; } }
 @media (prefers-reduced-motion: no-preference) { .v3 nav button { transition: color .15s, border-color .15s; } }

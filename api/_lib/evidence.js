@@ -219,7 +219,8 @@ export function finalizeArticle(c, rawBody, market) {
 
 // ─── 네트워크 ────────────────────────────────────────────────────────────────
 
-async function getText(url, opts = {}) {
+// 세계 동향 탐색(explore.js)도 이 함수로 원문을 연다 — GBK 중국어 페이지 해독이 같아야 인용 대조가 맞는다
+export async function getText(url, opts = {}) {
   const res = await fetch(url, {
     ...opts,
     headers: { 'User-Agent': UA, 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,ko;q=0.7', ...(opts.headers ?? {}) },

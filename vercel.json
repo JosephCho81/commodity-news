@@ -8,9 +8,16 @@
     },
     "api/audit.js": {
       "maxDuration": 15
+    },
+    "api/explore.js": {
+      "maxDuration": 300
     }
   },
   "crons": [
+    {
+      "path": "/api/explore",
+      "schedule": "0 20 * * *"
+    },
     {
       "path": "/api/collect-daily",
       "schedule": "0 21 * * *"

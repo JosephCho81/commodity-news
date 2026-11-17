@@ -58,8 +58,12 @@ export default async function handler(req, res) {
     dropped: m.dropped ?? [], error: m.error ?? null,
   }]));
   const log = await read(`collect_log_${r.date}`);
+  // 세계 동향(explore.js, 리포트와 따로 저장) — 같은 문장 검사(F1·F2·C1·S2)로 함께 센다. 탐색 기록(관점별 건수·비용·탈락)도 낸다
+  const world = parse(await read(`world_${r.date}`));
+  if (world) r.world = world;
   return res.status(200).json({
     date: r.date, generated_at: r.generated_at, quality: await audit(r), stored_quality: r.quality?.counts ?? null,
     markets, checks: r.checks ?? null, collect_log: log?.result ?? null,
+    world: world ? { issues: (world.issues ?? []).map(i => ({ title: i.title, source: i.source, published: i.published, url: i.url, first_seen: i.first_seen })), log: world.log ?? null } : null,
   });
 }

@@ -1,5 +1,5 @@
 // src/v3/V3App.tsx — 새 화면(시장 단위 브리핑). /api/get-report 하나만 읽는다(생성 없음).
-// 탭: 브리핑 | 합금철 | 알루미늄(1차·2차·스크랩) | 가탄제 | 철강 업황
+// 탭: 브리핑 | 세계 동향 | 합금철 | 알루미늄(1차·2차·스크랩) | 가탄제 | 철강 업황. 세계 동향은 get-report 응답의 world(explore.js가 따로 저장)
 import { useEffect, useMemo, useState } from 'react';
 import './v3.css';
 
@@ -16,8 +16,14 @@ type Market = {
   error?: string;
 };
 type ScrapItem = { item: string; grade: string; price: number; change: number };
+type Signal = { key: string; group: string; label: string; value: number; unit: string; prev?: number | null; prev_label?: string; yoy?: number; when: string; desc: string };
+type Issue = {
+  title: string; region: string; category: 'demand' | 'supply' | 'policy' | 'logistics' | 'other'; effect: 'up' | 'down' | 'unclear'; scale: 'large' | 'medium' | 'small';
+  markets: string[]; uses: string; published: string; first_seen: string; what: string[]; relation: string; reach: string; outlook: string;
+};
+type World = { date: string; issues_date: string; signals: Signal[]; issues: Issue[] };
 type Report = {
-  date: string; generated_at: string;
+  date: string; generated_at: string; world?: World | null;
   brief: { one_liner: string | null; lead: string | null; common: { title: string; text: string; markets: string[] }[] } | null;
   markets: Record<string, Market>;
   numbers: {
@@ -29,7 +35,7 @@ type Report = {
   } | null;
 };
 
-const TABS: [string, string][] = [['brief', '브리핑'], ['ferro', '합금철'], ['al', '알루미늄'], ['recarb', '가탄제'], ['steel', '철강 업황']];
+const TABS: [string, string][] = [['brief', '브리핑'], ['world', '세계 동향'], ['ferro', '합금철'], ['al', '알루미늄'], ['recarb', '가탄제'], ['steel', '철강 업황']];
 const SIGNAL_ROWS: [string, string][] = [['ferro', 'ferro'], ['al1', 'al'], ['al2', 'al'], ['recarb', 'recarb'], ['steel', 'steel']];
 const DIR_KO: Record<string, string> = { up: '강세', down: '약세', flat: '보합', mixed: '혼조' };
 const DIR_ARROW: Record<string, string> = { up: '▲', down: '▼', flat: '─', mixed: '◆' };
@@ -43,6 +49,14 @@ const pctText = (v: number | null | undefined) => (v == null ? '─' : `${v > 0 
 function dateLabel(d: string) {
   const t = new Date(`${d}T00:00:00Z`);
   return `${d.replaceAll('-', '.')} (${WEEKDAY[t.getUTCDay()]})`;
+}
+
+const md = (d?: string) => (d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '');
+
+// 이어 읽는 문단 — 해설은 한 줄 한 문장으로 끊지 않는다(glove-news 2026-11-17 사용자 결정: "단답형으로 보인다"). 숫자는 굵게.
+// 정규식 lookbehind는 구형 iOS Safari에서 구문 오류(앱 전체가 안 뜸)라 쓰지 않는다
+function Para({ text, className = 'para' }: { text: string; className?: string }) {
+  return <p className={className}>{text.split(/(\d[\d,]*(?:\.\d+)?\s?%?)/g).map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part))}</p>;
 }
 
 function readHash() {
@@ -141,7 +155,7 @@ function MarketView({ m, extra }: { m: Market; extra?: any }) {
         </div>
       </div>
       <div className="four">
-        <div className="cell"><h3><i>지금</i>어떻게 돌아가나</h3><ul>{m.now.map((s, i) => <li key={i}>{s}</li>)}</ul></div>
+        <div className="cell"><h3><i>지금</i>어떻게 돌아가나</h3><Para text={m.now.join(' ')} /></div>
         <div className="cell">
           <h3><i>왜</i>원인</h3>
           <div className="causes">
@@ -150,7 +164,7 @@ function MarketView({ m, extra }: { m: Market; extra?: any }) {
         </div>
         <div className="cell">
           <h3><i>영향</i>{demand ? '어떤 원자재 수요에' : '어디에, 어떻게'}</h3>
-          <div className="impact">{m.impact.map((x, i) => <div className="imp" key={i}><b>{x.area}</b><span>{x.text}</span></div>)}</div>
+          {m.impact.length > 0 && <Para text={m.impact.map(x => x.text).join(' ')} />}
           {m.metrics.krw && (
             <div className="krw num">
               <div><small>달러 가격 (주간)</small><strong className={`chg ${signClass(m.metrics.krw.price_pct)}`}>{pctText(m.metrics.krw.price_pct)}</strong></div>
@@ -161,7 +175,7 @@ function MarketView({ m, extra }: { m: Market; extra?: any }) {
         </div>
         <div className="cell">
           <h3><i>전망</i>1~2주</h3>
-          {m.outlook.view && <p className="view">{m.outlook.view}</p>}
+          {m.outlook.view && <Para className="para view" text={m.outlook.view} />}
           <div className="watch">{m.outlook.watch.map((w, i) => <div className="w" key={i}><b>{i + 1}</b><p>{w}</p></div>)}</div>
           {(m.outlook.up || m.outlook.down) && (
             <div className="scen">
@@ -258,6 +272,121 @@ function OverseasScrap({ code, n }: { code: string; n: Report['numbers'] }) {
   );
 }
 
+// ─── 세계 동향 ────────────────────────────────────────────────────────────────
+// 신호판(코드가 받은 공식 통계)과 사안 카드(웹 탐색 → 원문 대조 → 작성·검증). 근거 매체·주소는 화면에 내지 않는다
+const CATEGORY: Record<Issue['category'], string> = { demand: '수요', supply: '공급', policy: '정책·무역', logistics: '물류', other: '기타' };
+const MARKET_TAG: Record<string, string> = { ferro: '합금철', al1: '알루미늄 1차', al2: '알루미늄 2차', recarb: '가탄제', steel: '철강' };
+const EFFECT: Record<Issue['effect'], [string, string] | null> = { up: ['up', '▲ 가격 상승 요인'], down: ['down', '▼ 가격 하락 요인'], unclear: null };
+const SCALE: Record<Issue['scale'], string> = { large: '영향 큼', medium: '영향 중간', small: '영향 작음' };
+const SIGNAL_GROUPS: [string, string][] = [['steel', '철강'], ['alu', '알루미늄'], ['demand', '수요 현장'], ['freight', '운임']];
+const dayCount = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1;
+
+function IssueMeta({ x, date }: { x: Issue; date: string }) {
+  const eff = EFFECT[x.effect];
+  const days = dayCount(x.first_seen ?? x.published, date);
+  return (
+    <div className="iss-m">
+      <span className="tag">{CATEGORY[x.category]}</span>
+      {x.region && <span className="tag">{x.region}</span>}
+      {x.markets.map(k => <span key={k} className="tag mk">{MARKET_TAG[k]}</span>)}
+      {eff && <span className={`dir ${eff[0]}`}>{eff[1]}</span>}
+      <span className="iss-d">{SCALE[x.scale]} · {md(x.published)} 발표{days >= 2 ? ` · ${days}일째` : ''}</span>
+    </div>
+  );
+}
+
+function SignalTile({ s }: { s: Signal }) {
+  const pct = s.yoy != null ? s.yoy : s.prev ? +(((s.value - s.prev) / s.prev) * 100).toFixed(2) : null;
+  return (
+    <div className="ws">
+      <div className="n-l">{s.label}</div>
+      <div className="n-v"><strong className="num">{fmt(s.value)}</strong>{s.unit && <span className="u">{s.unit}</span>}</div>
+      <div className="ws-c num">
+        {pct != null && <span className={`chg ${signClass(pct)}`}>{pctText(pct)}</span>}
+        <span className="u">{s.yoy != null ? '전년 같은 달 대비' : s.prev != null ? `${s.prev_label} ${fmt(s.prev)}` : ''}</span>
+      </div>
+      <div className="n-src">{s.when} · {s.desc}</div>
+    </div>
+  );
+}
+
+function SignalBoard({ signals }: { signals: Signal[] }) {
+  return (
+    <div className="box">
+      <div className="box-h"><h2>수요·공급 신호</h2><small>공식 통계</small></div>
+      {SIGNAL_GROUPS.map(([g, name]) => {
+        const items = signals.filter(s => s.group === g);
+        return items.length ? (
+          <div className="ws-g" key={g}>
+            <div className="ws-gh">{name}</div>
+            <div className="ws-grid">{items.map(s => <SignalTile key={s.key} s={s} />)}</div>
+          </div>
+        ) : null;
+      })}
+    </div>
+  );
+}
+
+function IssueCard({ x, date }: { x: Issue; date: string }) {
+  const sec = (label: string, text: string) => text && <div className="iss-s"><h4>{label}</h4><Para text={text} /></div>;
+  return (
+    <article className="cell iss">
+      <IssueMeta x={x} date={date} />
+      <h3 className="iss-t">{x.title}</h3>
+      <Para text={x.what.join(' ')} />
+      {sec(x.uses ? `품목과의 관계 · ${x.uses}` : '품목과의 관계', x.relation)}
+      {sec('영향 범위', x.reach)}
+      {sec('앞으로 예상', x.outlook)}
+    </article>
+  );
+}
+
+function WorldPage({ r }: { r: Report }) {
+  const w = r.world;
+  if (!w) return <section className="panel"><div className="box state">세계 동향을 아직 불러오지 못했습니다.</div></section>;
+  const stale = w.issues_date && w.issues_date !== r.date;
+  return (
+    <section className="panel">
+      <div className="box lead">
+        <div className="lbl">세계 동향 · {md(w.issues_date ?? w.date)} 기준{stale ? ' · 오늘 새 사안 없음' : ''}</div>
+        <h1>합금철·알루미늄·가탄제·철강을 움직이는 세계의 일</h1>
+        <p>품목이 쓰이는 제강·자동차·건설·전력 현장과 생산·무역 길목에서 최근 일어난 일을 원문과 대조해 정리했습니다.</p>
+      </div>
+      {w.signals.length > 0 && <SignalBoard signals={w.signals} />}
+      {w.issues.length ? w.issues.map((x, i) => <IssueCard key={i} x={x} date={r.date} />) : <div className="box state">최근 2주 안에 확인된 사안이 없습니다.</div>}
+    </section>
+  );
+}
+
+// 사안 목록(제목 + 한 문단) — 누르면 세계 동향 탭으로
+function IssueList({ label, items, date, go }: { label: string; items: Issue[]; date: string; go: (tab: string) => void }) {
+  return (
+    <div className="box">
+      <div className="box-h"><h2>{label}</h2><small>눌러서 전체 보기</small></div>
+      <div className="rel">
+        {items.map((x, i) => (
+          <button className="rel-row" key={i} onClick={() => go('world')}>
+            <IssueMeta x={x} date={date} />
+            <div className="rel-t">{x.title}</div>
+            <Para className="rel-x" text={[x.what[0], x.outlook].filter(Boolean).join(' ')} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 브리핑 — 영향이 큰 사안부터 3건(생성 단계에서 규모 순으로 정렬돼 온다)
+function TopIssues({ r, go }: { r: Report; go: (tab: string) => void }) {
+  const items = (r.world?.issues ?? []).slice(0, 3);
+  return items.length ? <IssueList label="오늘의 세계 동향" items={items} date={r.date} go={go} /> : null;
+}
+// 품목 탭 — 그 품목에 닿는 사안
+function RelatedIssues({ r, keys, go }: { r: Report; keys: string[]; go: (tab: string) => void }) {
+  const items = (r.world?.issues ?? []).filter(x => x.markets.some(k => keys.includes(k))).slice(0, 4);
+  return items.length ? <IssueList label="이 품목에 닿는 세계 동향" items={items} date={r.date} go={go} /> : null;
+}
+
 // ─── 브리핑 ──────────────────────────────────────────────────────────────────
 function Briefing({ r, go }: { r: Report; go: (tab: string, sub?: string) => void }) {
   return (
@@ -290,6 +419,7 @@ function Briefing({ r, go }: { r: Report; go: (tab: string, sub?: string) => voi
           })}
         </div>
       </div>
+      <TopIssues r={r} go={go} />
       {r.brief?.common?.length ? (
         <div className="box">
           <div className="box-h"><h2>공통 요인</h2><small>여러 시장에 동시에 작용</small></div>
@@ -336,6 +466,7 @@ export default function V3App() {
   if (err) body = <div className="state">{err}</div>;
   else if (!r) body = <div className="state">불러오는 중…</div>;
   else if (tab === 'brief') body = <Briefing r={r} go={go} />;
+  else if (tab === 'world') body = <WorldPage r={r} />;
   else if (tab === 'al') {
     const alSub = ['al1', 'al2', 'scrap'].includes(sub) ? sub : 'al1';
     body = (
@@ -355,12 +486,18 @@ export default function V3App() {
             {region === 'kr' || !regions.includes(region) ? <DomesticScrap n={r.numbers} /> : <OverseasScrap code={region} n={r.numbers} />}
           </>
         ) : <MarketView m={r.markets[alSub]} />}
+        <RelatedIssues r={r} keys={[alSub === 'al1' ? 'al1' : 'al2']} go={go} />
       </section>
     );
   } else if (tab === 'recarb') {
     const c = r.numbers?.anthracite_customs?.countries ?? {};
-    body = <section className="panel"><MarketView m={r.markets.recarb} extra={<>{c.CN && <CustomsCell name="중국" rows={c.CN} />}{c.RU && <CustomsCell name="러시아" rows={c.RU} />}</>} /></section>;
-  } else body = <section className="panel"><MarketView m={r.markets[tab]} /></section>;
+    body = (
+      <section className="panel">
+        <MarketView m={r.markets.recarb} extra={<>{c.CN && <CustomsCell name="중국" rows={c.CN} />}{c.RU && <CustomsCell name="러시아" rows={c.RU} />}</>} />
+        <RelatedIssues r={r} keys={['recarb']} go={go} />
+      </section>
+    );
+  } else body = <section className="panel"><MarketView m={r.markets[tab]} /><RelatedIssues r={r} keys={[tab]} go={go} /></section>;
 
   return (
     <div className="v3">

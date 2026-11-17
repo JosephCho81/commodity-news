@@ -5,6 +5,7 @@
 export const config = { maxDuration: 15 };
 
 import { FIREBASE_ENABLED, getFirestoreToken, getFromFirestore } from './_lib/firebase.js';
+import { publicWorld } from './_lib/explore.js';
 
 const parse = (doc, field = 'data') => { try { return doc?.[field] ? JSON.parse(doc[field]) : null; } catch { return null; } };
 
@@ -13,9 +14,11 @@ export default async function handler(req, res) {
   if (!FIREBASE_ENABLED) return res.status(500).json({ error: 'Firestore 비활성' });
 
   const token = await getFirestoreToken();
-  const [repDoc, snapDoc] = await Promise.all([
+  // 세계 동향(explore.js)은 리포트와 따로 저장된다 — 읽기 실패·없음이면 그 칸만 비운다
+  const [repDoc, snapDoc, worldDoc] = await Promise.all([
     getFromFirestore(token, 'commodity_cache', 'market_report_latest'),
     getFromFirestore(token, 'commodity_cache', 'market_snapshot_latest'),
+    getFromFirestore(token, 'commodity_cache', 'world_latest').catch(() => null),
   ]);
   const report = parse(repDoc);
   const snap = parse(snapDoc);
@@ -43,5 +46,6 @@ export default async function handler(req, res) {
       scrap_overseas: snap.scrap_overseas,
       anthracite_customs: snap.anthracite_customs,
     } : null,
+    world: publicWorld(parse(worldDoc)),
   });
 }
