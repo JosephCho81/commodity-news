@@ -277,6 +277,8 @@ const EFFECT: Record<Issue['effect'], [string, string] | null> = { up: ['up', '�
 const SCALE: Record<Issue['scale'], string> = { large: '영향 큼', medium: '영향 중간', small: '영향 작음' };
 const SIGNAL_GROUPS: [string, string][] = [['steel', '철강'], ['alu', '알루미늄'], ['demand', '수요 현장'], ['freight', '운임']];
 const dayCount = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1;
+// 월간 통계는 전년 같은 달, 주간 재고는 직전 집계일과 비교 — 좁은 칸에서도 한 줄에 들어가게 짧게
+const signalBase = (s: Signal) => (s.yoy != null ? '전년 동월비' : `${s.prev_label} 대비`);
 const signalPct = (s: Signal) => (s.yoy != null ? s.yoy : s.prev ? +(((s.value - s.prev) / s.prev) * 100).toFixed(2) : null);
 // 같은 분야 사안이 이어지면 다음 그림을 쓴다(썸네일 반복 줄이기)
 function thumbs(items: Issue[]) {
@@ -361,7 +363,7 @@ function WorldPage({ r }: { r: Report }) {
                       <div className="sg-t" key={s.key}>
                         <div className="nl-k">{s.label}</div>
                         <div className="sg-v">{fmt(s.value)}{s.unit && <small>{s.unit}</small>}</div>
-                        <div className="sg-c">{pct != null && <><span className={`chg ${signClass(pct)}`}>{pctText(pct)}</span> {s.yoy != null ? '전년 같은 달 대비' : `${s.prev_label} 대비`}</>}</div>
+                        <div className="sg-c">{pct != null && <><span className={`chg ${signClass(pct)}`}>{pctText(pct)}</span> {signalBase(s)}</>}</div>
                         <div className="mt-src">{s.when} · {s.desc}</div>
                       </div>
                     );
@@ -389,6 +391,11 @@ function RelatedIssues({ r, keys, go }: { r: Report; keys: string[]; go: (tab: s
 // ─── 브리핑(뉴스레터풍) ──────────────────────────────────────────────────────
 // 상단 그림 → 오늘의 한 사안 → 숫자 6칸 → 품목 띠 → 오늘의 흐름(lead·공통 요인) → 세계 동향 카드 → 신호·지켜볼 것.
 // 여러 열로 놓는 칸(숫자·카드)은 높이를 고정해 날마다 글 길이가 달라도 빈 공간이 생기지 않게 한다
+// 숫자 칸 이름 — 괄호 설명을 떼고 품목 이름과 겹치는 낱말을 빼서 한 줄에 들어가게("알루미늄 2차 · SHFE 2차 알루미늄" → "알루미늄 2차 · SHFE")
+const tileLabel = (name: string, label: string) => {
+  const drop = new Set(name.split(' '));
+  return label.replace(/\(.*\)/, '').trim().split(' ').filter(w => !drop.has(w)).join(' ') || label;
+};
 const FOOT_SIGNALS = ['steel_world', 'lme_al_stock', 'us_housing'];
 
 function Briefing({ r, go }: { r: Report; go: (tab: string, sub?: string) => void }) {
@@ -430,7 +437,7 @@ function Briefing({ r, go }: { r: Report; go: (tab: string, sub?: string) => voi
             const cls = signClass(s.w1_pct);
             return (
               <button className="nl-tile" key={id} onClick={() => go(tab, id)}>
-                <div className="nl-k">{m.name} · {s.label.replace(/\(.*\)/, '').trim()}</div>
+                <div className="nl-k">{m.name} · {tileLabel(m.name, s.label)}</div>
                 <div className="nl-v num">{fmt(s.value)}<small>{s.unit.replace('USD', '달러')}</small></div>
                 <div className={`chg ${cls}`}>1주 {pctText(s.w1_pct)}</div>
                 <Spark values={s.spark} cls={cls} />
@@ -487,13 +494,14 @@ function Briefing({ r, go }: { r: Report; go: (tab: string, sub?: string) => voi
         {foot.length > 0 && (
           <div className="nl-sig">
             {foot.map(s => {
-              const pct = s.yoy != null ? s.yoy : s.prev ? +(((s.value - s.prev) / s.prev) * 100).toFixed(2) : null;
+              const pct = signalPct(s);
               return (
                 <div key={s.key}>
                   <Art className="nl-ico" html={SIGNAL_ICON[s.group] ?? SIGNAL_ICON.steel} />
                   <b>{s.label}</b>
                   <div className="nl-sv num">{fmt(s.value)}{s.unit}</div>
-                  <small>{s.when}{pct != null && <> · <span className={`chg ${signClass(pct)}`}>{pctText(pct)}</span> {s.yoy != null ? '전년 대비' : `${s.prev_label} 대비`}</>}</small>
+                  <small className="nl-sw">{s.when}</small>
+                  {pct != null && <small className="nl-sc"><span className={`chg ${signClass(pct)}`}>{pctText(pct)}</span> {signalBase(s)}</small>}
                 </div>
               );
             })}

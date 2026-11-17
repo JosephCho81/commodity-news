@@ -228,10 +228,15 @@
   /* 좁은 칸에서는 제목을 3줄까지(높이 고정이라 카드끼리 높이가 같다) */
   .v3 .nl-card h3 { font-size: 13.5px; height: 4.35em; -webkit-line-clamp: 3; }
   .v3 .nl-foot { flex-direction: column; margin: 26px 16px 0; padding: 20px 0; }
-  .v3 .nl-sig { border-right: 0; padding: 0 0 18px; border-bottom: 1px solid var(--border); gap: 6px; }
-  .v3 .nl-ico { width: 52px; height: 52px; }
-  .v3 .nl-sig b { font-size: 12.5px; }
-  .v3 .nl-sv { font-size: 14px; }
+  /* 신호는 좁은 3열이면 설명이 여러 줄로 넘어가 한 줄에 하나씩: 아이콘 | 이름·값 / 시점·변동 */
+  .v3 .nl-sig { flex-direction: column; gap: 12px; border-right: 0; padding: 0 0 18px; border-bottom: 1px solid var(--border); }
+  .v3 .nl-sig > div { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; grid-template-areas: "i b v" "i w c"; column-gap: 10px; align-items: center; text-align: left; }
+  .v3 .nl-ico { grid-area: i; width: 44px; height: 44px; border-radius: 12px; }
+  .v3 .nl-ico svg { width: 26px; height: 26px; }
+  .v3 .nl-sig b { grid-area: b; font-size: 13px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .v3 .nl-sv { grid-area: v; font-size: 14px; margin: 0; text-align: right; white-space: nowrap; }
+  .v3 .nl-sig .nl-sw { grid-area: w; margin: 0; white-space: nowrap; }
+  .v3 .nl-sig .nl-sc { grid-area: c; margin: 0; text-align: right; white-space: nowrap; }
   .v3 .nl-cal { padding: 16px 0 0; }
 }
 
@@ -297,7 +302,7 @@
 .v3 .sg-t { background: var(--surface2); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .v3 .sg-v { font-size: 19px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .v3 .sg-v small { font-size: 12px; font-weight: 600; color: var(--text3); margin-left: 3px; }
-.v3 .sg-c { font-size: 12px; color: var(--text3); }
+.v3 .sg-c { font-size: 12px; color: var(--text3); white-space: nowrap; }
 .v3 .sg-c .chg { font-size: 12px; }
 .v3 .sg-t .mt-src { margin-top: auto; padding-top: 4px; }
 .v3 .is { padding: 22px 0; border-top: 1px solid var(--border); display: grid; gap: 10px; }
