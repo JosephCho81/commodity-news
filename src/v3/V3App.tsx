@@ -51,8 +51,6 @@ function dateLabel(d: string) {
   return `${d.replaceAll('-', '.')} (${WEEKDAY[t.getUTCDay()]})`;
 }
 
-const MONTH_EN = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-const engDate = (d: string) => `${+d.slice(8, 10)} ${MONTH_EN[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}`;
 const md = (d?: string) => (d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '');
 
 // 이어 읽는 문단 — 해설은 한 줄 한 문장으로 끊지 않는다(glove-news 2026-11-17 사용자 결정: "단답형으로 보인다"). 숫자는 굵게.
@@ -587,7 +585,6 @@ export default function V3App() {
             <div className="issue">
               <div className="no num">{dateLabel(r.date)}</div>
               <div className="t">오늘의 원자재</div>
-              <div className="d">{engDate(r.date)}</div>
             </div>
           )}
         </div>
