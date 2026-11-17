@@ -80,6 +80,14 @@ export function verifyFound(item, { pages, today, searchDates = {} }) {
   /** @returns {any} */
   const one = (url, quote) => (pages[url] ? checkSource({ url, quote, claimed: item.published }, pages[url], { today, searchDate: searchDates[url] ?? null }) : { ok: false, reason: '원문 열기 실패' });
   const a = one(item.url, item.quote);
+  // 첫 주소가 자동 접속을 막으면(로이터 등 — 2026-11-17 운영 첫 실행 탈락 11건 중 5건) 같은 사건의 두 번째 매체를 주 근거로 본다.
+  // 두 번째 매체도 똑같이 원문 대조를 통과해야 하고, 공식·통신사·근거 매체가 아니면 한 곳 보도로 탈락 — 기준은 그대로다
+  if (!a.ok && a.reason === '원문 열기 실패' && item.second_url) {
+    const s = one(item.second_url, item.second_quote);
+    if (!s.ok) return { error: `${a.reason} — ${item.url} / 두 번째 ${s.reason}` };
+    if (!trustedHost(s.host)) return { error: `한 곳 보도(${s.host}) — 첫 주소 열기 실패 ${item.url}` };
+    return { article: { title: s.title, url: item.second_url, source: s.host, published: s.published, body: s.body } };
+  }
   if (!a.ok) return { error: `${a.reason} — ${item.url}` };
   if (!trustedHost(a.host)) {
     const b = item.second_url ? one(item.second_url, item.second_quote) : { ok: false, reason: '두 번째 매체 없음' };
@@ -157,7 +165,9 @@ const UNKNOWN = /확인되지\s?않|확인할 수 없|확인된 (바|것)(가|�
 // 달러 표기 통일(S2) — "US$1,200"·"$1,200"·"1,200 USD" → "1,200달러". 값은 그대로라 결정적으로 바꿔도 사실이 달라지지 않는다
 export const localizeUsd = (s) => String(s)
   .replace(/(?:US)?\$\s?(\d[\d,]*(?:\.\d+)?)(\s?(?:백만|십억|만|억))?/g, (m, n, sc) => `${n}${(sc ?? '').trim()}달러`)
-  .replace(/(\d[\d,]*(?:\.\d+)?)\s?USD\b/g, '$1달러').replace(/USD\s?\/\s?/g, '달러/').replace(/\bUSD\b/g, '달러');
+  .replace(/(\d[\d,]*(?:\.\d+)?)\s?USD\b/g, '$1달러').replace(/USD\s?\/\s?/g, '달러/').replace(/\bUSD\b/g, '달러')
+  // 영어 무게 단위(2026-11-17 운영 첫 실행 "999,000 mt") — mt는 톤, Mt는 백만 톤(숫자 대조는 원문의 Mt와 맞는다)
+  .replace(/(\d)\s?Mt\b/g, '$1백만 톤').replace(/(\d)\s?(?:mt|tonnes|tons)\b/gi, '$1톤');
 
 const HEDGE = /전망|보인다|예상|가능성|여지|것으로|수 있/;
 const KO = /[가-힣]{2,}/;

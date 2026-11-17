@@ -108,7 +108,13 @@ assert.equal(trustedHost('example-metal.com'), false);
   assert.ok(verifyFound({ ...item, second_url: 'https://other-paper.co.kr/b', second_quote: P[2] }, { pages, today: TODAY }).article);
   assert.ok(verifyFound({ ...item, url: 'https://www.reuters.com/x' }, { pages, today: TODAY }).article);
   assert.match(verifyFound({ ...item, url: 'https://gone.example/x' }, { pages, today: TODAY }).error, /원문 열기 실패/);
+  // 첫 주소가 막히면(로이터 자동 접속 차단 — 운영 첫 실행) 두 번째 매체가 같은 대조를 통과하고 공식·통신사·근거 매체일 때만 받는다
+  const blocked = { ...item, url: 'https://blocked.example/x' };
+  assert.equal(verifyFound({ ...blocked, second_url: 'https://www.reuters.com/x', second_quote: P[2] }, { pages, today: TODAY }).article.url, 'https://www.reuters.com/x');
+  assert.match(verifyFound({ ...blocked, second_url: 'https://other-paper.co.kr/b', second_quote: P[2] }, { pages, today: TODAY }).error, /한 곳 보도/);
+  assert.match(verifyFound({ ...blocked, second_url: 'https://www.reuters.com/x', second_quote: 'Traders said offers rose sharply this week in Tianjin.' }, { pages, today: TODAY }).error, /두 번째 인용문/);
 }
+assert.equal(localizeUsd('수출은 999,000 mt, 세계 생산은 142.4 Mt였다.'), '수출은 999,000톤, 세계 생산은 142.4백만 톤였다.');
 
 // ─── 작성 검증 ───────────────────────────────────────────────────────────────
 const ART = [
