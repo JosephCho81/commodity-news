@@ -152,6 +152,10 @@ const run = (issues, ctx = auditContext({ date: TODAY })) => sanitizeIssues({ is
 assert.equal(run([issue({ relation: 'https://www.reuters.com/x' })]).issues[0].relation, '');
 assert.ok(WRITE_SCHEMA.properties.issues.items.required.includes('relation'));
 assert.ok(!('link' in WRITE_SCHEMA.properties.issues.items.properties));
+{
+  const r = run([issue({ relation: '제련소 감산은 캔·전선에 쓰이는 1차 알루미늄 공급을 줄인다.', reach: '2차 알루미늄 원료 수급으로 번질 수 있다.', outlook: '감산이 3% 넘게 이어질 전망이다.' })]);
+  assert.deepEqual([!!r.issues[0].relation, !!r.issues[0].reach, r.issues[0].outlook], [true, true, '']); // 품목 이름은 숫자가 아니다, 3%는 숫자
+}
 
 // 만·억 단위 수 — 풀어 쓴 값이 인용 문장에 있어야. 원문이 万·亿로 쓴 수는 풀어서 비교, 영어 million을 만으로 바꾼 수는 환산이라 탈락
 {

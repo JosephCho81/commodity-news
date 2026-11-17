@@ -149,8 +149,9 @@ export function smallNumbersBacked(text, cite, articles) {
   return need.every(n => have.has(n));
 }
 
-// 추론 문장의 숫자 — 기간 표현("1~2주", "3개월", "2027년")만 허용
-export const hasNumber = (s) => /\d/.test(String(s).replace(/\d+\s*~\s*\d+\s*주|\d+\s*(주|개월|월|일|분기|년)/g, ''));
+// 추론 문장의 숫자 — 기간 표현("1~2주", "3개월", "2027년")과 품목 이름("1차·2차 알루미늄")만 허용
+// (운영 2회차: "1차 알루미늄의 공급을 줄인다"가 숫자로 걸려 관계·영향 문장이 지워졌다)
+export const hasNumber = (s) => /\d/.test(String(s).replace(/\d+\s*~\s*\d+\s*주|\d+\s*(주|개월|월|일|분기|년)|[12]차\s?(?=알루미늄)/g, ''));
 // "11월 3일 … 앞둔/앞두고/예정" — 그 날이 기준일 전이면 지난 일을 예고처럼 쓴 것(glove-news 2026-11-05 선거)
 const DATED_AHEAD = /(\d{1,2})월\s*(\d{1,2})일[^.]{0,30}?(앞둔|앞두고|예정|열릴|발표될)/g;
 export function pastDateAhead(s, today) {
