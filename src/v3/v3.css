@@ -104,6 +104,7 @@
 /* 이어 읽는 문단 — 숫자만 굵게 */
 .v3 .para { margin: 0; font-size: 14.5px; line-height: 1.75; color: var(--text2); }
 .v3 .para b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.v3 .para .imp-a { margin-right: 5px; vertical-align: 1px; }
 .v3 .causes { display: grid; gap: 12px; }
 .v3 .cause b { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 2px; }
 .v3 .cause p { margin: 0; font-size: 14px; color: var(--text2); }

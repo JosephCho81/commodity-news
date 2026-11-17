@@ -55,8 +55,9 @@ const md = (d?: string) => (d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '');
 
 // 이어 읽는 문단 — 해설은 한 줄 한 문장으로 끊지 않는다(glove-news 2026-11-17 사용자 결정: "단답형으로 보인다"). 숫자는 굵게.
 // 정규식 lookbehind는 구형 iOS Safari에서 구문 오류(앱 전체가 안 뜸)라 쓰지 않는다
+const boldNums = (text: string) => text.split(/(\d[\d,]*(?:\.\d+)?\s?%?)/g).map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part));
 function Para({ text, className = 'para' }: { text: string; className?: string }) {
-  return <p className={className}>{text.split(/(\d[\d,]*(?:\.\d+)?\s?%?)/g).map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part))}</p>;
+  return <p className={className}>{boldNums(text)}</p>;
 }
 
 function readHash() {
@@ -164,7 +165,10 @@ function MarketView({ m, extra }: { m: Market; extra?: any }) {
         </div>
         <div className="cell">
           <h3><i>영향</i>{demand ? '어떤 원자재 수요에' : '어디에, 어떻게'}</h3>
-          {m.impact.length > 0 && <Para text={m.impact.map(x => x.text).join(' ')} />}
+          {/* 이어 읽는 문단으로 두되 분야(원가·입찰 등)는 문장 앞 태그로 남긴다 */}
+          {m.impact.length > 0 && (
+            <p className="para">{m.impact.map((x, i) => <span key={i}>{i > 0 && ' '}{x.area && <span className="tag imp-a">{x.area}</span>}{boldNums(x.text)}</span>)}</p>
+          )}
           {m.metrics.krw && (
             <div className="krw num">
               <div><small>달러 가격 (주간)</small><strong className={`chg ${signClass(m.metrics.krw.price_pct)}`}>{pctText(m.metrics.krw.price_pct)}</strong></div>
