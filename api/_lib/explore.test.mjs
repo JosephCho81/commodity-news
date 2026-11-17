@@ -138,7 +138,7 @@ const run = (issues, ctx = auditContext({ date: TODAY })) => sanitizeIssues({ is
     [{ text: '닝샤 지역 페로실리콘 업체가 이번 주 감산했다.', cite: ['2-1'] }],
     [{ text: '내몽골 에너지국은 전력 사용을 줄이라고 지시했다.', cite: [] }],
   ]) assert.equal(run([issue({ what })]).issues.length, 0, JSON.stringify(what));
-  assert.match(run([issue({ what: [{ text: '내몽골 에너지국은 전력 사용을 40% 줄이라고 지시했다.', cite: ['1-1'] }] })]).dropped.join(' '), /단위 붙은 작은 수/);
+  assert.match(run([issue({ what: [{ text: '내몽골 에너지국은 전력 사용을 40% 줄이라고 지시했다.', cite: ['1-1'] }] })]).dropped.join(' '), /없는 수 40%/);
   // 추론 문장: 숫자·단정·구매 지시·모른다는 문장은 그 문장만 지운다
   const r = run([issue({ relation: '페로실리콘 수요가 30% 늘어난다.', reach: '국내 수입 가격이 오른다.', outlook: '지금 재고를 확보해야 할 것으로 보인다. 영향은 제한적일 전망이다.' })]);
   assert.deepEqual([r.issues[0].relation, r.issues[0].reach, r.issues[0].outlook], ['', '', '영향은 제한적일 전망이다.']);

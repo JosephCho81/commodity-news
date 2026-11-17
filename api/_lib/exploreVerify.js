@@ -5,7 +5,7 @@ import { DOMAINS, extractBody, titleSimilarity } from './evidence.js';
 import { decodeEntities } from './rss-news.js';
 import { pageDate } from './pageDate.js';
 import { allowedNumbers, noCny, numbersOk, unitsOk } from './interpret.js';
-import { citeCheck, resolveCites } from './cite.js';
+import { citeCheck, resolveCites, sourceValues, strictMissing } from './cite.js';
 import { SEV, sentenceIssues, sentencesOf } from './quality.js';
 import { DENY_HOSTS, MARKET_ENUM } from './exploreLenses.js';
 
@@ -101,52 +101,11 @@ export function verifyFound(item, { pages, today, searchDates = {} }) {
 export const dedupeArticles = (arts) => arts.filter((a, i) => !arts.slice(0, i).some(b => b.url === a.url || titleSimilarity(a.title, b.title) >= 0.5));
 
 // ─── 숫자 ───────────────────────────────────────────────────────────────────
-// "1만1000명"·"450만 톤"·"1억4000만 달러" — 기존 숫자 대조(numbersOk·cite)는 "1"·"1000"으로 따로 보아 느슨하게 통과시킨다(glove-news 2026-11-17).
-// 만·억·천이 붙은 수는 풀어 쓴 값이 인용 문장에 그 값으로 적혀 있을 때만 받는다. 원문이 万·亿·만·억으로 쓴 수는 풀어서 비교하고,
-// 영어 million·billion을 만·억으로 바꾼 수(45 million → 4,500만)는 환산이라 받지 않는다(사용자 지시 2026-11-17).
-const UNIT_VAL = { 천: 1e3, 만: 1e4, 억: 1e8, 千: 1e3, 万: 1e4, 亿: 1e8, 萬: 1e4, 億: 1e8 };
-const num = (s) => Number(String(s).replace(/,/g, ''));
-// 문장 속 만·억 단위 수의 값 목록. 이어 붙은 꼴("1억4000만", "1만1000")은 한 수로 합친다
-function unitNumbers(s, units) {
-  const re = new RegExp(`(\\d[\\d,]*(?:\\.\\d+)?)\\s?([${units}])`, 'g');
-  const toks = [...String(s).matchAll(re)].map(m => ({ at: m.index, end: m.index + m[0].length, v: num(m[1]) * UNIT_VAL[m[2]], unit: UNIT_VAL[m[2]] }));
-  const out = [];
-  for (let i = 0; i < toks.length; i++) {
-    let { v, end, unit } = toks[i];
-    while (toks[i + 1] && toks[i + 1].at - end <= 1 && toks[i + 1].unit < unit) { i++; v += toks[i].v; end = toks[i].end; unit = toks[i].unit; }
-    // 끝에 붙은 작은 수("1만1000"의 1000) — 뒤에 또 단위·%·날짜가 오지 않을 때만
-    const tail = /^\s?(\d[\d,]*)(?![\d.]|\s?(?:[천만억千万亿萬億%년월일개곳주차]))/.exec(String(s).slice(end));
-    if (tail && num(tail[1]) < unit) v += num(tail[1]);
-    out.push(String(Math.round(v)));
-  }
-  return out;
-}
-const plainNumbers = (s) => [...String(s).matchAll(/\d{1,3}(?:[.,   ]\d{3})+(?!\d)|\d+/g)].map(m => m[0].replace(/\D/g, ''));
-const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const SCALE_SRC = { 백만: '(?:million|mln|mn|m\\b|mt\\b|百万)', 십억: '(?:billion|bn|bln|十亿)' };
-/** 만·억·천 단위 수와 "백만·십억" 수가 인용 문장에 같은 값·같은 규모로 있나 (순수 함수) */
+// 만·억 단위 수·단위 붙은 1~2자리 수·백만/십억 수의 엄격 대조는 리포트와 같은 함수(cite.strictMissing — citeCheck 안에서도 돈다).
+// 아래는 제목처럼 근거 번호 없이 기사 하나와 대조할 때 쓴다 (순수 함수)
 export function koNumbersBacked(text, cite, articles) {
   const sents = (resolveCites(cite, articles) ?? []).map(r => r.sentence);
-  const need = unitNumbers(text, '천만억');
-  if (need.length) {
-    const have = new Set(sents.flatMap(s => [...plainNumbers(s), ...unitNumbers(s, '천만억千万亿萬億')]));
-    if (!need.every(n => have.has(n))) return false;
-  }
-  // "45백만 톤" — 1~2자리 수는 기존 대조가 보지 않는다. 같은 수가 million·Mt·百万과 함께 인용 문장에 있어야 한다
-  for (const m of String(text).matchAll(/(\d[\d,]*(?:\.\d+)?)\s?(백만|십억)/g)) {
-    const re = new RegExp(`(?<![\\d.])${esc(m[1].replace(/,/g, ''))}\\s?${SCALE_SRC[m[2]]}`, 'i');
-    if (!sents.some(s => re.test(s.replace(/(\d),(?=\d{3})/g, '$1')))) return false;
-  }
-  return true;
-}
-// 단위가 붙은 1~2자리 수("30%", "톤당 80달러") — 기존 대조(cite·numbersOk)는 1~2자리 수를 날짜·개수로 보고 넘긴다. 사실 문장에서는
-// 같은 수가 인용 문장에 있어야 한다(30%를 40%로 바꿔도 통과하던 빈틈, 2026-11-17 테스트에서 확인)
-const norm = (s) => s.replace(/,/g, '').replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-export function smallNumbersBacked(text, cite, articles) {
-  const need = [...String(text).matchAll(/(?<![\d.,])(\d{1,2}(?:\.\d+)?)\s?(%|퍼센트|포인트|달러|원|톤|kg|배럴)/g)].map(m => norm(m[1]));
-  if (!need.length) return true;
-  const have = new Set((resolveCites(cite, articles) ?? []).flatMap(r => (r.sentence.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map(norm)));
-  return need.every(n => have.has(n));
+  return !strictMissing(text, sourceValues(sents), sents).length;
 }
 
 // 추론 문장의 숫자 — 기간 표현("1~2주", "3개월", "2027년")과 품목 이름("1차·2차 알루미늄")만 허용
@@ -210,9 +169,7 @@ export function sanitizeIssues(json, { articles, input, today, ctx }) {
       const what = (it.what ?? []).map(x => ({ text: clean(x?.text), cite: x?.cite ?? [] })).filter(({ text, cite }) => {
         if (!text || !common(text, `${w}.what`)) return false;
         const c = citeCheck(text, cite, { articles, codeNumbers: new Set(), requireCite: true });
-        const why = c.ok === false ? c.reason : !c.articles.includes(Number(it.article)) ? '다른 기사 인용' : !koNumbersBacked(text, cite, articles) ? '만·억·백만 단위 수가 인용 문장에 없음'
-          : !smallNumbersBacked(text, cite, articles) ? '단위 붙은 작은 수가 인용 문장에 없음'
-          : !numbersOk(text, allowed) ? '입력에 없는 숫자' : !unitsOk(text, input) ? '단위 다름' : null;
+        const why = c.ok === false ? c.reason : !c.articles.includes(Number(it.article)) ? '다른 기사 인용' : !numbersOk(text, allowed) ? '입력에 없는 숫자' : !unitsOk(text, input) ? '단위 다름' : null;
         if (why) dropped.push(`${w}.what: ${why} — ${text.slice(0, 70)}`);
         return !why;
       }).map(x => x.text).slice(0, 4);

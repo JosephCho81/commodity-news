@@ -25,6 +25,64 @@ export const normNum = (s) => s.replace(/,/g, '').replace(/\.0+$/, '').replace(/
 // 1~2자리 정수(월·일·분기·개수)는 대조하지 않는다 — numbersOk와 같은 기준
 export const bigNums = (t) => (String(t).match(NUM_RE) ?? []).map(normNum).filter(n => !/^\d{1,2}$/.test(n));
 
+// ─── 엄격 대조(2026-11-17 사용자 지시 "원문과 맞춰") ───────────────────────────
+// 위 bigNums는 1~2자리 정수를 날짜·개수로 보고 넘겨 "30%"를 "40%"로 바꿔도 통과했고, "1만1000"을 1과 1000으로 따로 봐 느슨했다.
+// 아래는 리포트 해설(cite·numbersOk)과 세계 동향이 함께 쓴다.
+// - 단위가 붙은 1~2자리 수(30%, 톤당 80달러)는 같은 수가 원문(인용 문장·코드 숫자 줄·입력)에 있어야 한다
+// - 만·억·천이 붙은 수는 풀어 쓴 값이 원문에 있어야 한다. 원문이 万·亿·만·억으로 쓴 수는 풀어서 비교하고,
+//   영어 million·billion을 만·억으로 바꾼 수(45 million → 4,500만)는 환산이라 받지 않는다
+// - "45백만 톤"·"2.5십억 달러"는 같은 수가 million·Mt·百万·billion과 함께 원문에 있어야 한다
+const UNIT_VAL = { 천: 1e3, 만: 1e4, 억: 1e8, 千: 1e3, 万: 1e4, 亿: 1e8, 萬: 1e4, 億: 1e8 };
+const toNum = (s) => Number(String(s).replace(/,/g, ''));
+// 문장 속 만·억 단위 수의 값 목록. 이어 붙은 꼴("1억4000만", "1만1000")은 한 수로 합친다 (순수 함수)
+export function unitNumbers(s, units = '천만억千万亿萬億') {
+  const re = new RegExp(`(\\d[\\d,]*(?:\\.\\d+)?)\\s?([${units}])`, 'g');
+  const toks = [...String(s).matchAll(re)].map(m => ({ at: m.index, end: m.index + m[0].length, v: toNum(m[1]) * UNIT_VAL[m[2]], unit: UNIT_VAL[m[2]] }));
+  const out = [];
+  for (let i = 0; i < toks.length; i++) {
+    let { v, end, unit } = toks[i];
+    while (toks[i + 1] && toks[i + 1].at - end <= 1 && toks[i + 1].unit < unit) { i++; v += toks[i].v; end = toks[i].end; unit = toks[i].unit; }
+    // 끝에 붙은 작은 수("1만1000"의 1000) — 뒤에 또 단위·%·날짜가 오지 않을 때만
+    const tail = /^\s?(\d[\d,]*)(?![\d.]|\s?(?:[천만억千万亿萬億%년월일개곳주차]))/.exec(String(s).slice(end));
+    if (tail && toNum(tail[1]) < unit) v += toNum(tail[1]);
+    out.push(String(Math.round(v)));
+  }
+  return out;
+}
+// 원문 숫자 값 집합 — 모든 숫자(1~2자리 포함) + "11 000" 꼴 + 万·亿·만·억을 풀어 쓴 값 (순수 함수)
+export function sourceValues(texts) {
+  const out = new Set();
+  for (const s of texts.map(String)) {
+    for (const n of s.match(NUM_RE) ?? []) out.add(normNum(n));
+    for (const m of s.matchAll(/\d{1,3}(?:[   ]\d{3})+(?!\d)/g)) out.add(m[0].replace(/\D/g, ''));
+    for (const v of unitNumbers(s)) out.add(v);
+    // 퍼센트로 쓰인 수는 "30%"로 따로 — 문장의 30%가 원문의 "30일"과 맞아떨어지지 않게
+    for (const m of s.matchAll(/(\d[\d,]*(?:\.\d+)?)\s?(?:%|％|percent|per cent|pct|퍼센트|个百分点)/gi)) out.add(`${normNum(m[1])}%`);
+  }
+  return out;
+}
+const SMALL_UNIT_RE = /(?<![\d.,])(\d{1,2}(?:\.\d+)?)\s?(%|퍼센트|포인트|달러|원|톤|kg|배럴)/g;
+const SCALE_SRC = { 백만: '(?:million|mln|mn|m\\b|mt\\b|百万)', 십억: '(?:billion|bn|bln|十亿)' };
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// 원문 값(values)·원문 글(texts, 백만·십억 규모어 확인용 — 없으면 수만 본다)에 없는 수 목록 (순수 함수)
+export function strictMissing(text, values, texts = null) {
+  const t = String(text);
+  const miss = [];
+  for (const m of t.matchAll(SMALL_UNIT_RE)) {
+    const pct = /^(%|퍼센트)$/.test(m[2]);
+    if (!values.has(pct ? `${normNum(m[1])}%` : normNum(m[1]))) miss.push(m[0]);
+  }
+  for (const v of unitNumbers(t, '천만억')) if (!values.has(v)) miss.push(`${v}(만·억 풀어 쓴 값)`);
+  for (const m of t.matchAll(/(\d[\d,]*(?:\.\d+)?)\s?(백만|십억)/g)) {
+    const n = m[1].replace(/,/g, '');
+    const ok = texts
+      ? texts.some(s => new RegExp(`(?<![\\d.])${esc(n)}\\s?${SCALE_SRC[m[2]]}`, 'i').test(String(s).replace(/(\d),(?=\d{3})/g, '$1')))
+      : values.has(normNum(n));
+    if (!ok) miss.push(m[0]);
+  }
+  return miss;
+}
+
 // 인용 번호 풀이 — 없는 번호가 하나라도 있으면 null
 export function resolveCites(cite, articles, macro = []) {
   const out = [];
@@ -52,13 +110,18 @@ export function citeCheck(text, cite, { articles, macro = [], codeNumbers, requi
     if (requireCite) return { ok: false, reason: '근거 문장 번호 없음' };
     // 근거 없는 문장은 숫자 서술만 — 숫자가 없거나 코드 숫자 줄에 없는 숫자가 있으면 지어낸 서술일 수 있다(2026-10-26 철강 업황 원인)
     if (!nums.length || nums.some(n => !codeNumbers.has(n))) return { ok: false, reason: '근거 문장 번호 없음(코드 숫자를 말하는 문장 아님)' };
+    const strict = strictMissing(text, codeNumbers);
+    if (strict.length) return { ok: false, reason: `코드 숫자에 없는 수 ${strict.join(',')}` };
     return { ok: true, articles: [] };
   }
-  const pool = new Set([...codeNumbers, ...resolved.flatMap(r => bigNums(r.sentence))]);
+  const pool = new Set([...codeNumbers, ...sourceValues(resolved.map(r => r.sentence))]);
   const miss = nums.filter(n => !pool.has(n));
   if (miss.length) return { ok: false, reason: `인용 문장·코드 숫자에 없는 숫자 ${miss.join(',')}` };
+  // 1~2자리 단위 수·만·억 수 — 규모어(백만·십억)는 인용 문장에서 확인한다
+  const strict = strictMissing(text, pool, resolved.map(r => r.sentence));
+  if (strict.length) return { ok: false, reason: `인용 문장·코드 숫자에 없는 수 ${strict.join(',')}` };
   return { ok: true, articles: [...new Set(resolved.map(r => r.article))] };
 }
 
-// 입력에서 코드가 만든 숫자 줄(【근거 기사】 앞)의 숫자
-export const codeNumbersOf = (input) => new Set(bigNums(String(input).split('【근거 기사】')[0]));
+// 입력에서 코드가 만든 숫자 줄(【근거 기사】 앞)의 숫자 — 1~2자리 수까지 모두(엄격 대조에 쓴다)
+export const codeNumbersOf = (input) => sourceValues([String(input).split('【근거 기사】')[0]]);

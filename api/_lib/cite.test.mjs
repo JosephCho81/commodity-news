@@ -1,7 +1,7 @@
 // node api/_lib/cite.test.mjs — 인용 대조(G2)·기사 발행일·실적 기사 판정 회귀 테스트 (npm test)
 import assert from 'node:assert/strict';
 import { articleSentences, numberedBody, macroLines, resolveCites, citeCheck, codeNumbersOf, isResultsArticle } from './cite.js';
-import { sanitizeOutput, allowedNumbers } from './interpret.js';
+import { sanitizeOutput, allowedNumbers, numbersOk } from './interpret.js';
 import { buildMacroSection } from './macro-news.js';
 import { pageDate, truePublished } from './pageDate.js';
 
@@ -39,6 +39,31 @@ assert.equal(citeCheck('FeSi는 880달러다.', [], ctx).ok, true);             
 assert.equal(citeCheck('철강 수요 전망이 약해 투입재 수요가 제한됐다.', [], ctx).ok, false);   // 근거도 숫자도 없음(2026-10-26 철강 업황 원인)
 assert.equal(citeCheck('FeSi는 880달러다.', [], { ...ctx, requireCite: true }).ok, false);    // 기사가 있는 날의 원인은 인용 필수
 assert.equal(citeCheck('하이드로 생산 호조.', ['2'], ctx).ok, true);                          // 기사 번호만 — 기사 전체와 대조
+
+// 엄격 대조(2026-11-17 "원문과 맞춰") — 단위 붙은 1~2자리 수, 퍼센트는 퍼센트끼리, 만·억은 풀어 쓴 값, 백만·십억은 규모어까지
+{
+  const a2 = [{ title: 'x', body: 'Ningxia smelters cut output by 30% this week, idling 12 furnaces for 30 days.\nExports reached 45 million tonnes, worth $2.5 billion.\n宁夏硅铁产能约4500万吨。' }];
+  const c2 = { articles: a2, macro: [], codeNumbers: codeNumbersOf('FeSi 880 달러/톤 | 1주 -0.11% | 원화 환산 +1.05%\n【근거 기사】') };
+  assert.equal(citeCheck('닝샤 제련소가 생산을 30% 줄였다.', ['1-1'], c2).ok, true);
+  assert.equal(citeCheck('닝샤 제련소가 생산을 40% 줄였다.', ['1-1'], c2).ok, false);   // 예전엔 1~2자리라 통과
+  assert.equal(citeCheck('닝샤 제련소가 생산을 12% 줄였다.', ['1-1'], c2).ok, false);   // 12는 있지만 퍼센트가 아니다(용광로 12기)
+  assert.equal(citeCheck('수출은 45백만 톤이었다.', ['1-2'], c2).ok, true);
+  assert.equal(citeCheck('수출은 4,500만 톤이었다.', ['1-2'], c2).ok, false);           // million → 만: 환산
+  assert.equal(citeCheck('수출은 25억 달러어치다.', ['1-2'], c2).ok, false);
+  assert.equal(citeCheck('수출은 54백만 톤이었다.', ['1-2'], c2).ok, false);
+  assert.equal(citeCheck('생산능력은 약 4500만 톤이다.', ['1-3'], c2).ok, true);         // 万 원문
+  assert.equal(citeCheck('FeSi 주간 변동은 -0.11%, 원화 환산은 +1.05%다.', [], c2).ok, true); // 코드 숫자 줄
+  assert.equal(citeCheck('FeSi는 880달러로 주간 11% 올랐다.', [], c2).ok, false);
+}
+// 근거 없는 칸(영향·전망·제목·브리핑)의 numbersOk도 같은 기준 — 입력에 있는 값이어야
+{
+  const al = allowedNumbers('FeSi 880 달러/톤 | 1주 -0.11% | 4분기 대비 2.84%');
+  assert.equal(numbersOk('FeSi는 880달러로 주간 0.11% 내렸다.', al), true);
+  assert.equal(numbersOk('FeSi가 30% 오를 수 있다.', al), false);
+  assert.equal(numbersOk('톤당 50달러 오를 수 있다.', al), false);
+  assert.equal(numbersOk('10월 3일 기준 2개 품목, 1~2주 전망', al), true);   // 날짜·개수·기간은 그대로 허용
+  assert.equal(numbersOk('재고가 1만1000톤 늘었다.', al), false);
+}
 
 // sanitizeOutput + 인용 대조: now {text, cite}, why는 인용 기사로 src를 바로잡는다
 {

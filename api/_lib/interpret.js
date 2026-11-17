@@ -3,7 +3,7 @@
 // 방향은 코드가 정하고, LLM은 그 이유와 의미만 쓴다. 입력에 없는 숫자·위안 표기가 들어간 문장은 버린다.
 
 import { marketMetrics, seriesStats, isHalted } from './market-metrics.js';
-import { citeCheck, codeNumbersOf, isResultsArticle, macroLines, numberedBody } from './cite.js';
+import { citeCheck, codeNumbersOf, isResultsArticle, macroLines, numberedBody, sourceValues, strictMissing } from './cite.js';
 
 export const MARKET_NAMES = { ferro: '합금철', al1: '알루미늄 1차', al2: '알루미늄 2차', recarb: '가탄제', steel: '철강 업황' };
 
@@ -36,7 +36,7 @@ export const INSTRUCTIONS = `당신은 국내 제강사 구매팀이 매일 아�
 
 사실 규칙
 - 가격은 달러 또는 원으로만 쓴다. "위안"·"元"·"CNY"는 쓰지 않는다. 기사에 위안 금액만 있으면 금액 없이 "인하", "인상" 같은 방향으로만 쓴다. 위안이 들어간 문장은 삭제된다.
-- 숫자는 입력에 적힌 값과 단위를 그대로 옮긴다. 반올림·환산·새 계산 금지. 가격 단위는 "달러"로 쓰고("USD" 금지), 무게 단위 t는 "톤"으로 쓴다(예: 톤당 280달러). 입력과 숫자나 단위가 다르면 그 문장은 삭제된다.
+- 숫자는 입력에 적힌 값과 단위를 그대로 옮긴다. 반올림·환산·새 계산 금지. 가격 단위는 "달러"로 쓰고("USD" 금지), 무게 단위 t는 "톤"으로 쓴다(예: 톤당 280달러). 입력과 숫자나 단위가 다르면 그 문장은 삭제된다. 퍼센트·작은 수도 입력 값 그대로 쓰고, 영어 million·billion은 숫자를 바꾸지 말고 "백만"·"십억"으로 옮긴다(45 million tonnes → 45백만 톤, "4,500만 톤"으로 바꾸면 삭제).
 - 휴일·행사 이름은 기사에 나온 대로 쓴다(중국 10월 연휴 = 국경절).
 - 글로벌 와이어 헤드라인의 거시 사안(전쟁·휴전·유가·관세 등)은 근거 기사나 숫자에서 이 시장 가격으로 이어지는 경로가 확인될 때만 원인으로 쓴다. "직접 반영된 흔적이 없다", "영향은 제한적"인 사안은 원인 칸에 넣지 않는다.
 - 원인(why)은 근거 기사·글로벌 와이어 헤드라인에 있는 내용만 쓰고, 근거로 쓴 번호를 src에 반드시 넣는다(헤드라인이 근거면 0). 근거 번호가 없는 원인은 삭제된다. 기사가 하나도 없으면 숫자에서 직접 보이는 것(원가·선물 동반 하락 등)만 쓰고 src는 빈 배열로 둔다.
@@ -184,13 +184,16 @@ export function buildInput(market, metrics, snap, articles, macroSection = '', f
 const NUM_RE = /\d[\d,]*(?:\.\d+)?/g;
 const norm = (s) => s.replace(/,/g, '').replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
 
+// 입력의 모든 숫자 + 퍼센트 수("30%") + 万·亿·만·억을 풀어 쓴 값 (cite.sourceValues)
 export function allowedNumbers(inputText) {
-  return new Set((String(inputText).match(NUM_RE) ?? []).map(norm));
+  return sourceValues([String(inputText)]);
 }
 
-// 1~2자리 정수(월·일·분기·개수)는 허용, 그 밖의 숫자는 입력에 있어야 한다
+// 1~2자리 정수(월·일·분기·개수)는 허용, 그 밖의 숫자는 입력에 있어야 한다.
+// 단, 단위가 붙은 1~2자리 수(30%, 톤당 80달러)와 만·억 단위 수는 입력의 같은 값이어야 한다(cite.strictMissing, 2026-11-17)
 export function numbersOk(text, allowed) {
-  return (String(text).match(NUM_RE) ?? []).map(norm).every(n => (/^\d{1,2}$/.test(n)) || allowed.has(n));
+  return (String(text).match(NUM_RE) ?? []).map(norm).every(n => (/^\d{1,2}$/.test(n)) || allowed.has(n))
+    && !strictMissing(text, allowed).length;
 }
 
 // 위안 표기는 어떤 형태로도 화면에 내지 않는다 (2026-10-03 사용자 지시)
