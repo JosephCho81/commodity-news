@@ -1,5 +1,5 @@
 # commodity-news 현재 상태
-> 최종 업데이트: 2026-11-17 (세계 동향 탐색 45a6928·da520fa 배포, 운영 실측 회당 약 $0.075)
+> 최종 업데이트: 2026-11-17 (세계 동향 탐색 배포·운영 실측 회당 약 $0.075, 리포트 숫자 엄격 대조 b633a3e, 해설 문단형·영향 분야 태그 5d4bbe9)
 
 (주)한국에이원 — 회사 내부와 국내 제강사 구매팀(무료 제공)이 매일 아침 10분 동안 보는 원자재 시황.
 화면 단위는 기사가 아니라 **시장**이다. 시장마다 "지금 어떻게 돌아가나 → 왜 → 어디에 어떻게 영향 → 앞으로"를 숫자와 함께 보여준다.
@@ -29,7 +29,7 @@
    3) 리포트   report.js    — 시장 5개 해석(interpret.js, 동시 2) + 브리핑(공통 요인에 거시 헤드라인)
    4) 품질     gate.js      — 게시 게이트(H 결함 문장 삭제) → 저장 → 남은 시간 45초 이상이면 LLM 검수 1회(judge.js) → 다시 저장
 [하루 2회]   GitHub Actions kr-scrap-archive — 국내 스크랩 고시 이미지 OCR → /api/kr-scrap-archive
-[조회]       / → src/v3/V3App.tsx → /api/get-report(리포트 + world_latest) (s-maxage 600, stale-while-revalidate 3600)
+[조회]       / → src/v3/V3App.tsx(탭: 브리핑 | 세계 동향 | 합금철 | 알루미늄 | 가탄제 | 철강 업황) → /api/get-report(리포트 + world_latest) (s-maxage 600, stale-while-revalidate 3600)
 [점검]       /api/audit?date=YYYY-MM-DD | ?days=N (Bearer CRON_SECRET, 읽기 전용) — 결함 집계·근거 기사·탈락 문장
 ```
 
