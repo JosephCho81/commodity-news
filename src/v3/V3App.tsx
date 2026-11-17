@@ -51,6 +51,8 @@ function dateLabel(d: string) {
   return `${d.replaceAll('-', '.')} (${WEEKDAY[t.getUTCDay()]})`;
 }
 
+const MONTH_EN = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+const engDate = (d: string) => `${+d.slice(8, 10)} ${MONTH_EN[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}`;
 const md = (d?: string) => (d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '');
 
 // 이어 읽는 문단 — 해설은 한 줄 한 문장으로 끊지 않는다(glove-news 2026-11-17 사용자 결정: "단답형으로 보인다"). 숫자는 굵게.
@@ -574,12 +576,24 @@ export default function V3App() {
 
   return (
     <div className="v3">
+      {/* 제호는 스크롤과 함께 올라가고 탭 메뉴만 위에 붙는다(모바일 화면을 덜 가리게) */}
+      <header className="mast">
+        <div className="wrap mast-in">
+          <div className="brand">
+            <img src="/logo.png" alt="한국에이원" />
+            <div><b>원자재 브리핑</b><small>한국에이원 · DAILY MARKET BRIEF</small></div>
+          </div>
+          {r && (
+            <div className="issue">
+              <div className="no num">{dateLabel(r.date)}</div>
+              <div className="t">오늘의 원자재</div>
+              <div className="d">{engDate(r.date)}</div>
+            </div>
+          )}
+        </div>
+      </header>
       <div className="top">
         <div className="wrap">
-          <header className="hdr">
-            <div className="brand"><img src="/logo.png" alt="한국에이원" /><b>한국에이원</b><span>오늘의 원자재</span></div>
-            {r && <div className="date num">{dateLabel(r.date)}</div>}
-          </header>
           <nav role="tablist" aria-label="시장">
             {TABS.map(([id, t]) => <button key={id} role="tab" aria-selected={tab === id} onClick={() => go(id)}>{t}</button>)}
           </nav>

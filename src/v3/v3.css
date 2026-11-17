@@ -21,19 +21,22 @@
 .v3 a { color: inherit; }
 
 /* 헤더 */
-.v3 .top { position: sticky; top: 0; z-index: 10; background: var(--surface); box-shadow: var(--shadow-sm); }
-.v3 .hdr { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; border-bottom: 2px solid var(--navy); }
+/* 제호 — 시안(briefing-sample.html) 그대로: 위 남색 굵은 줄, 왼쪽 로고·이름, 오른쪽 날짜 */
+.v3 .mast { background: var(--surface); border-top: 6px solid var(--navy); }
+.v3 .mast-in { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; padding-block: 20px 16px; }
 .v3 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.v3 .brand img { height: 30px; width: auto; display: block; }
-.v3 .brand b { font-size: 17px; font-weight: 800; color: var(--navy); letter-spacing: -.4px; white-space: nowrap; }
-.v3 .brand span { font-size: 13px; color: var(--text3); white-space: nowrap; }
-.v3 .date { font-size: 12.5px; font-weight: 600; color: var(--text2); white-space: nowrap; }
-.v3 nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
-.v3 nav::-webkit-scrollbar { display: none; }
-.v3 nav button { flex: 0 0 auto; padding: 11px 14px; border: 0; border-bottom: 2px solid transparent; background: none; font: 600 14.5px var(--sans); color: var(--text3); cursor: pointer; margin-bottom: -1px; white-space: nowrap; }
-.v3 nav button:first-child { margin-left: auto; }
-.v3 nav button:last-child { margin-right: auto; }
-.v3 nav button[aria-selected="true"] { color: var(--navy); border-bottom-color: var(--accent); }
+.v3 .brand img { height: 36px; width: auto; display: block; }
+.v3 .brand b { display: block; font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: var(--text); white-space: nowrap; }
+.v3 .brand small { display: block; font-size: 10px; color: var(--text3); letter-spacing: .06em; margin-top: 1px; white-space: nowrap; }
+.v3 .issue { text-align: right; white-space: nowrap; }
+.v3 .issue .no { font-size: 12px; color: var(--navy); font-weight: 700; }
+.v3 .issue .t { font-size: 18px; font-weight: 700; color: #2b2f36; margin-top: 2px; }
+.v3 .issue .d { font-size: 11px; letter-spacing: .14em; color: var(--text3); margin-top: 4px; }
+/* 탭 메뉴 — 칸을 고르게 나눠 가운데 정렬, 고른 탭은 남색 굵게 + 아래 남색 줄 */
+.v3 .top { position: sticky; top: 0; z-index: 10; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.v3 nav { display: flex; }
+.v3 nav button { flex: 1 1 auto; text-align: center; padding: 11px 0; border: 0; background: none; font: 500 14px var(--sans); color: #555; cursor: pointer; white-space: nowrap; }
+.v3 nav button[aria-selected="true"] { color: var(--navy); font-weight: 700; box-shadow: inset 0 -2px 0 var(--navy); }
 .v3 button:focus-visible, .v3 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .v3 main { padding-block: 16px 48px; }
@@ -108,13 +111,17 @@
   .v3 .para { font-size: 13.5px; line-height: 1.7; }
   .v3 .scen div { font-size: 12.5px; }
   .v3 table { font-size: 13px; }
-  .v3 .brand span { display: none; }
-  /* 탭 6개가 360px 폭에서도 한 줄에 다 보이게(가로 스크롤에 마지막 탭이 숨지 않게) */
-  .v3 nav { gap: 0; }
-  .v3 nav button { flex: 1 1 auto; padding: 10px 2px; font-size: 12.5px; letter-spacing: -.3px; }
-  .v3 nav button:first-child, .v3 nav button:last-child { margin-inline: 0; }
+  .v3 .mast-in { padding-block: 14px 12px; }
+  .v3 .brand img { height: 30px; }
+  .v3 .brand b { font-size: 17px; }
+  .v3 .brand small { font-size: 9px; letter-spacing: .03em; }
+  .v3 .issue .no { font-size: 11px; }
+  .v3 .issue .t { font-size: 15px; }
+  .v3 .issue .d { font-size: 10px; letter-spacing: .08em; }
+  /* 탭 6개가 360px 폭에서도 한 줄에 다 보이게 */
+  .v3 nav button { padding: 10px 2px; font-size: 12.5px; letter-spacing: -.3px; }
 }
-@media (prefers-reduced-motion: no-preference) { .v3 nav button { transition: color .15s, border-color .15s; } }
+@media (prefers-reduced-motion: no-preference) { .v3 nav button { transition: color .15s, box-shadow .15s; } }
 
 /* ─── 브리핑(뉴스레터풍, 2026-11-17 시안 승인) ───────────────────────────────
    흰 지면 한 장 위에 섹션을 이어 둔다. 여러 열(숫자·카드)은 높이 고정, 글이 긴 칸(흐름)은 한 열 */
