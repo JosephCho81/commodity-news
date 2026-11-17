@@ -106,6 +106,9 @@ export function heroArt(date: string) {
   return { bg: HERO_BG[i], svg: HERO_ART[i](m === 11 || m <= 1) };
 }
 
+// 세계 동향 탭 배너 — 원료를 실은 벌크선
+export const worldArt = () => ({ bg: HERO_BG[4], svg: HERO_ART[4](false) });
+
 // ─── 품목 띠 그림 ────────────────────────────────────────────────────────────
 export const BAND_COLOR: Record<string, string> = { ferro: '#6e5d52', al1: '#6f84a0', al2: '#3f8a9c', recarb: '#45474f', steel: '#3d5d85' };
 

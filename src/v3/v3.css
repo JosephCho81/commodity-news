@@ -44,12 +44,6 @@
 .v3 .box-h small { font-size: 12px; opacity: .8; }
 .v3 .lbl { font-size: 11.5px; font-weight: 700; color: var(--text3); letter-spacing: .3px; }
 
-/* 오늘의 한 줄 */
-.v3 .lead { padding: 18px 18px 16px; border-left: 4px solid var(--accent); }
-.v3 .lead .lbl { color: var(--accent); }
-.v3 .lead h1 { margin: 4px 0 6px; font-size: 21px; line-height: 1.4; letter-spacing: -.6px; text-wrap: balance; }
-.v3 .lead p { margin: 0; color: var(--text2); font-size: 14.5px; }
-
 .v3 .dir { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
 .v3 .dir.up { color: var(--up); background: var(--up-bg); }
 .v3 .dir.down { color: var(--down); background: var(--down-bg); }
@@ -61,47 +55,18 @@
 .v3 .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
 .v3 .tag { font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 4px; background: var(--navy-light); color: var(--navy); }
 
-/* 시장 */
-.v3 .mkt-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 16px 18px; }
-.v3 .mkt-head h1 { margin: 0; font-size: 22px; letter-spacing: -.6px; }
-.v3 .mkt-head .sp { flex: 1; }
-.v3 .mkt-head p { flex-basis: 100%; margin: 2px 0 0; color: var(--text2); font-size: 15px; font-weight: 600; }
-
-.v3 .nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1px; background: var(--border2); border-top: 1px solid var(--border2); }
-.v3 .n { background: var(--surface); padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.v3 .n-l { font-size: 12px; font-weight: 600; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.v3 .n-v { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.v3 .n-v strong { font-size: 21px; font-weight: 800; letter-spacing: -.5px; }
 .v3 .u { font-size: 12px; color: var(--text3); }
 .v3 .chg { font-size: 13px; font-weight: 700; }
 .v3 .chg.up { color: var(--up); } .v3 .chg.down { color: var(--down); } .v3 .chg.flat { color: var(--flat); }
 .v3 .spark { width: 100%; height: 34px; display: block; }
-.v3 .range { display: grid; gap: 3px; }
-.v3 .range-bar { position: relative; height: 5px; border-radius: 3px; background: var(--border); }
-.v3 .range-dot { position: absolute; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
-.v3 .range-t { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); }
-.v3 .n-src { font-size: 11px; color: var(--text3); }
-
-/* 4칸은 길이가 제각각인 글이라 여러 열로 놓으면 빈 공간이 생긴다 — 항상 한 열 흐름 */
-.v3 .four { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; }
-.v3 .cell { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.v3 .cell h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; }
-.v3 .cell h3 i { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--accent); letter-spacing: .3px; }
 /* 이어 읽는 문단 — 숫자만 굵게 */
 .v3 .para { margin: 0; font-size: 14.5px; line-height: 1.75; color: var(--text2); }
 .v3 .para b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
 .v3 .para .imp-a { margin-right: 5px; vertical-align: 1px; white-space: nowrap; }
-.v3 .causes { display: grid; gap: 12px; }
-.v3 .cause b { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 2px; }
-.v3 .cause p { margin: 0; font-size: 14px; color: var(--text2); }
 .v3 .krw { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; margin-top: 2px; }
 .v3 .krw div { background: var(--surface2); border-radius: 8px; padding: 7px 9px; display: flex; flex-direction: column; }
 .v3 .krw small { font-size: 11px; color: var(--text3); }
 .v3 .krw strong { font-size: 15px; }
-.v3 .watch { display: grid; gap: 8px; }
-.v3 .w { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 8px; font-size: 14px; }
-.v3 .w b { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 11.5px; margin-top: 2px; }
-.v3 .w p { margin: 0; color: var(--text2); }
 .v3 .para.view { color: var(--text); }
 .v3 .scen { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
 .v3 .scen div { border-radius: 8px; padding: 7px 10px; font-size: 13px; }
@@ -135,53 +100,13 @@
 .v3 .calc-row .calc-res { border-color: var(--navy); }
 .v3 .calc p { margin: 0; font-size: 12.5px; color: var(--text2); }
 
-/* 세계 동향 — 신호판은 구조가 같은 숫자 칸이라 여러 열, 사안 카드는 길이가 제각각인 글이라 항상 한 열 */
-.v3 .ws-g { padding: 10px 16px 14px; border-top: 1px solid var(--border2); }
-.v3 .box-h + .ws-g { border-top: 0; }
-.v3 .ws-gh { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 6px; letter-spacing: .3px; }
-.v3 .ws-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-.v3 .ws { background: var(--surface2); border-radius: 8px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.v3 .ws .n-v strong { font-size: 19px; }
-.v3 .ws-c { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.v3 .ws .n-src { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.v3 .iss { gap: 10px; }
-.v3 .iss-m { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
-.v3 .iss-m .dir { font-size: 11.5px; padding: 1px 8px; }
-.v3 .tag.mk { background: var(--accent-light); color: var(--accent); }
-.v3 .iss-d { font-size: 12px; color: var(--text3); }
-.v3 .iss-t { margin: 0; font-size: 17px; line-height: 1.45; letter-spacing: -.3px; }
-.v3 .iss-s { display: grid; gap: 3px; padding-top: 8px; border-top: 1px dashed var(--border); }
-.v3 .iss-s h4 { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--navy); }
-.v3 .rel { display: grid; gap: 1px; background: var(--border2); }
-.v3 .rel-row { display: grid; gap: 4px; padding: 12px 16px; background: var(--surface); border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
-.v3 .rel-row:hover { background: var(--surface2); }
-.v3 .rel-t { font-weight: 700; font-size: 15px; line-height: 1.45; }
-.v3 .rel-x { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.v3 .rel-x b { color: var(--text); }
-
 .v3 .state { padding: 60px 16px; text-align: center; color: var(--text3); }
 .v3 .foot { padding: 18px 0 8px; font-size: 12px; color: var(--text3); display: grid; gap: 4px; text-align: center; }
 
 @media (max-width: 720px) {
   .v3 { font-size: 13.5px; line-height: 1.6; }
-  .v3 .lead { padding: 14px 14px 12px; }
-  .v3 .lead h1 { font-size: 17px; }
-  .v3 .lead p, .v3 .mkt-head p { font-size: 13.5px; }
-  .v3 .mkt-head h1 { font-size: 18px; }
-  .v3 .cell { padding: 12px 14px; gap: 6px; }
-  .v3 .cell h3 { font-size: 14px; }
-  .v3 .cause p, .v3 .cause b, .v3 .w { font-size: 13px; }
   .v3 .para { font-size: 13.5px; line-height: 1.7; }
   .v3 .scen div { font-size: 12.5px; }
-  .v3 .ws-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
-  .v3 .ws-g { padding: 8px 12px 12px; }
-  .v3 .ws .n-v strong { font-size: 16px; }
-  .v3 .iss-t { font-size: 15.5px; }
-  .v3 .rel-row { padding: 10px 14px; }
-  .v3 .rel-t { font-size: 14px; }
-  .v3 .rel-x { font-size: 13px; }
-  .v3 .n { padding: 10px 14px; }
-  .v3 .n-v strong { font-size: 18px; }
   .v3 table { font-size: 13px; }
   .v3 .brand span { display: none; }
   /* 탭 6개가 360px 폭에서도 한 줄에 다 보이게(가로 스크롤에 마지막 탭이 숨지 않게) */
@@ -303,4 +228,101 @@
   .v3 .nl-sig b { font-size: 12.5px; }
   .v3 .nl-sv { font-size: 14px; }
   .v3 .nl-cal { padding: 16px 0 0; }
+}
+
+/* ─── 품목·세계 동향 탭(뉴스레터풍, 2026-11-17 시안 승인) ────────────────────
+   상단 배너는 두 탭 모두 같은 높이. 해설은 상자 없이 구분선으로 잇는 한 열 */
+.v3 .nl > .subtabs { margin: 16px 0 0; }
+.v3 .nl .subtabs button { padding: 7px 22px; border-radius: 7px; font: 700 14px var(--sans); text-align: center; }
+.v3 .nl .subtabs button[aria-selected="false"] { color: var(--text3); }
+.v3 .nl .sub2 button { padding: 6px 18px; font-size: 13.5px; }
+.v3 .nl > .subtabs + .subtabs { margin-top: 8px; }
+.v3 .nl > .subtabs:last-of-type { margin-bottom: 16px; }
+.v3 .nl .tb .nl-kick { opacity: .85; }
+.v3 .nl .box { border: 0; border-radius: 0; margin: 0 28px; }
+.v3 .nl .box-h { background: none; color: var(--text); padding: 0; margin: 26px 0 12px; }
+.v3 .nl .box-h h2 { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+.v3 .nl .box-h small { color: var(--text4); opacity: 1; }
+.v3 .nl .box .tbl-wrap { border: 1px solid var(--border); border-radius: 10px; }
+.v3 .nl .box .calc { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+.v3 .nl .box.state { margin: 0; }
+@media (max-width: 720px) { .v3 .nl .box { margin: 0 16px; } }
+.v3 b.up { color: var(--up); } .v3 b.down { color: var(--down); } .v3 b.flat { color: var(--flat); }
+
+/* 품목 배너 — 브리핑 띠를 키운 모양 */
+.v3 .tb { position: relative; min-height: 150px; display: flex; align-items: center; color: #fff; overflow: hidden; }
+.v3 .tb-t { position: relative; z-index: 2; padding: 24px 30px; max-width: 64%; }
+.v3 .tb h1 { margin: 8px 0 12px; font-size: 23px; line-height: 1.35; font-weight: 800; letter-spacing: -.03em; text-wrap: balance; }
+.v3 .tb-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.v3 .tb-chips .nl-chip { margin: 0; }
+.v3 .tb-d { font-size: 14px; font-weight: 600; opacity: .9; }
+.v3 .tb-q { font-size: 11.5px; font-weight: 600; color: var(--text2); background: rgba(255,255,255,.94); border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
+.v3 .tb-art { position: absolute; right: 0; top: 0; height: 100%; z-index: 1; }
+.v3 .tb-art svg { height: 100%; width: auto; display: block; }
+
+/* 숫자 칸 — 구조가 같아 높이 고정 */
+.v3 .mt-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.v3 .mt { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px 10px; height: 172px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.v3 .mt .nl-v .chg { margin-left: 8px; font-size: 13px; letter-spacing: 0; }
+.v3 .mt .spark { width: 100%; height: 30px; display: block; margin-top: auto; }
+.v3 .rg { display: grid; gap: 3px; }
+.v3 .rg-bar { position: relative; height: 5px; border-radius: 3px; background: var(--border); }
+.v3 .rg-bar i { position: absolute; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: var(--accent); border: 2px solid #fff; }
+.v3 .rg-t { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.v3 .mt-src { font-size: 11px; color: var(--text3); }
+
+/* 해설 — 상자 대신 구분선으로 잇는 기사형 한 열 */
+.v3 .art { margin-top: 10px; }
+.v3 .ar { padding: 20px 0; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+.v3 .ar-l { font-size: 17px; font-weight: 800; letter-spacing: -.02em; display: flex; align-items: baseline; gap: 8px; }
+.v3 .ar-l i { font-style: normal; font-size: 12px; font-weight: 700; color: #fff; background: var(--navy); border-radius: 4px; padding: 1px 7px; letter-spacing: .02em; }
+.v3 .ar .tag { margin-right: 2px; vertical-align: 1px; white-space: nowrap; }
+.v3 .cz { display: grid; gap: 2px; }
+.v3 .cz-rg { font-size: 12.5px; font-weight: 700; color: var(--navy); }
+.v3 .cz b { font-size: 15px; }
+.v3 .art .krw b { font-size: 15px; }
+.v3 .wt { margin: 0; padding: 0; list-style: none; counter-reset: w; display: grid; gap: 6px; }
+.v3 .wt li { counter-increment: w; display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 8px; font-size: 14px; color: var(--text2); }
+.v3 .wt li::before { content: counter(w); display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 11.5px; font-weight: 700; margin-top: 2px; }
+
+/* 세계 동향 */
+.v3 .sg-h { display: flex; align-items: center; gap: 6px; margin: 14px 0 8px; font-size: 13.5px; }
+.v3 .sg-h svg { width: 22px; height: 22px; }
+.v3 .sg { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.v3 .sg-t { background: var(--surface2); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.v3 .sg-v { font-size: 19px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.v3 .sg-v small { font-size: 12px; font-weight: 600; color: var(--text3); margin-left: 3px; }
+.v3 .sg-c { font-size: 12px; color: var(--text3); }
+.v3 .sg-c .chg { font-size: 12px; }
+.v3 .sg-t .mt-src { margin-top: auto; padding-top: 4px; }
+.v3 .is { padding: 22px 0; border-top: 1px solid var(--border); display: grid; gap: 10px; }
+.v3 .is:first-of-type { border-top: 0; padding-top: 4px; }
+.v3 .is-h { display: grid; grid-template-columns: 132px minmax(0,1fr); gap: 16px; align-items: center; }
+.v3 .is-th { border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--border); }
+.v3 .is-th svg { width: 100%; height: 100%; display: block; }
+.v3 .is-m { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.v3 .is-m .nl-eff { position: static; border: 1px solid var(--border); }
+.v3 .nl-rg.l { text-align: left; margin-top: 6px; }
+.v3 .is h2 { margin: 0; font-size: 19px; line-height: 1.4; letter-spacing: -.03em; }
+.v3 .is-d { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.v3 .is-s { display: grid; gap: 3px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.v3 .is-s h4 { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--navy); }
+
+@media (max-width: 720px) {
+    .v3 .tb { min-height: 128px; }
+  .v3 .tb-t { padding: 18px 16px; max-width: 76%; }
+  .v3 .tb h1 { font-size: 17px; margin: 6px 0 10px; }
+  .v3 .tb-d { font-size: 12.5px; }
+  .v3 .tb-art { right: -60px; }
+  .v3 .mt-tiles { grid-template-columns: minmax(0,1fr); gap: 8px; }
+  .v3 .mt { height: 164px; }
+  .v3 .ar { padding: 16px 0; }
+  .v3 .ar-l { font-size: 15.5px; }
+  .v3 .cz b { font-size: 14px; }
+  .v3 .wt li { font-size: 13px; }
+  .v3 .sg { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+  .v3 .sg-t { padding: 9px 10px; }
+  .v3 .sg-v { font-size: 16px; }
+  .v3 .is-h { grid-template-columns: 92px minmax(0,1fr); gap: 12px; align-items: start; }
+  .v3 .is h2 { font-size: 15.5px; }
 }
